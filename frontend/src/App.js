@@ -46,6 +46,11 @@ const InventorySystem = () => {
   const [transactionHistory, setTransactionHistory] = useState([]);
   const [dashboardStats, setDashboardStats] = useState({});
 
+  // Easter Egg State
+  const [logoClickCount, setLogoClickCount] = useState(0);
+  const [firstClickTime, setFirstClickTime] = useState(null);
+  const [showEasterEgg, setShowEasterEgg] = useState(false);
+
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
   // API helper function
@@ -297,6 +302,64 @@ const InventorySystem = () => {
     setSelectedPart(part);
   };
 
+  // Easter Egg Function
+  const handleLogoClick = () => {
+    const now = Date.now();
+    
+    if (logoClickCount === 0) {
+      setFirstClickTime(now);
+      setLogoClickCount(1);
+    } else {
+      const timeDiff = now - firstClickTime;
+      
+      if (timeDiff <= 5000) { // 5 seconds
+        if (logoClickCount + 1 >= 6) {
+          setShowEasterEgg(true);
+          setLogoClickCount(0);
+          setFirstClickTime(null);
+        } else {
+          setLogoClickCount(logoClickCount + 1);
+        }
+      } else {
+        // Reset if more than 5 seconds have passed
+        setFirstClickTime(now);
+        setLogoClickCount(1);
+      }
+    }
+  };
+
+  // Get shelf image filename from shelf location
+  const getShelfImageFilename = (shelfLocation) => {
+    if (!shelfLocation) return null;
+    
+    // Handle West Rack
+    if (shelfLocation.includes('West Rack')) {
+      const shelfNumber = shelfLocation.match(/Shelf (\d+)/);
+      if (shelfNumber && shelfNumber[1]) {
+        const shelfNum = shelfNumber[1];
+        return `shelfs/West_Rack_${shelfNum}.JPG`;
+      }
+    }
+    
+    // Handle North Rack (if images exist in future)
+    if (shelfLocation.includes('North Rack')) {
+      const shelfNumber = shelfLocation.match(/Shelf (\d+)/);
+      if (shelfNumber && shelfNumber[1]) {
+        return `shelfs/North_Rack_${shelfNumber[1]}.JPG`;
+      }
+    }
+    
+    // Handle South Rack (if images exist in future)  
+    if (shelfLocation.includes('South Rack')) {
+      const shelfNumber = shelfLocation.match(/Shelf (\d+)/);
+      if (shelfNumber && shelfNumber[1]) {
+        return `shelfs/South_Rack_${shelfNumber[1]}.JPG`;
+      }
+    }
+    
+    return null;
+  };
+
   const handleCheckout = async (notes = '') => {
     if (!selectedPart || !currentUser) return;
 
@@ -498,6 +561,31 @@ const InventorySystem = () => {
     );
   };
 
+  // Easter Egg Modal
+  const EasterEggModal = () => {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-md mx-4 text-center">
+          <div className="mb-6">
+            <div className="text-6xl mb-4">🚛</div>
+            <h3 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+              ADAMS 2025
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              You found the easter egg!
+            </p>
+          </div>
+          <button
+            onClick={() => setShowEasterEgg(false)}
+            className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   // Add Part Modal
   const AddPartModal = () => {
     const [formData, setFormData] = useState({
@@ -526,43 +614,61 @@ const InventorySystem = () => {
 
     const categories = ['Engine Parts', 'Brake System', 'Transmission', 'Electrical', 'Fuel System', 'Cooling System', 'Steering', 'Body Parts'];
 
+    const shelfLocations = [
+      // West Rack (all shelves 1-12)
+      'West Rack - Shelf 1', 'West Rack - Shelf 2', 'West Rack - Shelf 3', 'West Rack - Shelf 4', 
+      'West Rack - Shelf 5', 'West Rack - Shelf 6', 'West Rack - Shelf 7', 'West Rack - Shelf 8', 
+      'West Rack - Shelf 9', 'West Rack - Shelf 10', 'West Rack - Shelf 11', 'West Rack - Shelf 12',
+      // North Rack  
+      'North Rack - Shelf 1', 'North Rack - Shelf 2', 'North Rack - Shelf 3', 'North Rack - Shelf 4',
+      'North Rack - Shelf 5', 'North Rack - Shelf 6', 'North Rack - Shelf 8', 'North Rack - Shelf 9',
+      // South Rack
+      'South Rack - Shelf 1', 'South Rack - Shelf 2', 'South Rack - Shelf 3', 'South Rack - Shelf 4',
+      'South Rack - Shelf 5', 'South Rack - Shelf 6', 'South Rack - Shelf 8', 'South Rack - Shelf 9',
+      'South Rack - Shelf 10', 'South Rack - Shelf 11', 'South Rack - Shelf 12', 'South Rack - Shelf 13',
+      'South Rack - Shelf 14', 'South Rack - Shelf 15'
+    ];
+
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto">
-          <h3 className="text-lg font-semibold mb-4">Add New Part</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto">
+          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Add New Part</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Part Number*</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Part Number*</label>
               <input
                 type="text"
                 required
                 value={formData.partNumber}
                 onChange={(e) => setFormData({...formData, partNumber: e.target.value})}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 placeholder="e.g., T800-001"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description*</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description*</label>
               <input
                 type="text"
                 required
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 placeholder="e.g., Engine Oil Filter"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Shelf Location*</label>
-              <input
-                type="text"
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Shelf Location*</label>
+              <select
                 required
                 value={formData.shelf}
                 onChange={(e) => setFormData({...formData, shelf: e.target.value})}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                placeholder="e.g., A-01"
-              />
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              >
+                <option value="">Select Shelf Location</option>
+                {shelfLocations.map(location => (
+                  <option key={location} value={location}>{location}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Category*</label>
@@ -657,40 +763,59 @@ const InventorySystem = () => {
 
     const categories = ['Engine Parts', 'Brake System', 'Transmission', 'Electrical', 'Fuel System', 'Cooling System', 'Steering', 'Body Parts'];
 
+    const shelfLocations = [
+      // West Rack (all shelves 1-12)
+      'West Rack - Shelf 1', 'West Rack - Shelf 2', 'West Rack - Shelf 3', 'West Rack - Shelf 4', 
+      'West Rack - Shelf 5', 'West Rack - Shelf 6', 'West Rack - Shelf 7', 'West Rack - Shelf 8', 
+      'West Rack - Shelf 9', 'West Rack - Shelf 10', 'West Rack - Shelf 11', 'West Rack - Shelf 12',
+      // North Rack  
+      'North Rack - Shelf 1', 'North Rack - Shelf 2', 'North Rack - Shelf 3', 'North Rack - Shelf 4',
+      'North Rack - Shelf 5', 'North Rack - Shelf 6', 'North Rack - Shelf 8', 'North Rack - Shelf 9',
+      // South Rack
+      'South Rack - Shelf 1', 'South Rack - Shelf 2', 'South Rack - Shelf 3', 'South Rack - Shelf 4',
+      'South Rack - Shelf 5', 'South Rack - Shelf 6', 'South Rack - Shelf 8', 'South Rack - Shelf 9',
+      'South Rack - Shelf 10', 'South Rack - Shelf 11', 'South Rack - Shelf 12', 'South Rack - Shelf 13',
+      'South Rack - Shelf 14', 'South Rack - Shelf 15'
+    ];
+
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto">
-          <h3 className="text-lg font-semibold mb-4">Edit Part</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto">
+          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Edit Part</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Part Number*</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Part Number*</label>
               <input
                 type="text"
                 required
                 value={formData.partNumber}
                 onChange={(e) => setFormData({...formData, partNumber: e.target.value})}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-red-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description*</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description*</label>
               <input
                 type="text"
                 required
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-red-500"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Shelf Location*</label>
-              <input
-                type="text"
+              <select
                 required
                 value={formData.shelf}
                 onChange={(e) => setFormData({...formData, shelf: e.target.value})}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-              />
+              >
+                <option value="">Select Shelf Location</option>
+                {shelfLocations.map(location => (
+                  <option key={location} value={location}>{location}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Category*</label>
@@ -1556,7 +1681,12 @@ const InventorySystem = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <img src="/WKI_INV.png" alt="WKI Logo" className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32" />
+              <img 
+                src="/WKI_INV.png" 
+                alt="WKI Logo" 
+                className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 cursor-pointer" 
+                onClick={handleLogoClick}
+              />
               <div className="hidden sm:block">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">WKI Tool Room</h1>
                 <p className="text-red-100 text-sm lg:text-base">Inventory Management System</p>
@@ -1615,20 +1745,6 @@ const InventorySystem = () => {
                   <div className="flex items-center space-x-2">
                     <History className="w-4 h-4 lg:w-5 lg:h-5" />
                     <span className="hidden lg:inline">History</span>
-                  </div>
-                </button>
-                
-                <button
-                  onClick={() => setActiveView('dashboard')}
-                  className={`px-3 lg:px-4 py-2 rounded-lg transition-colors ${
-                    activeView === 'dashboard' 
-                      ? 'bg-white text-red-700 font-medium' 
-                      : 'text-red-100 hover:bg-red-600 hover:text-white'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2">
-                    <Truck className="w-4 h-4 lg:w-5 lg:h-5" />
-                    <span className="hidden lg:inline">Dashboard</span>
                   </div>
                 </button>
                 
@@ -1849,6 +1965,43 @@ const InventorySystem = () => {
                         Located on Shelf: {selectedPart.shelf}
                       </span>
                     </div>
+                    
+                    {/* Shelf Image */}
+                    {getShelfImageFilename(selectedPart.shelf) && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Shelf Location Photo:</h4>
+                        <div 
+                          className="relative cursor-pointer group w-full"
+                          onClick={() => {
+                            setSelectedImage({
+                              filename: getShelfImageFilename(selectedPart.shelf),
+                              title: `${selectedPart.shelf} Photo`
+                            });
+                            setShowImageModal(true);
+                          }}
+                        >
+                          <img
+                            src={`/${getShelfImageFilename(selectedPart.shelf)}`}
+                            alt={`${selectedPart.shelf} Photo`}
+                            className="w-full h-48 object-cover rounded-lg shadow-md transition-transform duration-200 group-hover:scale-105"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <div className="bg-white bg-opacity-90 rounded-full p-2">
+                                <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                </svg>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Click to enlarge</p>
+                      </div>
+                    )}
+                    
                     <div className="flex items-center mt-2">
                       <Package className="w-5 h-5 mr-2 text-gray-500" />
                       <span>Quantity Available: {selectedPart.quantity}</span>
@@ -1910,17 +2063,56 @@ const InventorySystem = () => {
                     </div>
                   </div>
 
-                  {/* Shelf Image */}
+                  {/* Shelf Location Reference */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
                       Shelf Location
                     </h3>
-                    <div className="border rounded-lg overflow-hidden bg-gray-200 aspect-video flex items-center justify-center">
-                      <div className="text-center">
-                        <Package className="w-16 h-16 mx-auto mb-3 text-gray-400" />
-                        <p className="text-gray-500 font-medium">Shelf {selectedPart.shelf}</p>
-                        <p className="text-sm text-gray-400">Photo Coming Soon</p>
-                      </div>
+                    <div className="border rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-video flex items-center justify-center">
+                      {getShelfImageFilename(selectedPart.shelf) ? (
+                        <div 
+                          className="relative cursor-pointer group w-full h-full"
+                          onClick={() => {
+                            setSelectedImage({
+                              filename: getShelfImageFilename(selectedPart.shelf),
+                              title: `${selectedPart.shelf} Photo`
+                            });
+                            setShowImageModal(true);
+                          }}
+                        >
+                          <img
+                            src={`/${getShelfImageFilename(selectedPart.shelf)}`}
+                            alt={`${selectedPart.shelf} Photo`}
+                            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <div className="bg-white bg-opacity-90 rounded-full p-2">
+                                <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                </svg>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="hidden w-full h-full items-center justify-center">
+                            <div className="text-center">
+                              <Package className="w-16 h-16 mx-auto mb-3 text-gray-400" />
+                              <p className="text-gray-500 dark:text-gray-400 font-medium">Shelf {selectedPart.shelf}</p>
+                              <p className="text-sm text-gray-400 dark:text-gray-500">Photo Not Available</p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <Package className="w-16 h-16 mx-auto mb-3 text-gray-400" />
+                          <p className="text-gray-500 dark:text-gray-400 font-medium">Shelf {selectedPart.shelf}</p>
+                          <p className="text-sm text-gray-400 dark:text-gray-500">Photo Not Available</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1937,7 +2129,7 @@ const InventorySystem = () => {
               )}
             </div>
           </div>
-        ) : activeView === 'transactions' ? (
+        ) : activeView === 'history' ? (
           <TransactionList />
         ) : activeView === 'layout' ? (
           <LayoutReferenceView />
@@ -2001,6 +2193,7 @@ const InventorySystem = () => {
       {showEditShelfModal && <EditShelfModal />}
       {showDeleteShelfConfirm && <DeleteShelfConfirmModal />}
       {showPinModal && <PinModal />}
+      {showEasterEgg && <EasterEggModal />}
       <ImageModal />
     </div>
   );

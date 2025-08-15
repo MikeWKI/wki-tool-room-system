@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, Sun, Moon, Package, History, Settings, MapPin, BarChart3 } from 'lucide-react';
+import { Menu, X, Sun, Moon, Package, History, Settings, MapPin } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 const MobileNavigation = ({ activeView, setActiveView, isManageUnlocked, onManageClick }) => {
@@ -9,7 +9,6 @@ const MobileNavigation = ({ activeView, setActiveView, isManageUnlocked, onManag
   const navigationItems = [
     { id: 'inventory', label: 'Inventory', icon: Package },
     { id: 'history', label: 'History', icon: History },
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'layout', label: 'Layout', icon: MapPin },
   ];
 
