@@ -19,7 +19,10 @@ const limiter = rateLimit({
 app.use(helmet());
 app.use(limiter);
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: [
+    'http://localhost:3000',
+    'https://wki-tool-room-system.onrender.com'
+  ],
   credentials: true
 }));
 app.use(express.json());
