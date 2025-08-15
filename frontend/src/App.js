@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Search, Package, MapPin, Truck, User, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, Save, X, Settings, Camera } from 'lucide-react';
+import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings } from 'lucide-react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import MobileNavigation from './components/MobileNavigation';
 import ThemeToggle from './components/ThemeToggle';
-import ResponsiveInventoryGrid from './components/ResponsiveInventoryGrid';
 
 const InventorySystem = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,7 +50,7 @@ const InventorySystem = () => {
   const [firstClickTime, setFirstClickTime] = useState(null);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://wki-tool-room-system-1.onrender.com/api';
 
   // API helper function
   const apiCall = useCallback(async (endpoint, options = {}) => {
