@@ -2,7 +2,9 @@
 const config = {
   development: {
     api: {
-      baseUrl: 'http://localhost:3001/api',
+      baseUrl: process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' 
+        ? 'https://wki-tool-room-system-1.onrender.com/api'
+        : 'http://localhost:3001/api'),
       timeout: 10000,
       retries: 3,
     },
@@ -44,7 +46,7 @@ const config = {
   },
   test: {
     api: {
-      baseUrl: 'http://localhost:3001/api',
+      baseUrl: process.env.REACT_APP_API_URL || 'http://localhost:3001/api',
       timeout: 5000,
       retries: 1,
     },

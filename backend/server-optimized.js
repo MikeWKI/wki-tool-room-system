@@ -94,9 +94,10 @@ app.use('/api', generalLimiter);
 app.use(cors({
   origin: function (origin, callback) {
     const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
       process.env.FRONTEND_URL,
+      process.env.CORS_ORIGIN || 'https://wki-tool-room-system.onrender.com',
+      // Only include localhost in development
+      ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:3000', 'http://localhost:3001'] : [])
     ].filter(Boolean);
     
     if (!origin || allowedOrigins.includes(origin)) {
@@ -609,13 +610,17 @@ process.on('SIGINT', () => {
 
 // Start server
 app.listen(PORT, () => {
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? `https://wki-tool-room-system-1.onrender.com` 
+    : `http://localhost:${PORT}`;
+
   console.log(`
 🚀 WKI Tool Room Inventory API Server Started
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📍 Environment: ${process.env.NODE_ENV || 'development'}
-🌐 Server: http://localhost:${PORT}
-🏥 Health: http://localhost:${PORT}/api/health
-📚 API Base: http://localhost:${PORT}/api
+🌐 Server: ${baseUrl}
+🏥 Health: ${baseUrl}/api/health
+📚 API Base: ${baseUrl}/api
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   `);
 });

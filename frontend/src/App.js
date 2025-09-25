@@ -50,7 +50,10 @@ const InventorySystem = () => {
   const [firstClickTime, setFirstClickTime] = useState(null);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://wki-tool-room-system-1.onrender.com/api';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 
+    (process.env.NODE_ENV === 'production' 
+      ? 'https://wki-tool-room-system-1.onrender.com/api'
+      : 'http://localhost:3001/api');
 
   // API helper function
   const apiCall = useCallback(async (endpoint, options = {}) => {

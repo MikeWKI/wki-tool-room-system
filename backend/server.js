@@ -20,9 +20,9 @@ app.use(helmet());
 app.use(limiter);
 app.use(cors({
   origin: [
-    'http://localhost:3000',
-    'https://wki-tool-room-system.onrender.com'
-  ],
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    process.env.CORS_ORIGIN || 'https://wki-tool-room-system.onrender.com'
+  ].filter(Boolean),
   credentials: true
 }));
 app.use(express.json());
@@ -678,10 +678,14 @@ app.use('*', (req, res) => {
 async function startServer() {
   await initializeDatabase();
   
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? `https://wki-tool-room-system-1.onrender.com` 
+    : `http://localhost:${PORT}`;
+
   app.listen(PORT, () => {
     console.log(`WKI Tool Room API Server running on port ${PORT}`);
-    console.log(`Health check: http://localhost:${PORT}/api/health`);
-    console.log(`API endpoints available at: http://localhost:${PORT}/api/`);
+    console.log(`Health check: ${baseUrl}/api/health`);
+    console.log(`API endpoints available at: ${baseUrl}/api/`);
   });
 }
 

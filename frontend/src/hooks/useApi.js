@@ -1,6 +1,9 @@
 import { useState, useCallback, useRef } from 'react';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://wki-tool-room-system-1.onrender.com/api'
+    : 'http://localhost:3001/api');
 
 // Cache implementation
 class ApiCache {
