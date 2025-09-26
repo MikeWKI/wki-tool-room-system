@@ -2426,21 +2426,21 @@ const InventorySystem = () => {
                     </div>
                     
                     {/* Shelf Image */}
-                    {getShelfImageFilename(selectedPart.shelf) && (
+                    {getShelfImagePath(selectedPart.shelf, selectedPart.rack) && (
                       <div className="mt-4">
                         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Shelf Location Photo:</h4>
                         <div 
                           className="relative cursor-pointer group w-full"
                           onClick={() => {
                             setSelectedImage({
-                              filename: getShelfImageFilename(selectedPart.shelf),
+                              filename: getShelfImagePath(selectedPart.shelf, selectedPart.rack),
                               title: `${selectedPart.shelf} Photo`
                             });
                             setShowImageModal(true);
                           }}
                         >
                           <img
-                            src={`/${getShelfImageFilename(selectedPart.shelf)}`}
+                            src={`/${getShelfImagePath(selectedPart.shelf, selectedPart.rack)}`}
                             alt={`${selectedPart.shelf} Photo`}
                             className="w-full h-48 object-cover rounded-lg shadow-md transition-transform duration-200 group-hover:scale-105"
                             onError={(e) => {
@@ -2528,19 +2528,19 @@ const InventorySystem = () => {
                       Shelf Location
                     </h3>
                     <div className="border rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-video flex items-center justify-center">
-                      {getShelfImageFilename(selectedPart.shelf) ? (
+                      {getShelfImagePath(selectedPart.shelf, selectedPart.rack) ? (
                         <div 
                           className="relative cursor-pointer group w-full h-full"
                           onClick={() => {
                             setSelectedImage({
-                              filename: getShelfImageFilename(selectedPart.shelf),
+                              filename: getShelfImagePath(selectedPart.shelf, selectedPart.rack),
                               title: `${selectedPart.shelf} Photo`
                             });
                             setShowImageModal(true);
                           }}
                         >
                           <img
-                            src={`/${getShelfImageFilename(selectedPart.shelf)}`}
+                            src={`/${getShelfImagePath(selectedPart.shelf, selectedPart.rack)}`}
                             alt={`${selectedPart.shelf} Photo`}
                             className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                             onError={(e) => {
