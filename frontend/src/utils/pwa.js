@@ -192,8 +192,8 @@ class PWAManager {
 
   trackInstallation() {
     // Analytics tracking for app installation
-    if (typeof gtag !== 'undefined') {
-      gtag('event', 'pwa_install', {
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', 'pwa_install', {
         event_category: 'PWA',
         event_label: 'App Installation'
       });
