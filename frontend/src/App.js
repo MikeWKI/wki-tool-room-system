@@ -2302,9 +2302,9 @@ const InventorySystem = () => {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         {activeView === 'inventory' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="flex flex-col lg:flex-row gap-8 min-h-[600px]">
             {/* Parts List Panel */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 flex-1 flex flex-col">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Parts Inventory</h2>
               
               {/* Loading indicator */}
@@ -2316,7 +2316,7 @@ const InventorySystem = () => {
               )}
 
               {/* Parts List */}
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-3 flex-1 overflow-y-auto">
                 {filteredInventory.length === 0 && !loading ? (
                   <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                     <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -2410,7 +2410,7 @@ const InventorySystem = () => {
             </div>
 
             {/* Part Details and Actions Panel */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 flex-1 flex flex-col">
               {selectedPart ? (
                 <div>
                   <div className="border-b border-gray-200 pb-4 mb-6">
