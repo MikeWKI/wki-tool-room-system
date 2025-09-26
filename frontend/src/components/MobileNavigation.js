@@ -1,10 +1,29 @@
-import React, { useState } from 'react';
-import { Menu, X, Sun, Moon, Package, History, Settings, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Menu, X, Sun, Moon, Package, History, Settings, MapPin, Download, Share } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 const MobileNavigation = ({ activeView, setActiveView, isManageUnlocked, onManageClick }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showInstallOption, setShowInstallOption] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
   const { isDark, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    // Check if app can be installed
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setShowInstallOption(true);
+    };
+
+    // Check if already installed
+    setIsInstalled(window.matchMedia('(display-mode: standalone)').matches);
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
 
   const navigationItems = [
     { id: 'inventory', label: 'Inventory', icon: Package },
@@ -17,6 +36,28 @@ const MobileNavigation = ({ activeView, setActiveView, isManageUnlocked, onManag
       onManageClick();
     } else {
       setActiveView(viewId);
+    }
+    setIsOpen(false);
+  };
+
+  const handleInstallClick = async () => {
+    if (window.pwaManager) {
+      const installed = await window.pwaManager.showInstallPrompt();
+      if (installed) {
+        setShowInstallOption(false);
+        setIsInstalled(true);
+      }
+    }
+    setIsOpen(false);
+  };
+
+  const handleShareClick = async () => {
+    if (window.pwaManager) {
+      await window.pwaManager.shareContent({
+        title: 'WKI Tool Room Inventory System',
+        text: 'Professional inventory management system',
+        url: window.location.origin
+      });
     }
     setIsOpen(false);
   };
@@ -105,6 +146,30 @@ const MobileNavigation = ({ activeView, setActiveView, isManageUnlocked, onManag
                     </span>
                   )}
                 </button>
+
+                {/* PWA Options */}
+                <div className="mt-2 space-y-2">
+                  {showInstallOption && !isInstalled && (
+                    <button
+                      onClick={handleInstallClick}
+                      className="w-full flex items-center space-x-3 p-3 rounded-lg text-left transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <Download className="w-5 h-5" />
+                      <span className="font-medium">Install App</span>
+                      <span className="ml-auto text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-1 rounded">
+                        New
+                      </span>
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={handleShareClick}
+                    className="w-full flex items-center space-x-3 p-3 rounded-lg text-left transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <Share className="w-5 h-5" />
+                    <span className="font-medium">Share App</span>
+                  </button>
+                </div>
               </div>
             </div>
 

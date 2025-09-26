@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "WKI Tool Room",
+  "name": "WKI Tool Room Inventory System",
+  "description": "Professional inventory management system for WKI Tool Room parts and equipment",
   "icons": [
     {
       "src": "favicon.ico",
@@ -8,18 +9,58 @@
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "WKI_INV.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any"
     },
     {
-      "src": "logo512.png",
+      "src": "WKI_INV.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "WKI_INV.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "orientation": "portrait-primary",
+  "theme_color": "#B91C1C",
+  "background_color": "#FEF2F2",
+  "scope": "/",
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "shortcuts": [
+    {
+      "name": "View Inventory",
+      "short_name": "Inventory",
+      "description": "Quick access to parts inventory",
+      "url": "/?view=inventory",
+      "icons": [
+        {
+          "src": "WKI_INV.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Layout View",
+      "short_name": "Layout",
+      "description": "View shelf and storage layout",
+      "url": "/?view=layout",
+      "icons": [
+        {
+          "src": "WKI_INV.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
 }

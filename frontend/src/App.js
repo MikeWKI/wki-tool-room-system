@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings, Upload } from 'lucide-react';
+import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings, Upload, Download, Share } from 'lucide-react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import MobileNavigation from './components/MobileNavigation';
 import ThemeToggle from './components/ThemeToggle';
 import ExcelUpload from './components/ExcelUpload';
+import pwaManager from './utils/pwa';
 
 const InventorySystem = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,6 +16,12 @@ const InventorySystem = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isOnline, setIsOnline] = useState(true);
+
+  // PWA State
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [showUpdateNotification, setShowUpdateNotification] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showPWANotification, setShowPWANotification] = useState(false);
 
   // Inventory Management State
   const [showAddPartModal, setShowAddPartModal] = useState(false);
@@ -407,10 +414,36 @@ const InventorySystem = () => {
     
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+
+    // PWA event listeners
+    const handlePWAInstallPrompt = () => setShowInstallPrompt(true);
+    const handlePWAUpdateAvailable = () => setShowUpdateNotification(true);
+    const handlePWAOnlineStatus = (event) => setIsOnline(event.detail.online);
+    
+    window.addEventListener('beforeinstallprompt', handlePWAInstallPrompt);
+    window.addEventListener('pwa-update-available', handlePWAUpdateAvailable);
+    window.addEventListener('pwa-online-status', handlePWAOnlineStatus);
+    
+    // Check if app is already installed
+    setIsInstalled(window.matchMedia('(display-mode: standalone)').matches);
+    
+    // Show PWA notification if not shown before and not installed
+    const pwaNotificationShown = localStorage.getItem('pwa-notification-shown');
+    const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
+    
+    if (!pwaNotificationShown && !isInstalled) {
+      // Show notification after a short delay
+      setTimeout(() => {
+        setShowPWANotification(true);
+      }, 3000);
+    }
     
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('beforeinstallprompt', handlePWAInstallPrompt);
+      window.removeEventListener('pwa-update-available', handlePWAUpdateAvailable);
+      window.removeEventListener('pwa-online-status', handlePWAOnlineStatus);
     };
   }, [fetchParts, fetchTransactions, fetchDashboardStats, fetchShelves]);
 
@@ -560,6 +593,57 @@ const InventorySystem = () => {
       fetchDashboardStats(),
       fetchShelves()
     ]);
+  };
+
+  // PWA Functions
+  const handleInstallApp = async () => {
+    const installed = await pwaManager.showInstallPrompt();
+    if (installed) {
+      setShowInstallPrompt(false);
+      setIsInstalled(true);
+    }
+  };
+
+  const handleUpdateApp = () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then(registration => {
+        if (registration && registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          window.location.reload();
+        }
+      });
+    }
+    setShowUpdateNotification(false);
+  };
+
+  const handleShareApp = async () => {
+    const shareData = {
+      title: 'WKI Tool Room Inventory System',
+      text: 'Professional inventory management system for tool rooms',
+      url: window.location.origin
+    };
+    
+    const shared = await pwaManager.shareContent(shareData);
+    if (!shared) {
+      // Fallback: show share options or copy to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.origin);
+        setError('App URL copied to clipboard!');
+        setTimeout(() => setError(''), 3000);
+      } catch (err) {
+        console.error('Share failed:', err);
+      }
+    }
+  };
+
+  const handleDismissPWANotification = () => {
+    setShowPWANotification(false);
+    localStorage.setItem('pwa-notification-shown', 'true');
+  };
+
+  const handlePWANotificationInstall = () => {
+    handleInstallApp();
+    handleDismissPWANotification();
   };
 
   const CheckoutModal = () => {
@@ -2190,6 +2274,26 @@ const InventorySystem = () => {
                 </span>
               </div>
 
+              {/* PWA Install Button */}
+              {showInstallPrompt && !isInstalled && (
+                <button
+                  onClick={handleInstallApp}
+                  className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                  title="Install App"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              )}
+
+              {/* Share Button */}
+              <button
+                onClick={handleShareApp}
+                className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                title="Share App"
+              >
+                <Share className="w-4 h-4" />
+              </button>
+
               {/* Refresh Button */}
               <button
                 onClick={refreshData}
@@ -2712,6 +2816,100 @@ const InventorySystem = () => {
         onDataImport={handleExcelImport}
       />
       <ImageModal />
+
+      {/* PWA Feature Notification */}
+      {showPWANotification && (
+        <div className="fixed top-4 right-4 z-50 bg-gradient-to-br from-red-600 to-red-700 text-white p-4 rounded-lg shadow-lg max-w-sm animate-slide-in">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-3">
+              <div className="bg-white/20 p-2 rounded-lg">
+                <Download className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm">Install as App</h4>
+                <p className="text-xs opacity-90 mt-1 leading-relaxed">
+                  Get faster access and work offline by installing this app on your device!
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleDismissPWANotification}
+              className="p-1 hover:bg-white/20 rounded transition-colors ml-2 flex-shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex space-x-2 mt-3">
+            <button
+              onClick={handlePWANotificationInstall}
+              className="flex-1 px-3 py-1.5 bg-white text-red-600 rounded text-sm font-medium hover:bg-gray-100 transition-colors"
+            >
+              Install Now
+            </button>
+            <button
+              onClick={handleDismissPWANotification}
+              className="px-3 py-1.5 bg-white/20 rounded text-sm hover:bg-white/30 transition-colors"
+            >
+              Maybe Later
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PWA Update Notification */}
+      {showUpdateNotification && (
+        <div className={`fixed right-4 z-50 bg-blue-600 text-white p-4 rounded-lg shadow-lg max-w-sm ${showPWANotification ? 'top-40' : 'top-4'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-semibold">Update Available</h4>
+              <p className="text-sm opacity-90">A new version of the app is ready!</p>
+            </div>
+            <div className="flex space-x-2 ml-4">
+              <button
+                onClick={handleUpdateApp}
+                className="px-3 py-1 bg-white text-blue-600 rounded text-sm font-medium hover:bg-gray-100 transition-colors"
+              >
+                Update
+              </button>
+              <button
+                onClick={() => setShowUpdateNotification(false)}
+                className="p-1 hover:bg-blue-700 rounded transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Install Prompt */}
+      {showInstallPrompt && !isInstalled && (
+        <div className="md:hidden fixed bottom-4 left-4 right-4 z-50 bg-red-600 text-white p-4 rounded-lg shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Download className="w-5 h-5" />
+              <div>
+                <h4 className="font-semibold">Install App</h4>
+                <p className="text-sm opacity-90">Add to home screen for better experience</p>
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={handleInstallApp}
+                className="px-3 py-1 bg-white text-red-600 rounded text-sm font-medium hover:bg-gray-100 transition-colors"
+              >
+                Install
+              </button>
+              <button
+                onClick={() => setShowInstallPrompt(false)}
+                className="p-1 hover:bg-red-700 rounded transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
