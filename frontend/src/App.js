@@ -1742,6 +1742,188 @@ const InventorySystem = () => {
             </p>
           </div>
         </div>
+
+        {/* Shelfs-Drawers Section */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <Package className="w-8 h-8 text-blue-600" />
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">Shelfs & Drawers Detail</h3>
+              <p className="text-gray-600">Detailed shelf and drawer images organized by rack and storage area</p>
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            {/* West Rack Shelfs */}
+            <div>
+              <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                West Rack Shelfs
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Array.from({length: 12}, (_, i) => i + 1).map(shelfNum => (
+                  <div key={`west-${shelfNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
+                      <Package className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h5 className="font-medium text-gray-900">West Rack {shelfNum}</h5>
+                    <p className="text-xs text-gray-500 mt-1">Image placeholder</p>
+                    <div className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs text-gray-600">
+                      {`/shelfs/West/West_Rack_${shelfNum}.JPG`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* North Rack Shelfs */}
+            <div>
+              <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                North Rack Shelfs
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Array.from({length: 10}, (_, i) => i + 1).map(shelfNum => (
+                  <div key={`north-${shelfNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-green-400 hover:bg-green-50 transition-colors">
+                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
+                      <Package className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h5 className="font-medium text-gray-900">North Rack {shelfNum}</h5>
+                    <p className="text-xs text-gray-500 mt-1">Image placeholder</p>
+                    <div className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs text-gray-600">
+                      {`/shelfs/North/North_Rack_${shelfNum}.JPG`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* South Rack Shelfs */}
+            <div>
+              <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
+                South Rack Shelfs
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Array.from({length: 8}, (_, i) => i + 1).map(shelfNum => (
+                  <div key={`south-${shelfNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-orange-400 hover:bg-orange-50 transition-colors">
+                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
+                      <Package className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h5 className="font-medium text-gray-900">South Rack {shelfNum}</h5>
+                    <p className="text-xs text-gray-500 mt-1">Image placeholder</p>
+                    <div className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs text-gray-600">
+                      {`/shelfs/South/South_Rack_${shelfNum}.JPG`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Module Cabinet Drawers */}
+            <div>
+              <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+                Module Cabinet Drawers
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Array.from({length: 20}, (_, i) => i + 1).map(drawerNum => (
+                  <div key={`module-${drawerNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-purple-400 hover:bg-purple-50 transition-colors">
+                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
+                      <Package className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h5 className="font-medium text-gray-900">Module Drawer {drawerNum}</h5>
+                    <p className="text-xs text-gray-500 mt-1">Image placeholder</p>
+                    <div className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs text-gray-600">
+                      {`/shelfs/Module/Module_Drawer_${drawerNum}.JPG`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* CAT Parts Storage */}
+            <div>
+              <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+                CAT Parts Storage
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Array.from({length: 6}, (_, i) => i + 1).map(boxNum => (
+                  <div key={`cat-${boxNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-yellow-400 hover:bg-yellow-50 transition-colors">
+                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
+                      <Package className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h5 className="font-medium text-gray-900">CAT Box {boxNum}</h5>
+                    <p className="text-xs text-gray-500 mt-1">Image placeholder</p>
+                    <div className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs text-gray-600">
+                      {`/shelfs/Cat/CAT_Box_${boxNum}.JPG`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Detroit Parts Storage */}
+            <div>
+              <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
+                Detroit Parts Storage
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Array.from({length: 6}, (_, i) => i + 1).map(boxNum => (
+                  <div key={`detroit-${boxNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-red-400 hover:bg-red-50 transition-colors">
+                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
+                      <Package className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h5 className="font-medium text-gray-900">Detroit Box {boxNum}</h5>
+                    <p className="text-xs text-gray-500 mt-1">Image placeholder</p>
+                    <div className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs text-gray-600">
+                      {`/shelfs/Detroit/Detroit_Box_${boxNum}.JPG`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* MX Tools Storage */}
+            <div>
+              <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <div className="w-3 h-3 bg-red-600 rounded-full mr-3"></div>
+                MX Tools Storage
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Array.from({length: 4}, (_, i) => i + 1).map(slotNum => (
+                  <div key={`mx-${slotNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-red-400 hover:bg-red-50 transition-colors">
+                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
+                      <Package className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h5 className="font-medium text-gray-900">MX Slot {slotNum}</h5>
+                    <p className="text-xs text-gray-500 mt-1">Image placeholder</p>
+                    <div className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs text-gray-600">
+                      {`/shelfs/MX/MX_Slot_${slotNum}.JPG`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Future Enhancement Note */}
+          <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+              <div>
+                <h5 className="font-medium text-blue-900">Future Enhancement</h5>
+                <p className="text-sm text-blue-700 mt-1">
+                  When parts are looked up, the corresponding shelf/drawer image will be automatically displayed 
+                  based on the rack and shelf location data in your inventory. This will help locate parts quickly 
+                  by showing the exact drawer or shelf where each part is stored.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
