@@ -71,22 +71,47 @@ async function initializeDatabase() {
       'F-08': { name: 'Tool Room Center Aisle - Section F, Position 8', imageUrl: null, description: 'Cab and body hardware' },
     };
 
-    // Check if files exist, if not create them
+    // Check if files exist, if not create them with initial data
+    // If they exist, keep the existing data (don't overwrite)
     try {
       await fs.access(PARTS_FILE);
+      // File exists, check if it's empty or has valid data
+      const existingData = await fs.readFile(PARTS_FILE, 'utf8');
+      const parsedData = JSON.parse(existingData);
+      if (!Array.isArray(parsedData)) {
+        // Invalid data, reinitialize
+        await fs.writeFile(PARTS_FILE, JSON.stringify(initialParts, null, 2));
+      }
     } catch {
+      // File doesn't exist, create it
       await fs.writeFile(PARTS_FILE, JSON.stringify(initialParts, null, 2));
     }
 
     try {
       await fs.access(TRANSACTIONS_FILE);
+      // File exists, check if it has valid data
+      const existingData = await fs.readFile(TRANSACTIONS_FILE, 'utf8');
+      const parsedData = JSON.parse(existingData);
+      if (!Array.isArray(parsedData)) {
+        // Invalid data, reinitialize
+        await fs.writeFile(TRANSACTIONS_FILE, JSON.stringify([], null, 2));
+      }
     } catch {
+      // File doesn't exist, create it
       await fs.writeFile(TRANSACTIONS_FILE, JSON.stringify([], null, 2));
     }
 
     try {
       await fs.access(SHELVES_FILE);
+      // File exists, check if it has valid data
+      const existingData = await fs.readFile(SHELVES_FILE, 'utf8');
+      const parsedData = JSON.parse(existingData);
+      if (!parsedData || typeof parsedData !== 'object') {
+        // Invalid data, reinitialize
+        await fs.writeFile(SHELVES_FILE, JSON.stringify(initialShelves, null, 2));
+      }
     } catch {
+      // File doesn't exist, create it
       await fs.writeFile(SHELVES_FILE, JSON.stringify(initialShelves, null, 2));
     }
 
@@ -676,6 +701,17 @@ app.post('/api/import/excel', upload.single('excelFile'), async (req, res) => {
       return res.status(400).json({ error: 'No valid parts data provided' });
     }
 
+    // Save uploaded Excel file for reference
+    const uploadsDir = path.join(__dirname, 'uploads');
+    await fs.mkdir(uploadsDir, { recursive: true });
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const savedFileName = `imported_${timestamp}_${req.file.originalname}`;
+    const savedFilePath = path.join(uploadsDir, savedFileName);
+    
+    await fs.writeFile(savedFilePath, req.file.buffer);
+    console.log(`Excel file saved: ${savedFilePath}`);
+
     // Read existing parts to get the next available ID
     const existingParts = await readParts();
     let nextId = Math.max(...existingParts.map(p => p.id), 0) + 1;
@@ -761,6 +797,40 @@ app.post('/api/import/excel', upload.single('excelFile'), async (req, res) => {
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Debug endpoint to check database status
+app.get('/api/debug/database', async (req, res) => {
+  try {
+    const parts = await readParts();
+    const transactions = await readTransactions();
+    const shelves = await readShelves();
+    
+    res.json({
+      parts: {
+        count: parts.length,
+        sample: parts.slice(0, 3)
+      },
+      transactions: {
+        count: transactions.length,
+        latest: transactions.slice(0, 2)
+      },
+      shelves: {
+        count: Object.keys(shelves).length,
+        sample: Object.keys(shelves).slice(0, 3)
+      },
+      files: {
+        partsFile: PARTS_FILE,
+        transactionsFile: TRANSACTIONS_FILE,
+        shelvesFile: SHELVES_FILE
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Database debug failed', 
+      details: error.message 
+    });
+  }
 });
 
 // Error handling middleware

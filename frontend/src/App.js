@@ -87,9 +87,11 @@ const InventorySystem = () => {
     try {
       setLoading(true);
       const parts = await apiCall('/parts');
+      console.log('Fetched parts from API:', parts.length, 'items');
       setInventory(parts);
       setError('');
     } catch (error) {
+      console.error('Failed to fetch parts:', error);
       // Keep existing data if fetch fails
       if (inventory.length === 0) {
         setError('Unable to connect to server. Please check if the backend is running.');
@@ -279,6 +281,8 @@ const InventorySystem = () => {
       setLoading(true);
       setError('');
       
+      console.log('Starting Excel import with', partsData.length, 'parts');
+      
       const formData = new FormData();
       // Create a dummy file for the backend (actual parsing is done on frontend)
       const blob = new Blob([''], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -295,15 +299,20 @@ const InventorySystem = () => {
       }
 
       const result = await response.json();
+      console.log('Import result:', result);
       
       if (result.success) {
         // Refresh the inventory to show imported parts
+        console.log('Refreshing inventory after import...');
         await fetchParts();
         await fetchTransactions();
         await fetchDashboardStats();
         
         setShowExcelUpload(false);
         setError('');
+        
+        // Show success message
+        console.log(`Successfully imported ${result.importedCount} parts`);
         
         return result;
       } else {
