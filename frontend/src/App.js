@@ -1495,52 +1495,108 @@ const InventorySystem = () => {
     const layoutImages = [
       {
         id: 1,
-        title: "East Facing Hanging Wall - Section 6",
-        filename: "E_Facing_Hanging_Wall.jpg",
-        section: "Section 6",
-        description: "Wall-mounted storage for frequently used tools and parts"
-      },
-      {
-        id: 2,
-        title: "West Facing Hanging Wall - Section 5",
-        filename: "W_Facing_Hanging_Wall.jpg",
-        section: "Section 5",
-        description: "Wall-mounted storage system on the west side"
-      },
-      {
-        id: 3,
-        title: "North Rack - Section 4",
-        filename: "North_Rack.jpg",
-        section: "Section 4",
-        description: "Main storage rack on the north side of the tool room"
-      },
-      {
-        id: 4,
         title: "West Rack - Section 1",
-        filename: "West_Rack.jpg",
+        filename: "West_Rack.png",
         section: "Section 1",
         description: "Storage rack system on the west side"
       },
       {
-        id: 5,
+        id: 2,
         title: "South Rack - Section 2",
-        filename: "South_Rack.jpg",
+        filename: "South_Rack.png",
         section: "Section 2",
         description: "Storage rack system on the south side"
       },
       {
-        id: 6,
+        id: 3,
         title: "Snap-On East - Section 3",
-        filename: "SnapOn_East.jpg",
+        filename: "SnapOn_East.png",
         section: "Section 3",
         description: "Snap-On branded storage unit on the east side"
       },
       {
-        id: 7,
-        title: "Module Cabinet - Section 3",
-        filename: "Module_Cabinet_East.jpg",
+        id: 4,
+        title: "Module Cabinet East - Section 3",
+        filename: "Module_Cabinet_East.png",
         section: "Section 3",
         description: "Modular cabinet system for organized storage"
+      },
+      {
+        id: 5,
+        title: "North Rack - Section 4",
+        filename: "North_Rack.png",
+        section: "Section 4",
+        description: "Main storage rack on the north side of the tool room"
+      },
+      {
+        id: 6,
+        title: "West Facing Hanging Wall - Section 5",
+        filename: "W_Facing_Hanging_Wall.png",
+        section: "Section 5",
+        description: "Wall-mounted storage system on the west side"
+      },
+      {
+        id: 7,
+        title: "East Facing Hanging Wall - Section 6",
+        filename: "E_Facing_Hanging_Wall.png",
+        section: "Section 6",
+        description: "Wall-mounted storage for frequently used tools and parts"
+      },
+      {
+        id: 8,
+        title: "AC Machines Area",
+        filename: "AC_Machines.png",
+        section: "Equipment",
+        description: "Air conditioning and HVAC equipment storage area"
+      },
+      {
+        id: 9,
+        title: "Airgas Cabinet",
+        filename: "Airgas_Cab.png",
+        section: "Equipment",
+        description: "Airgas welding supplies and gas cylinder storage"
+      },
+      {
+        id: 10,
+        title: "CAT Detroit Parts Box",
+        filename: "CAT_Detroit_Box.png",
+        section: "Equipment",
+        description: "Caterpillar and Detroit diesel parts storage container"
+      },
+      {
+        id: 11,
+        title: "East Literature Wall",
+        filename: "E_Literature_Wall.png",
+        section: "Reference",
+        description: "Technical manuals and documentation storage"
+      },
+      {
+        id: 12,
+        title: "East Tool Room",
+        filename: "E_ToolRM.png",
+        section: "Overview",
+        description: "Overview of the east side tool room area"
+      },
+      {
+        id: 13,
+        title: "MX Fuel Kit Storage",
+        filename: "MX_Fuel_Kit.png",
+        section: "Equipment",
+        description: "Milwaukee MX Fuel battery tools and equipment"
+      },
+      {
+        id: 14,
+        title: "West Tool Room",
+        filename: "W_ToolRM.png",
+        section: "Overview",
+        description: "Overview of the west side tool room area"
+      },
+      {
+        id: 15,
+        title: "Welder & Plasma Cutter",
+        filename: "Welder_Plasma.png",
+        section: "Equipment",
+        description: "Welding and plasma cutting equipment station"
       }
     ];
 
