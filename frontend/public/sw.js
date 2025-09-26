@@ -149,14 +149,16 @@ async function handleAPIRequest(request) {
     
     return networkResponse;
   } catch (error) {
-    console.log('[ServiceWorker] Network failed, trying cache');
+    console.log('[ServiceWorker] Network failed, trying cache. Error:', error.message);
     const cachedResponse = await caches.match(request);
     
     if (cachedResponse) {
+      console.log('[ServiceWorker] Serving cached fallback for:', request.url);
       return cachedResponse;
     }
     
     // Return offline fallback for API requests
+    console.log('[ServiceWorker] No cache available for:', request.url);
     return new Response(JSON.stringify({
       error: 'Network unavailable',
       message: 'This data is not available offline',

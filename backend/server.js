@@ -22,9 +22,14 @@ app.use(limiter);
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
-    process.env.CORS_ORIGIN || 'https://wki-tool-room-system.onrender.com'
+    process.env.CORS_ORIGIN || 'https://wki-tool-room-system.onrender.com',
+    'https://wki-tool-room-system-1.onrender.com',
+    /https:\/\/.*\.onrender\.com$/, // Allow any Render subdomain
+    /https:\/\/wki-tool-room.*\.onrender\.com$/ // Allow any WKI tool room variants
   ].filter(Boolean),
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(express.json());
 
@@ -796,7 +801,30 @@ app.post('/api/import/excel', upload.single('excelFile'), async (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    cors_origins: [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      process.env.CORS_ORIGIN || 'https://wki-tool-room-system.onrender.com',
+      'https://wki-tool-room-system-1.onrender.com'
+    ]
+  });
+});
+
+// CORS preflight handler
+app.options('*', cors());
+
+// Global error handler
+app.use((error, req, res, next) => {
+  console.error('Global error handler:', error);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: error.message,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Debug endpoint to check database status

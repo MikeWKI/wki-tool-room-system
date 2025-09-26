@@ -84,13 +84,21 @@ const InventorySystem = () => {
       return await response.json();
     } catch (error) {
       console.error(`API call failed for ${endpoint}:`, error);
-      setError(`Failed to ${endpoint.includes('checkout') ? 'check out' : endpoint.includes('checkin') ? 'check in' : 'load'} data: ${error.message}`);
+      
+      // Check if it's a CORS error
+      if (error.message.includes('CORS') || error.name === 'TypeError') {
+        console.warn('CORS or network error detected - service may be starting up');
+        setError('Service is starting up. Please wait a moment and try refreshing.');
+      } else {
+        setError(`Failed to ${endpoint.includes('checkout') ? 'check out' : endpoint.includes('checkin') ? 'check in' : 'load'} data: ${error.message}`);
+      }
+      
       throw error;
     }
   }, [API_BASE_URL]);
 
-  // Fetch all parts
-  const fetchParts = useCallback(async () => {
+  // Fetch all parts with retry logic
+  const fetchParts = useCallback(async (retryCount = 0) => {
     try {
       setLoading(true);
       const parts = await apiCall('/parts');
@@ -99,6 +107,14 @@ const InventorySystem = () => {
       setError('');
     } catch (error) {
       console.error('Failed to fetch parts:', error);
+      
+      // Retry logic for initial load (max 3 attempts)
+      if (retryCount < 2 && (error.message.includes('CORS') || error.message.includes('503'))) {
+        console.log(`Retrying fetchParts in 3 seconds... (attempt ${retryCount + 2}/3)`);
+        setTimeout(() => fetchParts(retryCount + 1), 3000);
+        return;
+      }
+      
       // Keep existing data if fetch fails
       if (inventory.length === 0) {
         setError('Unable to connect to server. Please check if the backend is running.');
