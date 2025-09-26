@@ -2417,12 +2417,12 @@ const InventorySystem = () => {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 lg:w-1/2 flex flex-col">
               {selectedPart ? (
                 <div>
-                  <div className="border-b border-gray-200 pb-4 mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  <div className="border-b border-gray-200 dark:border-gray-600 pb-4 mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                       {selectedPart.partNumber}
                     </h2>
-                    <p className="text-gray-600 text-lg">{selectedPart.description}</p>
-                    <div className="flex items-center mt-3 text-red-600">
+                    <p className="text-gray-600 dark:text-gray-300 text-lg">{selectedPart.description}</p>
+                    <div className="flex items-center mt-3 text-red-600 dark:text-red-400">
                       <MapPin className="w-5 h-5 mr-2" />
                       <span className="font-semibold">
                         Located on Shelf: {selectedPart.shelf}
@@ -2466,10 +2466,10 @@ const InventorySystem = () => {
                     )}
                     
                     <div className="flex items-center mt-2">
-                      <Package className="w-5 h-5 mr-2 text-gray-500" />
-                      <span>Quantity Available: {selectedPart.quantity}</span>
+                      <Package className="w-5 h-5 mr-2 text-gray-500 dark:text-gray-400" />
+                      <span className="text-gray-900 dark:text-gray-100">Quantity Available: {selectedPart.quantity}</span>
                       {selectedPart.quantity === 0 && (
-                        <span className="ml-2 text-red-600 font-medium">
+                        <span className="ml-2 text-red-600 dark:text-red-400 font-medium">
                           (No Stock)
                         </span>
                       )}
@@ -2478,26 +2478,30 @@ const InventorySystem = () => {
 
                   {/* Status and Actions */}
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
                       Current Status
                     </h3>
                     <div className={`p-4 rounded-lg ${
-                      selectedPart.status === 'available' ? 'bg-green-50' : 'bg-red-50'
+                      selectedPart.status === 'available' 
+                        ? 'bg-green-50 dark:bg-green-900/20' 
+                        : 'bg-red-50 dark:bg-red-900/20'
                     }`}>
                       <div className="flex items-center mb-2">
                         {selectedPart.status === 'available' ? (
-                          <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                          <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mr-2" />
                         ) : (
-                          <AlertCircle className="w-5 h-5 text-red-600 mr-2" />
+                          <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
                         )}
                         <span className={`font-medium ${
-                          selectedPart.status === 'available' ? 'text-green-800' : 'text-red-800'
+                          selectedPart.status === 'available' 
+                            ? 'text-green-800 dark:text-green-200' 
+                            : 'text-red-800 dark:text-red-200'
                         }`}>
                           {selectedPart.status === 'available' ? 'Available for Checkout' : 'Currently Checked Out'}
                         </span>
                       </div>
                       {selectedPart.status === 'checked_out' && (
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-gray-600 dark:text-gray-300">
                           <p>Checked out by: {selectedPart.checkedOutBy}</p>
                           <p>Date: {new Date(selectedPart.checkedOutDate).toLocaleString()}</p>
                         </div>
