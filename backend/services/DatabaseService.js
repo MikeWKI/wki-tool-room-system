@@ -309,7 +309,7 @@ class DatabaseService {
 
     const availableParts = parts.filter(p => p.status === 'available').length;
     const checkedOutParts = parts.filter(p => p.status === 'checked_out').length;
-    const lowStockParts = parts.filter(p => p.quantity <= p.minQuantity).length;
+    const noStockParts = parts.filter(p => p.quantity === 0).length;
     const totalValue = parts.reduce((sum, p) => sum + (p.cost || 0) * p.quantity, 0);
 
     // Recent transactions (last 30 days)
@@ -321,7 +321,7 @@ class DatabaseService {
       totalParts: parts.length,
       availableParts,
       checkedOutParts,
-      lowStockParts,
+      noStockParts,
       totalValue: Math.round(totalValue * 100) / 100,
       totalTransactions: transactions.length,
       recentTransactions: recentTransactions.length,

@@ -327,6 +327,73 @@ const InventorySystem = () => {
     }
   }, [API_BASE_URL, fetchParts, fetchTransactions, fetchDashboardStats]);
 
+  // Helper function to get shelf image path based on rack and shelf data
+  const getShelfImagePath = useCallback((shelf, rack) => {
+    if (!shelf && !rack) return null;
+    
+    // Parse the shelf/rack information
+    const shelfStr = (shelf || '').toString().toLowerCase().trim();
+    const rackStr = (rack || '').toString().toLowerCase().trim();
+    
+    // West Rack patterns
+    if (rackStr.includes('west') || shelfStr.includes('west')) {
+      const shelfNum = shelfStr.match(/\d+/) || rackStr.match(/\d+/);
+      if (shelfNum) {
+        return `shelfs/West/West_Rack_${shelfNum[0]}.JPG`;
+      }
+    }
+    
+    // North Rack patterns
+    if (rackStr.includes('north') || shelfStr.includes('north')) {
+      const shelfNum = shelfStr.match(/\d+/) || rackStr.match(/\d+/);
+      if (shelfNum) {
+        return `shelfs/North/North_Rack_${shelfNum[0]}.JPG`;
+      }
+    }
+    
+    // South Rack patterns
+    if (rackStr.includes('south') || shelfStr.includes('south')) {
+      const shelfNum = shelfStr.match(/\d+/) || rackStr.match(/\d+/);
+      if (shelfNum) {
+        return `shelfs/South/South_Rack_${shelfNum[0]}.JPG`;
+      }
+    }
+    
+    // Module Cabinet patterns
+    if (rackStr.includes('module') || shelfStr.includes('module') || shelfStr.includes('drawer')) {
+      const drawerNum = shelfStr.match(/\d+/) || rackStr.match(/\d+/);
+      if (drawerNum) {
+        return `shelfs/Module/Module_Drawer_${drawerNum[0]}.JPG`;
+      }
+    }
+    
+    // CAT Parts patterns
+    if (rackStr.includes('cat') || shelfStr.includes('cat')) {
+      const boxNum = shelfStr.match(/\d+/) || rackStr.match(/\d+/);
+      if (boxNum) {
+        return `shelfs/Cat/CAT_Box_${boxNum[0]}.JPG`;
+      }
+    }
+    
+    // Detroit Parts patterns
+    if (rackStr.includes('detroit') || shelfStr.includes('detroit')) {
+      const boxNum = shelfStr.match(/\d+/) || rackStr.match(/\d+/);
+      if (boxNum) {
+        return `shelfs/Detroit/Detroit_Box_${boxNum[0]}.JPG`;
+      }
+    }
+    
+    // MX Tools patterns
+    if (rackStr.includes('mx') || shelfStr.includes('mx')) {
+      const slotNum = shelfStr.match(/\d+/) || rackStr.match(/\d+/);
+      if (slotNum) {
+        return `shelfs/MX/MX_Slot_${slotNum[0]}.JPG`;
+      }
+    }
+    
+    return null;
+  }, []);
+
   // Initial data load
   useEffect(() => {
     fetchParts();
@@ -1403,11 +1470,11 @@ const InventorySystem = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
                       {part.quantity}
-                      {part.quantity <= part.minQuantity && (
-                        <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          Low Stock
-                        </span>
-                      )}
+                        {part.quantity === 0 && (
+                          <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            No Stock
+                          </span>
+                        )}
                     </div>
                     <div className="text-xs text-gray-500">Min: {part.minQuantity}</div>
                   </td>
@@ -1770,18 +1837,33 @@ const InventorySystem = () => {
                 West Rack Shelfs
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {Array.from({length: 12}, (_, i) => i + 1).map(shelfNum => (
-                  <div key={`west-${shelfNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
-                      <Package className="w-8 h-8 text-gray-400" />
+                {Array.from({length: 12}, (_, i) => i + 1).map(shelfNum => {
+                  const imagePath = `shelfs/West/West_Rack_${shelfNum}.JPG`;
+                  return (
+                    <div key={`west-${shelfNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer"
+                         onClick={() => handleImageClick({ id: `west-${shelfNum}`, title: `West Rack ${shelfNum}`, filename: imagePath, description: `West Rack Shelf ${shelfNum} storage detail` })}>
+                      <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                        <img 
+                          src={`/${imagePath}`}
+                          alt={`West Rack ${shelfNum}`}
+                          className="w-full h-full object-cover rounded-lg"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="w-full h-full items-center justify-center" style={{display: 'none'}}>
+                          <Package className="w-8 h-8 text-gray-400" />
+                        </div>
+                      </div>
+                      <h5 className="font-medium text-gray-900">West Rack {shelfNum}</h5>
+                      <p className="text-xs text-gray-500 mt-1">Click to view detail</p>
+                      <div className="mt-2 px-2 py-1 bg-blue-100 rounded text-xs text-blue-700">
+                        /{imagePath}
+                      </div>
                     </div>
-                    <h5 className="font-medium text-gray-900">West Rack {shelfNum}</h5>
-                    <p className="text-xs text-gray-500 mt-1">Image placeholder</p>
-                    <div className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs text-gray-600">
-                      {`/shelfs/West/West_Rack_${shelfNum}.JPG`}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -1792,18 +1874,33 @@ const InventorySystem = () => {
                 North Rack Shelfs
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {Array.from({length: 10}, (_, i) => i + 1).map(shelfNum => (
-                  <div key={`north-${shelfNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-green-400 hover:bg-green-50 transition-colors">
-                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
-                      <Package className="w-8 h-8 text-gray-400" />
+                {Array.from({length: 10}, (_, i) => i + 1).map(shelfNum => {
+                  const imagePath = `shelfs/North/North_Rack_${shelfNum}.JPG`;
+                  return (
+                    <div key={`north-${shelfNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-green-400 hover:bg-green-50 transition-colors cursor-pointer"
+                         onClick={() => handleImageClick({ id: `north-${shelfNum}`, title: `North Rack ${shelfNum}`, filename: imagePath, description: `North Rack Shelf ${shelfNum} storage detail` })}>
+                      <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                        <img 
+                          src={`/${imagePath}`}
+                          alt={`North Rack ${shelfNum}`}
+                          className="w-full h-full object-cover rounded-lg"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="w-full h-full items-center justify-center" style={{display: 'none'}}>
+                          <Package className="w-8 h-8 text-gray-400" />
+                        </div>
+                      </div>
+                      <h5 className="font-medium text-gray-900">North Rack {shelfNum}</h5>
+                      <p className="text-xs text-gray-500 mt-1">Click to view detail</p>
+                      <div className="mt-2 px-2 py-1 bg-green-100 rounded text-xs text-green-700">
+                        /{imagePath}
+                      </div>
                     </div>
-                    <h5 className="font-medium text-gray-900">North Rack {shelfNum}</h5>
-                    <p className="text-xs text-gray-500 mt-1">Image placeholder</p>
-                    <div className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs text-gray-600">
-                      {`/shelfs/North/North_Rack_${shelfNum}.JPG`}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -1814,18 +1911,33 @@ const InventorySystem = () => {
                 South Rack Shelfs
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {Array.from({length: 8}, (_, i) => i + 1).map(shelfNum => (
-                  <div key={`south-${shelfNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-orange-400 hover:bg-orange-50 transition-colors">
-                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
-                      <Package className="w-8 h-8 text-gray-400" />
+                {Array.from({length: 8}, (_, i) => i + 1).map(shelfNum => {
+                  const imagePath = `shelfs/South/South_Rack_${shelfNum}.JPG`;
+                  return (
+                    <div key={`south-${shelfNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-orange-400 hover:bg-orange-50 transition-colors cursor-pointer"
+                         onClick={() => handleImageClick({ id: `south-${shelfNum}`, title: `South Rack ${shelfNum}`, filename: imagePath, description: `South Rack Shelf ${shelfNum} storage detail` })}>
+                      <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                        <img 
+                          src={`/${imagePath}`}
+                          alt={`South Rack ${shelfNum}`}
+                          className="w-full h-full object-cover rounded-lg"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="w-full h-full items-center justify-center" style={{display: 'none'}}>
+                          <Package className="w-8 h-8 text-gray-400" />
+                        </div>
+                      </div>
+                      <h5 className="font-medium text-gray-900">South Rack {shelfNum}</h5>
+                      <p className="text-xs text-gray-500 mt-1">Click to view detail</p>
+                      <div className="mt-2 px-2 py-1 bg-orange-100 rounded text-xs text-orange-700">
+                        /{imagePath}
+                      </div>
                     </div>
-                    <h5 className="font-medium text-gray-900">South Rack {shelfNum}</h5>
-                    <p className="text-xs text-gray-500 mt-1">Image placeholder</p>
-                    <div className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs text-gray-600">
-                      {`/shelfs/South/South_Rack_${shelfNum}.JPG`}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -1836,18 +1948,33 @@ const InventorySystem = () => {
                 Module Cabinet Drawers
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {Array.from({length: 20}, (_, i) => i + 1).map(drawerNum => (
-                  <div key={`module-${drawerNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-purple-400 hover:bg-purple-50 transition-colors">
-                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
-                      <Package className="w-8 h-8 text-gray-400" />
+                {Array.from({length: 20}, (_, i) => i + 1).map(drawerNum => {
+                  const imagePath = `shelfs/Module/Module_Drawer_${drawerNum}.JPG`;
+                  return (
+                    <div key={`module-${drawerNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-purple-400 hover:bg-purple-50 transition-colors cursor-pointer"
+                         onClick={() => handleImageClick({ id: `module-${drawerNum}`, title: `Module Drawer ${drawerNum}`, filename: imagePath, description: `Module Cabinet Drawer ${drawerNum} storage detail` })}>
+                      <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                        <img 
+                          src={`/${imagePath}`}
+                          alt={`Module Drawer ${drawerNum}`}
+                          className="w-full h-full object-cover rounded-lg"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="w-full h-full items-center justify-center" style={{display: 'none'}}>
+                          <Package className="w-8 h-8 text-gray-400" />
+                        </div>
+                      </div>
+                      <h5 className="font-medium text-gray-900">Module Drawer {drawerNum}</h5>
+                      <p className="text-xs text-gray-500 mt-1">Click to view detail</p>
+                      <div className="mt-2 px-2 py-1 bg-purple-100 rounded text-xs text-purple-700">
+                        /{imagePath}
+                      </div>
                     </div>
-                    <h5 className="font-medium text-gray-900">Module Drawer {drawerNum}</h5>
-                    <p className="text-xs text-gray-500 mt-1">Image placeholder</p>
-                    <div className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs text-gray-600">
-                      {`/shelfs/Module/Module_Drawer_${drawerNum}.JPG`}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -2208,22 +2335,47 @@ const InventorySystem = () => {
                     >
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{part.partNumber}</h3>
-                          <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">{part.description}</p>
-                          <div className="flex items-center mt-2 text-sm text-gray-500 dark:text-gray-400">
-                            <MapPin className="w-4 h-4 mr-1" />
-                            <span>Shelf: {part.shelf}</span>
-                            <span className="ml-4">Qty: {part.quantity}</span>
-                            {part.quantity <= part.minQuantity && (
-                              <span className="ml-2 text-orange-600 font-medium">Low Stock!</span>
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-900 dark:text-gray-100">{part.partNumber}</h3>
+                              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">{part.description}</p>
+                              <div className="flex items-center mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                <MapPin className="w-4 h-4 mr-1" />
+                                <span>Shelf: {part.shelf}</span>
+                                {part.rack && <span className="ml-2">Rack: {part.rack}</span>}
+                                <span className="ml-4">Qty: {part.quantity}</span>
+                                {part.quantity === 0 && (
+                                  <span className="ml-2 text-red-600 font-medium">No Stock!</span>
+                                )}
+                              </div>
+                              {part.status === 'checked_out' && (
+                                <div className="flex items-center mt-1 text-sm text-red-600">
+                                  <AlertCircle className="w-4 h-4 mr-1" />
+                                  <span>Checked out by {part.checkedOutBy}</span>
+                                </div>
+                              )}
+                            </div>
+                            {/* Shelf Image */}
+                            {getShelfImagePath(part.shelf, part.rack) && (
+                              <div className="flex-shrink-0 w-16 h-16">
+                                <div className="w-full h-full bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                                  <img
+                                    src={`/${getShelfImagePath(part.shelf, part.rack)}`}
+                                    alt={`${part.shelf} ${part.rack}`}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                      e.target.nextSibling.style.display = 'flex';
+                                    }}
+                                  />
+                                  <div className="w-full h-full items-center justify-center bg-gray-100" style={{display: 'none'}}>
+                                    <Package className="w-6 h-6 text-gray-400" />
+                                  </div>
+                                </div>
+                                <p className="text-xs text-gray-400 text-center mt-1">Shelf Location</p>
+                              </div>
                             )}
                           </div>
-                          {part.status === 'checked_out' && (
-                            <div className="flex items-center mt-1 text-sm text-red-600">
-                              <AlertCircle className="w-4 h-4 mr-1" />
-                              <span>Checked out by {part.checkedOutBy}</span>
-                            </div>
-                          )}
                         </div>
                         <div className="flex flex-col items-end space-y-2">
                           <span className={`text-xs px-2 py-1 rounded ${
@@ -2312,9 +2464,9 @@ const InventorySystem = () => {
                     <div className="flex items-center mt-2">
                       <Package className="w-5 h-5 mr-2 text-gray-500" />
                       <span>Quantity Available: {selectedPart.quantity}</span>
-                      {selectedPart.quantity <= selectedPart.minQuantity && (
-                        <span className="ml-2 text-orange-600 font-medium">
-                          (Low Stock - Min: {selectedPart.minQuantity})
+                      {selectedPart.quantity === 0 && (
+                        <span className="ml-2 text-red-600 font-medium">
+                          (No Stock)
                         </span>
                       )}
                     </div>

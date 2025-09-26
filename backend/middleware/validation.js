@@ -127,13 +127,13 @@ const validateBusinessRules = {
   },
 
   validateMinQuantity: (quantity, minQuantity) => {
-    if (quantity < minQuantity) {
+    if (quantity === 0) {
       return {
-        warning: `Quantity (${quantity}) is below minimum threshold (${minQuantity})`,
-        isLowStock: true,
+        warning: `No stock available`,
+        isNoStock: true,
       };
     }
-    return { isLowStock: false };
+    return { isNoStock: false };
   },
 };
 

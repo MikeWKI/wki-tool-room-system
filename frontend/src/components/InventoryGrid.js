@@ -20,8 +20,8 @@ const InventoryGrid = memo(({
     );
   };
 
-  const isLowStock = (part) => {
-    return part.quantity <= part.minQuantity;
+  const isNoStock = (part) => {
+    return part.quantity === 0;
   };
 
   const highlightSearchTerm = (text, term) => {
@@ -57,8 +57,8 @@ const InventoryGrid = memo(({
               </div>
               <div className="flex items-center space-x-2">
                 {getStatusIcon(part.status)}
-                {isLowStock(part) && (
-                  <AlertCircle className="w-4 h-4 text-orange-500" title="Low stock" />
+                {isNoStock(part) && (
+                  <AlertCircle className="w-4 h-4 text-red-500" title="No stock" />
                 )}
               </div>
             </div>
@@ -75,7 +75,7 @@ const InventoryGrid = memo(({
               
               <div className="flex items-center justify-between">
                 <span className="text-gray-500">Quantity:</span>
-                <span className={`font-medium ${isLowStock(part) ? 'text-orange-600' : 'text-gray-900'}`}>
+                <span className={`font-medium ${isNoStock(part) ? 'text-red-600' : 'text-gray-900'}`}>
                   {part.quantity}
                 </span>
               </div>

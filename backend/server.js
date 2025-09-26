@@ -505,7 +505,7 @@ app.get('/api/dashboard/stats', async (req, res) => {
       totalParts: parts.length,
       availableParts: parts.filter(p => p.status === 'available').length,
       checkedOutParts: parts.filter(p => p.status === 'checked_out').length,
-      lowStockParts: parts.filter(p => p.quantity <= p.minQuantity).length,
+      noStockParts: parts.filter(p => p.quantity === 0).length,
       totalTransactions: transactions.length,
       recentCheckouts: transactions.filter(t => t.action === 'checkout').slice(0, 5),
       categories: [...new Set(parts.map(p => p.category))].length

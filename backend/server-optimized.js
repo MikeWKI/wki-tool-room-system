@@ -181,7 +181,7 @@ app.get('/api/parts', asyncHandler(async (req, res) => {
   }
   
   if (lowStock === 'true') {
-    parts = parts.filter(p => p.quantity <= p.minQuantity);
+    parts = parts.filter(p => p.quantity === 0);
   }
   
   if (search) {
@@ -280,7 +280,7 @@ app.post('/api/parts', validate(partSchema), asyncHandler(async (req, res) => {
     
     res.status(201).json({
       ...newPart,
-      warnings: stockCheck.isLowStock ? [stockCheck.warning] : []
+      warnings: stockCheck.isNoStock ? [stockCheck.warning] : []
     });
   });
 }));
@@ -333,7 +333,7 @@ app.put('/api/parts/:id', validate(partSchema), asyncHandler(async (req, res) =>
     
     res.json({
       ...updatedPart,
-      warnings: stockCheck.isLowStock ? [stockCheck.warning] : []
+      warnings: stockCheck.isNoStock ? [stockCheck.warning] : []
     });
   });
 }));
@@ -409,7 +409,7 @@ app.post('/api/parts/:id/checkout', validate(checkoutSchema), asyncHandler(async
     
     res.json({
       ...updatedPart,
-      warnings: stockCheck.isLowStock ? [stockCheck.warning] : []
+      warnings: stockCheck.isNoStock ? [stockCheck.warning] : []
     });
   });
 }));
