@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings } from 'lucide-react';
+import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings, Upload } from 'lucide-react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import MobileNavigation from './components/MobileNavigation';
 import ThemeToggle from './components/ThemeToggle';
+import ExcelUpload from './components/ExcelUpload';
 
 const InventorySystem = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,6 +50,9 @@ const InventorySystem = () => {
   const [logoClickCount, setLogoClickCount] = useState(0);
   const [firstClickTime, setFirstClickTime] = useState(null);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
+
+  // Excel Upload State
+  const [showExcelUpload, setShowExcelUpload] = useState(false);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 
     (process.env.NODE_ENV === 'production' 
@@ -268,6 +272,51 @@ const InventorySystem = () => {
       setShowPinModal(true);
     }
   };
+
+  // Excel Import Function
+  const handleExcelImport = useCallback(async (partsData) => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const formData = new FormData();
+      // Create a dummy file for the backend (actual parsing is done on frontend)
+      const blob = new Blob([''], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      formData.append('excelFile', blob, 'import.xlsx');
+      formData.append('partsData', JSON.stringify(partsData));
+
+      const response = await fetch(`${API_BASE_URL}/import/excel`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Import failed: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Refresh the inventory to show imported parts
+        await fetchParts();
+        await fetchTransactions();
+        await fetchDashboardStats();
+        
+        setShowExcelUpload(false);
+        setError('');
+        
+        return result;
+      } else {
+        throw new Error(result.error || 'Import failed');
+      }
+    } catch (error) {
+      console.error('Excel import failed:', error);
+      setError(`Import failed: ${error.message}`);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [API_BASE_URL, fetchParts, fetchTransactions, fetchDashboardStats]);
 
   // Initial data load
   useEffect(() => {
@@ -1291,13 +1340,22 @@ const InventorySystem = () => {
             <h2 className="text-xl font-semibold text-gray-900">Inventory Management</h2>
             <p className="text-gray-600">Add, edit, or remove parts from the inventory</p>
           </div>
-          <button
-            onClick={() => setShowAddPartModal(true)}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center space-x-2"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Add New Part</span>
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setShowExcelUpload(true)}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2 transition-colors"
+            >
+              <Upload className="w-5 h-5" />
+              <span>Import Excel</span>
+            </button>
+            <button
+              onClick={() => setShowAddPartModal(true)}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center space-x-2 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Add New Part</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1509,94 +1567,94 @@ const InventorySystem = () => {
       },
       {
         id: 3,
-        title: "Snap-On East - Section 3",
-        filename: "SnapOn_East.png",
-        section: "Section 3",
-        description: "Snap-On branded storage unit on the east side"
-      },
-      {
-        id: 4,
-        title: "Module Cabinet East - Section 3",
-        filename: "Module_Cabinet_East.png",
-        section: "Section 3",
-        description: "Modular cabinet system for organized storage"
-      },
-      {
-        id: 5,
         title: "North Rack - Section 4",
         filename: "North_Rack.png",
         section: "Section 4",
         description: "Main storage rack on the north side of the tool room"
       },
       {
-        id: 6,
+        id: 4,
         title: "West Facing Hanging Wall - Section 5",
         filename: "W_Facing_Hanging_Wall.png",
         section: "Section 5",
         description: "Wall-mounted storage system on the west side"
       },
       {
-        id: 7,
+        id: 5,
         title: "East Facing Hanging Wall - Section 6",
         filename: "E_Facing_Hanging_Wall.png",
         section: "Section 6",
         description: "Wall-mounted storage for frequently used tools and parts"
       },
       {
-        id: 8,
-        title: "AC Machines Area",
-        filename: "AC_Machines.png",
-        section: "Equipment",
-        description: "Air conditioning and HVAC equipment storage area"
+        id: 6,
+        title: "Snap-On East - Section 3",
+        filename: "SnapOn_East.png",
+        section: "Section 3",
+        description: "Snap-On branded storage unit on the east side"
       },
       {
-        id: 9,
-        title: "Airgas Cabinet",
-        filename: "Airgas_Cab.png",
-        section: "Equipment",
-        description: "Airgas welding supplies and gas cylinder storage"
-      },
-      {
-        id: 10,
-        title: "CAT Detroit Parts Box",
-        filename: "CAT_Detroit_Box.png",
-        section: "Equipment",
-        description: "Caterpillar and Detroit diesel parts storage container"
-      },
-      {
-        id: 11,
-        title: "East Literature Wall",
-        filename: "E_Literature_Wall.png",
-        section: "Reference",
-        description: "Technical manuals and documentation storage"
-      },
-      {
-        id: 12,
+        id: 7,
         title: "East Tool Room",
         filename: "E_ToolRM.png",
         section: "Overview",
         description: "Overview of the east side tool room area"
       },
       {
-        id: 13,
-        title: "MX Fuel Kit Storage",
-        filename: "MX_Fuel_Kit.png",
-        section: "Equipment",
-        description: "Milwaukee MX Fuel battery tools and equipment"
-      },
-      {
-        id: 14,
+        id: 8,
         title: "West Tool Room",
         filename: "W_ToolRM.png",
         section: "Overview",
         description: "Overview of the west side tool room area"
       },
       {
-        id: 15,
+        id: 9,
+        title: "AC Machines Area",
+        filename: "AC_Machines.png",
+        section: "Equipment",
+        description: "Air conditioning and HVAC equipment storage area"
+      },
+      {
+        id: 10,
+        title: "East Literature Wall",
+        filename: "E_Literature_Wall.png",
+        section: "Reference",
+        description: "Technical manuals and documentation storage"
+      },
+      {
+        id: 11,
         title: "Welder & Plasma Cutter",
         filename: "Welder_Plasma.png",
         section: "Equipment",
         description: "Welding and plasma cutting equipment station"
+      },
+      {
+        id: 12,
+        title: "Module Cabinet East - Section 3",
+        filename: "Module_Cabinet_East.png",
+        section: "Section 3",
+        description: "Modular cabinet system for organized storage"
+      },
+      {
+        id: 13,
+        title: "Airgas Cabinet",
+        filename: "Airgas_Cab.png",
+        section: "Equipment",
+        description: "Airgas welding supplies and gas cylinder storage"
+      },
+      {
+        id: 14,
+        title: "CAT Detroit Parts Box",
+        filename: "CAT_Detroit_Box.png",
+        section: "Equipment",
+        description: "Caterpillar and Detroit diesel parts storage container"
+      },
+      {
+        id: 15,
+        title: "MX Fuel Kit Storage",
+        filename: "MX_Fuel_Kit.png",
+        section: "Equipment",
+        description: "Milwaukee MX Fuel battery tools and equipment"
       }
     ];
 
@@ -2252,6 +2310,11 @@ const InventorySystem = () => {
       {showDeleteShelfConfirm && <DeleteShelfConfirmModal />}
       {showPinModal && <PinModal />}
       {showEasterEgg && <EasterEggModal />}
+      <ExcelUpload 
+        isVisible={showExcelUpload}
+        onClose={() => setShowExcelUpload(false)}
+        onDataImport={handleExcelImport}
+      />
       <ImageModal />
     </div>
   );

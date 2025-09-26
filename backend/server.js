@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const fs = require('fs').promises;
 const path = require('path');
+const multer = require('multer');
 require('dotenv').config();
 
 const app = express();
@@ -27,6 +28,21 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.includes('sheet') || file.originalname.match(/\.(xlsx|xls)$/i)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only Excel files are allowed'), false);
+    }
+  }
+});
+
 // Database file paths (using JSON files for simplicity - can be replaced with real database)
 const DB_DIR = path.join(__dirname, 'database');
 const PARTS_FILE = path.join(DB_DIR, 'parts.json');
@@ -38,19 +54,8 @@ async function initializeDatabase() {
   try {
     await fs.mkdir(DB_DIR, { recursive: true });
     
-    // Initialize parts data
-    const initialParts = [
-      { id: 1, partNumber: 'T800-001', description: 'Engine Oil Filter', shelf: 'A-01', category: 'Engine Parts', status: 'available', checkedOutBy: null, checkedOutDate: null, quantity: 5, minQuantity: 2 },
-      { id: 2, partNumber: 'T800-002', description: 'Air Brake Valve', shelf: 'B-03', category: 'Brake System', status: 'available', checkedOutBy: null, checkedOutDate: null, quantity: 2, minQuantity: 1 },
-      { id: 3, partNumber: 'T800-003', description: 'Transmission Seal Kit', shelf: 'C-05', category: 'Transmission', status: 'available', checkedOutBy: null, checkedOutDate: null, quantity: 3, minQuantity: 1 },
-      { id: 4, partNumber: 'W900-001', description: 'Headlight Assembly', shelf: 'D-02', category: 'Electrical', status: 'available', checkedOutBy: null, checkedOutDate: null, quantity: 4, minQuantity: 2 },
-      { id: 5, partNumber: 'W900-002', description: 'Fuel Pump', shelf: 'A-08', category: 'Fuel System', status: 'available', checkedOutBy: null, checkedOutDate: null, quantity: 1, minQuantity: 1 },
-      { id: 6, partNumber: 'T680-001', description: 'Radiator Hose', shelf: 'E-01', category: 'Cooling System', status: 'available', checkedOutBy: null, checkedOutDate: null, quantity: 6, minQuantity: 2 },
-      { id: 7, partNumber: 'T680-002', description: 'Starter Motor', shelf: 'D-05', category: 'Electrical', status: 'available', checkedOutBy: null, checkedOutDate: null, quantity: 2, minQuantity: 1 },
-      { id: 8, partNumber: 'T370-001', description: 'Power Steering Pump', shelf: 'B-07', category: 'Steering', status: 'available', checkedOutBy: null, checkedOutDate: null, quantity: 1, minQuantity: 1 },
-      { id: 9, partNumber: 'K270-001', description: 'Wiper Blade Set', shelf: 'F-03', category: 'Body Parts', status: 'available', checkedOutBy: null, checkedOutDate: null, quantity: 8, minQuantity: 3 },
-      { id: 10, partNumber: 'K270-002', description: 'Door Handle', shelf: 'F-08', category: 'Body Parts', status: 'available', checkedOutBy: null, checkedOutDate: null, quantity: 3, minQuantity: 1 },
-    ];
+    // Initialize parts data - Start with empty array for Excel import
+    const initialParts = [];
 
     // Initialize shelves data
     const initialShelves = {
@@ -655,6 +660,101 @@ app.delete('/api/shelves/:id', async (req, res) => {
     res.json({ message: 'Shelf deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete shelf' });
+  }
+});
+
+// Excel Import endpoint
+app.post('/api/import/excel', upload.single('excelFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No Excel file provided' });
+    }
+
+    const partsData = JSON.parse(req.body.partsData || '[]');
+    
+    if (!Array.isArray(partsData) || partsData.length === 0) {
+      return res.status(400).json({ error: 'No valid parts data provided' });
+    }
+
+    // Read existing parts to get the next available ID
+    const existingParts = await readParts();
+    let nextId = Math.max(...existingParts.map(p => p.id), 0) + 1;
+
+    // Process and validate parts data
+    const validParts = [];
+    const errors = [];
+
+    partsData.forEach((part, index) => {
+      // Validate required fields
+      if (!part.partNumber && !part.description) {
+        errors.push(`Row ${index + 1}: Part must have either a part number or description`);
+        return;
+      }
+
+      // Create validated part object
+      const validatedPart = {
+        id: nextId++,
+        partNumber: (part.partNumber || '').toString().trim(),
+        description: (part.description || '').toString().trim(),
+        shelf: (part.shelf || 'TBD').toString().trim(),
+        category: (part.category || 'General').toString().trim(),
+        status: 'available',
+        checkedOutBy: null,
+        checkedOutDate: null,
+        quantity: Math.max(parseInt(part.quantity) || 1, 0),
+        minQuantity: Math.max(parseInt(part.minQuantity) || 1, 0)
+      };
+
+      validParts.push(validatedPart);
+    });
+
+    if (errors.length > 0 && validParts.length === 0) {
+      return res.status(400).json({ 
+        error: 'No valid parts found', 
+        details: errors 
+      });
+    }
+
+    // Add parts to existing inventory
+    const updatedParts = [...existingParts, ...validParts];
+    const success = await writeParts(updatedParts);
+
+    if (!success) {
+      return res.status(500).json({ error: 'Failed to save imported parts' });
+    }
+
+    // Create transaction records for the import
+    const transactions = await readTransactions();
+    const importTransaction = {
+      id: Date.now(),
+      partId: null,
+      partNumber: 'BULK_IMPORT',
+      action: 'import',
+      user: 'System',
+      timestamp: new Date().toISOString(),
+      notes: `Imported ${validParts.length} parts from Excel file: ${req.file.originalname}`,
+      quantityBefore: existingParts.length,
+      quantityAfter: updatedParts.length
+    };
+
+    transactions.unshift(importTransaction);
+    await writeTransactions(transactions);
+
+    res.json({
+      success: true,
+      message: `Successfully imported ${validParts.length} parts`,
+      importedCount: validParts.length,
+      totalParts: updatedParts.length,
+      errors: errors.length > 0 ? errors : null,
+      transaction: importTransaction
+    });
+
+  } catch (error) {
+    console.error('Excel import error:', error);
+    res.status(500).json({ 
+      error: 'Failed to process Excel import', 
+      details: error.message 
+    });
   }
 });
 
