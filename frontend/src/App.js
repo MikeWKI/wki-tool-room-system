@@ -1878,7 +1878,7 @@ const InventorySystem = () => {
                 North Rack Shelfs
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {Array.from({length: 10}, (_, i) => i + 1).map(shelfNum => {
+                {Array.from({length: 8}, (_, i) => i + 1).map(shelfNum => {
                   const imagePath = `shelfs/North/North_Rack_${shelfNum}.JPG`;
                   return (
                     <div key={`north-${shelfNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-green-400 hover:bg-green-50 transition-colors cursor-pointer"
@@ -1915,7 +1915,7 @@ const InventorySystem = () => {
                 South Rack Shelfs
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {Array.from({length: 8}, (_, i) => i + 1).map(shelfNum => {
+                {Array.from({length: 15}, (_, i) => i + 1).map(shelfNum => {
                   const imagePath = `shelfs/South/South_Rack_${shelfNum}.JPG`;
                   return (
                     <div key={`south-${shelfNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-orange-400 hover:bg-orange-50 transition-colors cursor-pointer"
@@ -1982,25 +1982,40 @@ const InventorySystem = () => {
               </div>
             </div>
 
-            {/* CAT Parts Storage */}
+            {/* Caterpillar Box */}
             <div>
               <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                 <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
-                CAT Parts Storage
+                Caterpillar Box - Drawers
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {Array.from({length: 6}, (_, i) => i + 1).map(boxNum => (
-                  <div key={`cat-${boxNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-yellow-400 hover:bg-yellow-50 transition-colors">
-                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
-                      <Package className="w-8 h-8 text-gray-400" />
+                {Array.from({length: 3}, (_, i) => i + 1).map(drawerNum => {
+                  const imagePath = `shelfs/CAT/CAT_Drawer_${drawerNum}.JPG`;
+                  return (
+                    <div key={`cat-${drawerNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-yellow-400 hover:bg-yellow-50 transition-colors cursor-pointer"
+                         onClick={() => handleImageClick({ id: `cat-${drawerNum}`, title: `CAT Drawer ${drawerNum}`, filename: imagePath, description: `Caterpillar Box Drawer ${drawerNum} storage detail` })}>
+                      <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                        <img 
+                          src={`/${imagePath}`}
+                          alt={`CAT Drawer ${drawerNum}`}
+                          className="w-full h-full object-cover rounded-lg"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="w-full h-full items-center justify-center" style={{display: 'none'}}>
+                          <Package className="w-8 h-8 text-gray-400" />
+                        </div>
+                      </div>
+                      <h5 className="font-medium text-gray-900">CAT Drawer {drawerNum}</h5>
+                      <p className="text-xs text-gray-500 mt-1">Click to view detail</p>
+                      <div className="mt-2 px-2 py-1 bg-yellow-100 rounded text-xs text-yellow-700">
+                        /{imagePath}
+                      </div>
                     </div>
-                    <h5 className="font-medium text-gray-900">CAT Box {boxNum}</h5>
-                    <p className="text-xs text-gray-500 mt-1">Image placeholder</p>
-                    <div className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs text-gray-600">
-                      {`/shelfs/Cat/CAT_Box_${boxNum}.JPG`}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -2008,43 +2023,73 @@ const InventorySystem = () => {
             <div>
               <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                 <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
-                Detroit Parts Storage
+                Detroit Box - Drawers
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {Array.from({length: 6}, (_, i) => i + 1).map(boxNum => (
-                  <div key={`detroit-${boxNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-red-400 hover:bg-red-50 transition-colors">
-                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
-                      <Package className="w-8 h-8 text-gray-400" />
+                {Array.from({length: 4}, (_, i) => i + 1).map(drawerNum => {
+                  const imagePath = `shelfs/Detroit/Detroit_Drawer_${drawerNum}.JPG`;
+                  return (
+                    <div key={`detroit-${drawerNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-red-400 hover:bg-red-50 transition-colors cursor-pointer"
+                         onClick={() => handleImageClick({ id: `detroit-${drawerNum}`, title: `Detroit Drawer ${drawerNum}`, filename: imagePath, description: `Detroit Box Drawer ${drawerNum} storage detail` })}>
+                      <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                        <img 
+                          src={`/${imagePath}`}
+                          alt={`Detroit Drawer ${drawerNum}`}
+                          className="w-full h-full object-cover rounded-lg"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="w-full h-full items-center justify-center" style={{display: 'none'}}>
+                          <Package className="w-8 h-8 text-gray-400" />
+                        </div>
+                      </div>
+                      <h5 className="font-medium text-gray-900">Detroit Drawer {drawerNum}</h5>
+                      <p className="text-xs text-gray-500 mt-1">Click to view detail</p>
+                      <div className="mt-2 px-2 py-1 bg-red-100 rounded text-xs text-red-700">
+                        /{imagePath}
+                      </div>
                     </div>
-                    <h5 className="font-medium text-gray-900">Detroit Box {boxNum}</h5>
-                    <p className="text-xs text-gray-500 mt-1">Image placeholder</p>
-                    <div className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs text-gray-600">
-                      {`/shelfs/Detroit/Detroit_Box_${boxNum}.JPG`}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
-            {/* MX Tools Storage */}
+            {/* MX Fuel Kit Storage */}
             <div>
               <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                <div className="w-3 h-3 bg-red-600 rounded-full mr-3"></div>
-                MX Tools Storage
+                <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
+                MX Fuel Kit - Drawers
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {Array.from({length: 4}, (_, i) => i + 1).map(slotNum => (
-                  <div key={`mx-${slotNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-red-400 hover:bg-red-50 transition-colors">
-                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
-                      <Package className="w-8 h-8 text-gray-400" />
+                {Array.from({length: 3}, (_, i) => i + 1).map(drawerNum => {
+                  const imagePath = `shelfs/MX/MX_Drawer_${drawerNum}.JPG`;
+                  return (
+                    <div key={`mx-${drawerNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-orange-400 hover:bg-orange-50 transition-colors cursor-pointer"
+                         onClick={() => handleImageClick({ id: `mx-${drawerNum}`, title: `MX Drawer ${drawerNum}`, filename: imagePath, description: `MX Fuel Kit Drawer ${drawerNum} storage detail` })}>
+                      <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                        <img 
+                          src={`/${imagePath}`}
+                          alt={`MX Drawer ${drawerNum}`}
+                          className="w-full h-full object-cover rounded-lg"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="w-full h-full items-center justify-center" style={{display: 'none'}}>
+                          <Package className="w-8 h-8 text-gray-400" />
+                        </div>
+                      </div>
+                      <h5 className="font-medium text-gray-900">MX Drawer {drawerNum}</h5>
+                      <p className="text-xs text-gray-500 mt-1">Click to view detail</p>
+                      <div className="mt-2 px-2 py-1 bg-orange-100 rounded text-xs text-orange-700">
+                        /{imagePath}
+                      </div>
                     </div>
-                    <h5 className="font-medium text-gray-900">MX Slot {slotNum}</h5>
-                    <p className="text-xs text-gray-500 mt-1">Image placeholder</p>
-                    <div className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs text-gray-600">
-                      {`/shelfs/MX/MX_Slot_${slotNum}.JPG`}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
