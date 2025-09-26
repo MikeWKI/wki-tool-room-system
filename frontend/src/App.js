@@ -1627,6 +1627,7 @@ const InventorySystem = () => {
   // Layout Reference View
   const LayoutReferenceView = () => {
     const layoutImages = [
+      // RACK SYSTEMS FIRST
       {
         id: 1,
         title: "West Rack - Section 1",
@@ -1648,6 +1649,29 @@ const InventorySystem = () => {
         section: "Section 4",
         description: "Main storage rack on the north side of the tool room"
       },
+      // CABINETS AND BOXES SECOND
+      {
+        id: 12,
+        title: "Module Cabinet East - Section 3",
+        filename: "Module_Cabinet_East.png",
+        section: "Section 3",
+        description: "Modular cabinet system for organized storage"
+      },
+      {
+        id: 13,
+        title: "Airgas Cabinet",
+        filename: "Airgas_Cab.png",
+        section: "Equipment",
+        description: "Airgas welding supplies and gas cylinder storage"
+      },
+      {
+        id: 6,
+        title: "Snap-On East - Section 3",
+        filename: "SnapOn_East.png",
+        section: "Section 3",
+        description: "Snap-On branded storage unit on the east side"
+      },
+      // OTHER STORAGE SYSTEMS
       {
         id: 4,
         title: "West Facing Hanging Wall - Section 5",
@@ -1662,13 +1686,7 @@ const InventorySystem = () => {
         section: "Section 6",
         description: "Wall-mounted storage for frequently used tools and parts"
       },
-      {
-        id: 6,
-        title: "Snap-On East - Section 3",
-        filename: "SnapOn_East.png",
-        section: "Section 3",
-        description: "Snap-On branded storage unit on the east side"
-      },
+      // ROOM OVERVIEWS AND EQUIPMENT
       {
         id: 7,
         title: "East Tool Room",
@@ -1703,20 +1721,6 @@ const InventorySystem = () => {
         filename: "Welder_Plasma.png",
         section: "Equipment",
         description: "Welding and plasma cutting equipment station"
-      },
-      {
-        id: 12,
-        title: "Module Cabinet East - Section 3",
-        filename: "Module_Cabinet_East.png",
-        section: "Section 3",
-        description: "Modular cabinet system for organized storage"
-      },
-      {
-        id: 13,
-        title: "Airgas Cabinet",
-        filename: "Airgas_Cab.png",
-        section: "Equipment",
-        description: "Airgas welding supplies and gas cylinder storage"
       },
       {
         id: 14,
