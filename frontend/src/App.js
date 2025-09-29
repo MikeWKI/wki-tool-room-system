@@ -26,6 +26,7 @@ const InventorySystem = () => {
   const [showUpdateNotification, setShowUpdateNotification] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [showPWANotification, setShowPWANotification] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
 
   // Inventory Management State
   const [showAddPartModal, setShowAddPartModal] = useState(false);
@@ -450,7 +451,14 @@ const InventorySystem = () => {
     window.addEventListener('offline', handleOffline);
 
     // PWA event listeners
-    const handlePWAInstallPrompt = () => setShowInstallPrompt(true);
+    const handlePWAInstallPrompt = (e) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later
+      setDeferredPrompt(e);
+      // Show install prompt
+      setShowInstallPrompt(true);
+    };
     const handlePWAUpdateAvailable = () => setShowUpdateNotification(true);
     const handlePWAOnlineStatus = (event) => setIsOnline(event.detail.online);
     
@@ -459,13 +467,18 @@ const InventorySystem = () => {
     window.addEventListener('pwa-online-status', handlePWAOnlineStatus);
     
     // Check if app is already installed
-    setIsInstalled(window.matchMedia('(display-mode: standalone)').matches);
+    const isInstalledCheck = window.matchMedia('(display-mode: standalone)').matches;
+    setIsInstalled(isInstalledCheck);
+    
+    // Hide install prompt if already installed
+    if (isInstalledCheck) {
+      setShowInstallPrompt(false);
+    }
     
     // Show PWA notification if not shown before and not installed
     const pwaNotificationShown = localStorage.getItem('pwa-notification-shown');
-    const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
     
-    if (!pwaNotificationShown && !isInstalled) {
+    if (!pwaNotificationShown && !isInstalledCheck) {
       // Show notification after a short delay
       setTimeout(() => {
         setShowPWANotification(true);
@@ -478,6 +491,8 @@ const InventorySystem = () => {
       window.removeEventListener('beforeinstallprompt', handlePWAInstallPrompt);
       window.removeEventListener('pwa-update-available', handlePWAUpdateAvailable);
       window.removeEventListener('pwa-online-status', handlePWAOnlineStatus);
+      // Clear deferred prompt
+      setDeferredPrompt(null);
     };
   }, [fetchParts, fetchTransactions, fetchDashboardStats, fetchShelves]);
 
@@ -643,10 +658,30 @@ const InventorySystem = () => {
 
   // PWA Functions
   const handleInstallApp = async () => {
-    const installed = await pwaManager.showInstallPrompt();
-    if (installed) {
-      setShowInstallPrompt(false);
-      setIsInstalled(true);
+    if (!deferredPrompt) {
+      console.log('No deferred prompt available');
+      return;
+    }
+
+    try {
+      // Show the install prompt
+      deferredPrompt.prompt();
+      
+      // Wait for the user to respond to the prompt
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+        setShowInstallPrompt(false);
+        setIsInstalled(true);
+      } else {
+        console.log('User dismissed the install prompt');
+      }
+      
+      // Clear the deferred prompt since it can only be used once
+      setDeferredPrompt(null);
+    } catch (error) {
+      console.error('Error during PWA installation:', error);
     }
   };
 
