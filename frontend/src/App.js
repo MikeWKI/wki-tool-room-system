@@ -2347,48 +2347,100 @@ const InventorySystem = () => {
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300 flex flex-col">
       {/* Splash Screen - Show for 2-3 seconds during initial app load */}
       {!appInitialized && (
-        <div 
-          className="min-h-screen flex items-center justify-center relative overflow-hidden"
-          style={{
-            backgroundImage: "url('/WKIFlag.png')",
-            backgroundSize: 'contain',
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'center',
-            backgroundColor: '#1f2937' // Dark background for better contrast
-          }}
-        >
-          {/* Dark overlay for better text readability */}
-          <div className="absolute inset-0 bg-black bg-opacity-60"></div>
-          
-          {/* Splash Content */}
-          <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 drop-shadow-lg">
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
+          {/* Header Text Above Image */}
+          <div className="flex-shrink-0 text-center py-8 px-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-800 dark:text-white mb-4">
               WKI Tool Room - Inventory Mgmt. App
             </h1>
-            <div className="border-t-4 border-white w-32 mx-auto my-6"></div>
-            <div className="mb-8">
-              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-yellow-300 drop-shadow-lg">
+            <div className="border-t-4 border-red-600 w-32 mx-auto"></div>
+          </div>
+
+          {/* Flag Image Container */}
+          <div className="flex-grow flex items-center justify-center px-4">
+            <div 
+              className="w-full max-w-4xl aspect-[3/2] bg-contain bg-no-repeat bg-center"
+              style={{
+                backgroundImage: "url('/WKIFlag.png')",
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center'
+              }}
+            ></div>
+          </div>
+
+          {/* Text and Progress Below Image */}
+          <div className="flex-shrink-0 text-center py-8 px-4">
+            <div className="mb-6">
+              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-red-600 mb-2">
                 The Worlds Best!
               </h2>
-              <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-medium text-yellow-200 mt-2 drop-shadow-lg">
+              <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-medium text-red-500">
                 If anyone could do it better they already would be!
               </h3>
             </div>
-            <div className="mt-12">
-              <div className="text-center">
-                <p className="text-white text-lg mb-4">App Initializing</p>
-                <div className="w-64 mx-auto bg-gray-700 rounded-full h-3 overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-yellow-400 to-yellow-200 h-full rounded-full animate-[progress_2.5s_ease-out_forwards]"
-                    style={{
-                      width: '0%',
-                      animation: 'progress 2.5s ease-out forwards'
-                    }}
-                  ></div>
-                </div>
+            <div className="mb-8">
+              <p className="text-gray-700 dark:text-gray-300 text-lg mb-4">App Initializing</p>
+              <div className="w-64 mx-auto bg-gray-300 dark:bg-gray-600 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-red-500 to-red-600 h-full rounded-full"
+                  style={{
+                    width: '0%',
+                    animation: 'progress 2.5s ease-out forwards'
+                  }}
+                ></div>
               </div>
             </div>
           </div>
+
+          {/* Footer */}
+          <footer className="bg-gray-800 dark:bg-gray-900 text-white flex-shrink-0">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <div className="flex flex-col md:flex-row items-center justify-between">
+                {/* Left side - Company info */}
+                <div className="flex items-center space-x-3 mb-4 md:mb-0">
+                  <div className="w-8 h-8 bg-red-600 rounded flex items-center justify-center">
+                    <Package className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">WKI Tool Room Management</h3>
+                    <p className="text-gray-400 text-sm">© 2025 All rights reserved</p>
+                  </div>
+                </div>
+
+                {/* Right side - App info */}
+                <div className="bg-red-800 bg-opacity-30 border border-red-600 rounded-lg px-4 py-2">
+                  <div className="flex items-center space-x-2 text-sm">
+                    <div className="w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
+                      <span className="text-xs font-bold text-black">🔒</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-yellow-300">WKI Proprietary Application</span>
+                      <p className="text-gray-300 text-xs mt-1">
+                        This application is proprietary to WKI and contains confidential business information.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom section */}
+              <div className="mt-4 pt-4 border-t border-gray-700">
+                <div className="flex flex-col sm:flex-row items-center justify-between text-sm text-gray-400">
+                  <div className="mb-2 sm:mb-0">
+                    Built for WKI Tool Room Performance Excellence
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <span>Inventory Management System</span>
+                    <span>•</span>
+                    <span>Professional Tool Tracking</span>
+                    <span>•</span>
+                    <span>WKI Internal Use Only</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </footer>
         </div>
       )}
 
