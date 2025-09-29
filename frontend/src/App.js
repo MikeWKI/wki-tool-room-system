@@ -2347,19 +2347,19 @@ const InventorySystem = () => {
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300 flex flex-col">
       {/* Splash Screen - Show for 2-3 seconds during initial app load */}
       {!appInitialized && (
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
+        <div className="h-screen bg-gray-100 dark:bg-gray-900 flex flex-col overflow-hidden">
           {/* Header Text Above Image */}
-          <div className="flex-shrink-0 text-center py-8 px-4">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-800 dark:text-white mb-4">
+          <div className="flex-shrink-0 text-center py-2 sm:py-4 px-2 sm:px-4">
+            <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-800 dark:text-white mb-2 sm:mb-4">
               WKI Tool Room - Inventory Mgmt. App
             </h1>
-            <div className="border-t-4 border-red-600 w-32 mx-auto"></div>
+            <div className="border-t-2 sm:border-t-4 border-red-600 w-16 sm:w-24 md:w-32 mx-auto"></div>
           </div>
 
           {/* Flag Image Container */}
-          <div className="flex-grow flex items-center justify-center px-4">
+          <div className="flex-grow flex items-center justify-center px-2 sm:px-4 min-h-0">
             <div 
-              className="w-full max-w-4xl aspect-[3/2] bg-contain bg-no-repeat bg-center"
+              className="w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl aspect-[3/2] bg-contain bg-no-repeat bg-center"
               style={{
                 backgroundImage: "url('/WKIFlag.png')",
                 backgroundSize: 'contain',
@@ -2370,18 +2370,18 @@ const InventorySystem = () => {
           </div>
 
           {/* Text and Progress Below Image */}
-          <div className="flex-shrink-0 text-center py-8 px-4">
-            <div className="mb-6">
-              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-red-600 mb-2">
+          <div className="flex-shrink-0 text-center py-2 sm:py-4 md:py-6 px-2 sm:px-4">
+            <div className="mb-3 sm:mb-4 md:mb-6">
+              <h2 className="text-sm sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-semibold text-red-600 mb-1 sm:mb-2">
                 The Worlds Best!
               </h2>
-              <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-medium text-red-500">
+              <h3 className="text-xs sm:text-base md:text-lg lg:text-xl xl:text-2xl font-medium text-red-500">
                 If anyone could do it better they already would be!
               </h3>
             </div>
-            <div className="mb-8">
-              <p className="text-gray-700 dark:text-gray-300 text-lg mb-4">App Initializing</p>
-              <div className="w-64 mx-auto bg-gray-300 dark:bg-gray-600 rounded-full h-3 overflow-hidden">
+            <div className="mb-4 sm:mb-6 md:mb-8">
+              <p className="text-gray-700 dark:text-gray-300 text-sm sm:text-base md:text-lg mb-2 sm:mb-4">App Initializing</p>
+              <div className="w-32 sm:w-48 md:w-64 mx-auto bg-gray-300 dark:bg-gray-600 rounded-full h-2 sm:h-3 overflow-hidden">
                 <div 
                   className="bg-gradient-to-r from-red-500 to-red-600 h-full rounded-full"
                   style={{
