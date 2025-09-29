@@ -73,9 +73,9 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: linear-gradient(135deg, #B91C1C, #DC2626);
+        background: #1f2937;
         background-image: url('%PUBLIC_URL%/WKIFlag.png');
-        background-size: cover;
+        background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
         display: flex;
@@ -97,7 +97,7 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.5);
+        background: rgba(0, 0, 0, 0.6);
         z-index: 1;
       }
       
@@ -107,43 +107,82 @@
         text-align: center;
         color: white;
         padding: 20px;
+        max-width: 800px;
       }
       
       .pwa-title {
-        font-size: 3rem;
+        font-size: 2.5rem;
         font-weight: bold;
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
       }
       
-      .pwa-subtitle {
-        font-size: 1.5rem;
+      .pwa-tagline-1 {
+        font-size: 1.8rem;
         color: #fde047;
+        font-weight: 600;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        margin-bottom: 0.5rem;
+      }
+      
+      .pwa-tagline-2 {
+        font-size: 1.4rem;
+        color: #fef3c7;
+        font-weight: 500;
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
         margin-bottom: 2rem;
       }
       
-      .pwa-spinner {
-        width: 40px;
-        height: 40px;
-        border: 3px solid rgba(255, 255, 255, 0.3);
-        border-top: 3px solid white;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
+      .pwa-divider {
+        width: 128px;
+        height: 4px;
+        background: white;
+        margin: 1.5rem auto;
+      }
+      
+      .pwa-progress-container {
+        margin-top: 3rem;
+      }
+      
+      .pwa-progress-text {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+      }
+      
+      .pwa-progress-bar {
+        width: 256px;
+        height: 12px;
+        background: rgba(75, 85, 99, 0.8);
+        border-radius: 6px;
+        overflow: hidden;
         margin: 0 auto;
       }
       
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+      .pwa-progress-fill {
+        height: 100%;
+        background: linear-gradient(to right, #fbbf24, #fde047);
+        border-radius: 6px;
+        width: 0%;
+        animation: pwa-progress 1s ease-out forwards;
+      }
+      
+      @keyframes pwa-progress {
+        0% { width: 0%; }
+        100% { width: 100%; }
       }
       
       @media (max-width: 768px) {
         .pwa-title {
-          font-size: 2rem;
+          font-size: 1.8rem;
         }
-        .pwa-subtitle {
-          font-size: 1.2rem;
+        .pwa-tagline-1 {
+          font-size: 1.4rem;
+        }
+        .pwa-tagline-2 {
+          font-size: 1.1rem;
+        }
+        .pwa-progress-bar {
+          width: 200px;
         }
       }
     </style>
@@ -154,9 +193,17 @@
       <div class="pwa-loader-overlay"></div>
       <div class="pwa-loader-content">
         <h1 class="pwa-title">WKI Tool Room - Inventory Mgmt. App</h1>
-        <div style="width: 128px; height: 4px; background: white; margin: 0 auto 1.5rem;"></div>
-        <h2 class="pwa-subtitle">The Worlds Best! If anyone could do it better they already would be!</h2>
-        <div class="pwa-spinner"></div>
+        <div class="pwa-divider"></div>
+        <div>
+          <div class="pwa-tagline-1">The Worlds Best!</div>
+          <div class="pwa-tagline-2">If anyone could do it better they already would be!</div>
+        </div>
+        <div class="pwa-progress-container">
+          <div class="pwa-progress-text">App Initializing</div>
+          <div class="pwa-progress-bar">
+            <div class="pwa-progress-fill"></div>
+          </div>
+        </div>
       </div>
     </div>
     
@@ -167,6 +214,49 @@
       </div>
     </noscript>
     <div id="root"></div>
+    
+    <script>
+      // Hide PWA loader once React app is ready
+      function hidePWALoader() {
+        const loader = document.getElementById('pwa-loader');
+        if (loader) {
+          loader.classList.add('hidden');
+          setTimeout(() => {
+            loader.remove();
+          }, 300);
+        }
+      }
+      
+      // Hide loader after a minimum time or when React renders
+      let loaderHidden = false;
+      const minLoadTime = 1000; // Minimum 1 second to show the progress
+      
+      setTimeout(() => {
+        if (!loaderHidden && document.querySelector('#root').children.length > 0) {
+          hidePWALoader();
+          loaderHidden = true;
+        }
+      }, minLoadTime);
+      
+      // Also check periodically if React has rendered
+      const checkInterval = setInterval(() => {
+        if (!loaderHidden && document.querySelector('#root').children.length > 0) {
+          hidePWALoader();
+          loaderHidden = true;
+          clearInterval(checkInterval);
+        }
+      }, 100);
+      
+      // Fallback: Always hide after 3 seconds maximum
+      setTimeout(() => {
+        if (!loaderHidden) {
+          hidePWALoader();
+          loaderHidden = true;
+          clearInterval(checkInterval);
+        }
+      }, 3000);
+    </script>
+    
     <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.
