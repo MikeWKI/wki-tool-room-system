@@ -2303,8 +2303,8 @@ const InventorySystem = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
-      {/* Splash Screen - Show when inventory is empty and not loading */}
-      {inventory.length === 0 && !loading && (
+      {/* Splash Screen - Show during initial loading */}
+      {loading && inventory.length === 0 && (
         <div 
           className="min-h-screen flex items-center justify-center relative overflow-hidden"
           style={{
@@ -2328,24 +2328,17 @@ const InventorySystem = () => {
               The Worlds Best! If anyone could do it better they already would be!
             </h2>
             <div className="mt-12">
-              <button
-                onClick={() => {
-                  fetchParts();
-                  fetchTransactions();
-                  fetchDashboardStats();
-                  fetchShelves();
-                }}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors duration-300 shadow-lg"
-              >
-                Enter Tool Room
-              </button>
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-3"></div>
+                <span className="text-white text-lg">Loading...</span>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Main App Content - Show when inventory has data or is loading */}
-      {(inventory.length > 0 || loading) && (
+      {/* Main App Content - Show when not in initial loading state */}
+      {!(loading && inventory.length === 0) && (
         <>
           {/* Header */}
           <div className="bg-red-700 dark:bg-red-800 text-white shadow-lg">
