@@ -2392,55 +2392,6 @@ const InventorySystem = () => {
               </div>
             </div>
           </div>
-
-          {/* Footer */}
-          <footer className="bg-gray-800 dark:bg-gray-900 text-white flex-shrink-0">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-              <div className="flex flex-col md:flex-row items-center justify-between">
-                {/* Left side - Company info */}
-                <div className="flex items-center space-x-3 mb-4 md:mb-0">
-                  <div className="w-8 h-8 bg-red-600 rounded flex items-center justify-center">
-                    <Package className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white">WKI Tool Room Management</h3>
-                    <p className="text-gray-400 text-sm">© 2025 All rights reserved</p>
-                  </div>
-                </div>
-
-                {/* Right side - App info */}
-                <div className="bg-red-800 bg-opacity-30 border border-red-600 rounded-lg px-4 py-2">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <div className="w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-bold text-black">🔒</span>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-yellow-300">WKI Proprietary Application</span>
-                      <p className="text-gray-300 text-xs mt-1">
-                        This application is proprietary to WKI and contains confidential business information.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom section */}
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                <div className="flex flex-col sm:flex-row items-center justify-between text-sm text-gray-400">
-                  <div className="mb-2 sm:mb-0">
-                    Built for WKI Tool Room Performance Excellence
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <span>Inventory Management System</span>
-                    <span>•</span>
-                    <span>Professional Tool Tracking</span>
-                    <span>•</span>
-                    <span>WKI Internal Use Only</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </footer>
         </div>
       )}
 
