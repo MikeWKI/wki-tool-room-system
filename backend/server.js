@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const fs = require('fs').promises;
 const path = require('path');
 const multer = require('multer');
+const dbService = require('./services/DatabaseService');
 require('dotenv').config();
 
 const app = express();
@@ -48,89 +49,14 @@ const upload = multer({
   }
 });
 
-// Database file paths (using JSON files for simplicity - can be replaced with real database)
-const DB_DIR = path.join(__dirname, 'database');
-const PARTS_FILE = path.join(DB_DIR, 'parts.json');
-const TRANSACTIONS_FILE = path.join(DB_DIR, 'transactions.json');
-const SHELVES_FILE = path.join(DB_DIR, 'shelves.json');
+// Database service is now handled by DatabaseService.js
+// The old JSON file initialization is no longer needed as the DatabaseService
+// handles both MongoDB and JSON file operations automatically
 
-// Initialize database directory and files
-async function initializeDatabase() {
-  try {
-    await fs.mkdir(DB_DIR, { recursive: true });
-    
-    // Initialize parts data - Start with empty array for Excel import
-    const initialParts = [];
-
-    // Initialize shelves data
-    const initialShelves = {
-      'A-01': { name: 'Tool Room North Wall - Section A, Position 1', imageUrl: null, description: 'Engine filters and maintenance parts' },
-      'A-08': { name: 'Tool Room North Wall - Section A, Position 8', imageUrl: null, description: 'Fuel system components' },
-      'B-03': { name: 'Tool Room East Wall - Section B, Position 3', imageUrl: null, description: 'Brake system parts' },
-      'B-07': { name: 'Tool Room East Wall - Section B, Position 7', imageUrl: null, description: 'Steering components' },
-      'C-05': { name: 'Tool Room South Wall - Section C, Position 5', imageUrl: null, description: 'Transmission parts and seals' },
-      'D-02': { name: 'Tool Room West Wall - Section D, Position 2', imageUrl: null, description: 'Lighting and electrical components' },
-      'D-05': { name: 'Tool Room West Wall - Section D, Position 5', imageUrl: null, description: 'Starting and charging system' },
-      'E-01': { name: 'Tool Room Center Aisle - Section E, Position 1', imageUrl: null, description: 'Radiator and cooling parts' },
-      'F-03': { name: 'Tool Room Center Aisle - Section F, Position 3', imageUrl: null, description: 'Exterior body components' },
-      'F-08': { name: 'Tool Room Center Aisle - Section F, Position 8', imageUrl: null, description: 'Cab and body hardware' },
-    };
-
-    // Check if files exist, if not create them with initial data
-    // If they exist, keep the existing data (don't overwrite)
-    try {
-      await fs.access(PARTS_FILE);
-      // File exists, check if it's empty or has valid data
-      const existingData = await fs.readFile(PARTS_FILE, 'utf8');
-      const parsedData = JSON.parse(existingData);
-      if (!Array.isArray(parsedData)) {
-        // Invalid data, reinitialize
-        await fs.writeFile(PARTS_FILE, JSON.stringify(initialParts, null, 2));
-      }
-    } catch {
-      // File doesn't exist, create it
-      await fs.writeFile(PARTS_FILE, JSON.stringify(initialParts, null, 2));
-    }
-
-    try {
-      await fs.access(TRANSACTIONS_FILE);
-      // File exists, check if it has valid data
-      const existingData = await fs.readFile(TRANSACTIONS_FILE, 'utf8');
-      const parsedData = JSON.parse(existingData);
-      if (!Array.isArray(parsedData)) {
-        // Invalid data, reinitialize
-        await fs.writeFile(TRANSACTIONS_FILE, JSON.stringify([], null, 2));
-      }
-    } catch {
-      // File doesn't exist, create it
-      await fs.writeFile(TRANSACTIONS_FILE, JSON.stringify([], null, 2));
-    }
-
-    try {
-      await fs.access(SHELVES_FILE);
-      // File exists, check if it has valid data
-      const existingData = await fs.readFile(SHELVES_FILE, 'utf8');
-      const parsedData = JSON.parse(existingData);
-      if (!parsedData || typeof parsedData !== 'object') {
-        // Invalid data, reinitialize
-        await fs.writeFile(SHELVES_FILE, JSON.stringify(initialShelves, null, 2));
-      }
-    } catch {
-      // File doesn't exist, create it
-      await fs.writeFile(SHELVES_FILE, JSON.stringify(initialShelves, null, 2));
-    }
-
-    console.log('Database initialized successfully');
-  } catch (error) {
-    console.error('Failed to initialize database:', error);
-  }
-}
-
-// Database helper functions
+// Database helper functions using the new DatabaseService
 async function readParts() {
   try {
-    const data = await fs.readFile(PARTS_FILE, 'utf8');
-    return JSON.parse(data);
+    return await dbService.getParts();
   } catch (error) {
     console.error('Error reading parts:', error);
     return [];
@@ -139,7 +65,7 @@ async function readParts() {
 
 async function writeParts(parts) {
   try {
-    await fs.writeFile(PARTS_FILE, JSON.stringify(parts, null, 2));
+    await dbService.write('parts', parts);
     return true;
   } catch (error) {
     console.error('Error writing parts:', error);
@@ -149,8 +75,7 @@ async function writeParts(parts) {
 
 async function readTransactions() {
   try {
-    const data = await fs.readFile(TRANSACTIONS_FILE, 'utf8');
-    return JSON.parse(data);
+    return await dbService.getTransactions();
   } catch (error) {
     console.error('Error reading transactions:', error);
     return [];
@@ -159,7 +84,7 @@ async function readTransactions() {
 
 async function writeTransactions(transactions) {
   try {
-    await fs.writeFile(TRANSACTIONS_FILE, JSON.stringify(transactions, null, 2));
+    await dbService.write('transactions', transactions);
     return true;
   } catch (error) {
     console.error('Error writing transactions:', error);
@@ -169,8 +94,7 @@ async function writeTransactions(transactions) {
 
 async function readShelves() {
   try {
-    const data = await fs.readFile(SHELVES_FILE, 'utf8');
-    return JSON.parse(data);
+    return await dbService.getShelves();
   } catch (error) {
     console.error('Error reading shelves:', error);
     return {};
@@ -179,7 +103,7 @@ async function readShelves() {
 
 async function writeShelves(shelves) {
   try {
-    await fs.writeFile(SHELVES_FILE, JSON.stringify(shelves, null, 2));
+    await dbService.write('shelves', shelves);
     return true;
   } catch (error) {
     console.error('Error writing shelves:', error);
@@ -465,13 +389,43 @@ app.put('/api/parts/:id', async (req, res) => {
       return res.status(404).json({ error: 'Part not found' });
     }
     
+    const originalPart = { ...parts[partIndex] };
+    
     // Prevent updating checkout status through this endpoint
     delete updates.status;
     delete updates.checkedOutBy;
     delete updates.checkedOutDate;
     
+    // Track location changes for audit trail
+    if (updates.shelf && updates.shelf !== originalPart.shelf) {
+      updates.lastLocationChange = new Date().toISOString();
+      updates.previousLocation = originalPart.shelf;
+    }
+    
+    // Update last modified timestamp
+    updates.lastModified = new Date().toISOString();
+    updates.modifiedBy = updates.modifiedBy || 'System';
+    
     parts[partIndex] = { ...parts[partIndex], ...updates };
     await writeParts(parts);
+
+    // Log the location change in transactions if shelf was updated
+    if (updates.shelf && updates.shelf !== originalPart.shelf) {
+      const transactions = await readTransactions();
+      const locationChangeRecord = {
+        id: Date.now(),
+        partId: partId,
+        partNumber: parts[partIndex].partNumber,
+        action: 'location_change',
+        fromLocation: originalPart.shelf,
+        toLocation: updates.shelf,
+        user: updates.modifiedBy || 'System',
+        timestamp: new Date().toISOString(),
+        notes: `Part moved from ${originalPart.shelf} to ${updates.shelf}`
+      };
+      transactions.push(locationChangeRecord);
+      await writeTransactions(transactions);
+    }
     
     res.json(parts[partIndex]);
   } catch (error) {
@@ -497,6 +451,367 @@ app.delete('/api/parts/:id', async (req, res) => {
     res.json({ success: true, deletedPart });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete part' });
+  }
+});
+
+// Bulk update parts locations
+app.put('/api/parts/bulk/locations', async (req, res) => {
+  try {
+    const { updates, modifiedBy = 'System' } = req.body;
+    // updates should be an array of { id, shelf }
+    
+    if (!Array.isArray(updates)) {
+      return res.status(400).json({ error: 'Updates must be an array' });
+    }
+    
+    const parts = await readParts();
+    const transactions = await readTransactions();
+    const timestamp = new Date().toISOString();
+    const updatedParts = [];
+    const locationChanges = [];
+    
+    for (const update of updates) {
+      const partIndex = parts.findIndex(p => p.id === parseInt(update.id));
+      if (partIndex !== -1) {
+        const originalPart = { ...parts[partIndex] };
+        
+        if (update.shelf && update.shelf !== originalPart.shelf) {
+          parts[partIndex].shelf = update.shelf;
+          parts[partIndex].lastLocationChange = timestamp;
+          parts[partIndex].previousLocation = originalPart.shelf;
+          parts[partIndex].lastModified = timestamp;
+          parts[partIndex].modifiedBy = modifiedBy;
+          
+          updatedParts.push(parts[partIndex]);
+          
+          // Track location change for transaction log
+          locationChanges.push({
+            id: Date.now() + partIndex, // Ensure unique ID
+            partId: parts[partIndex].id,
+            partNumber: parts[partIndex].partNumber,
+            action: 'location_change',
+            fromLocation: originalPart.shelf,
+            toLocation: update.shelf,
+            user: modifiedBy,
+            timestamp: timestamp,
+            notes: `Bulk location update: ${originalPart.shelf} → ${update.shelf}`
+          });
+        }
+      }
+    }
+    
+    await writeParts(parts);
+    
+    // Add all location changes to transaction history
+    if (locationChanges.length > 0) {
+      transactions.push(...locationChanges);
+      await writeTransactions(transactions);
+    }
+    
+    res.json({ 
+      success: true, 
+      updated: updatedParts.length,
+      updatedParts 
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to bulk update locations' });
+  }
+});
+
+// Bulk update part quantities
+app.put('/api/parts/bulk/quantities', async (req, res) => {
+  try {
+    const { updates, modifiedBy = 'System' } = req.body;
+    // updates should be an array of { id, quantity, adjustment }
+    
+    if (!Array.isArray(updates)) {
+      return res.status(400).json({ error: 'Updates must be an array' });
+    }
+    
+    const parts = await readParts();
+    const transactions = await readTransactions();
+    const timestamp = new Date().toISOString();
+    const updatedParts = [];
+    
+    for (const update of updates) {
+      const partIndex = parts.findIndex(p => p.id === parseInt(update.id));
+      if (partIndex !== -1) {
+        const originalQuantity = parts[partIndex].quantity;
+        
+        if (update.quantity !== undefined) {
+          parts[partIndex].quantity = Math.max(0, parseInt(update.quantity));
+        } else if (update.adjustment !== undefined) {
+          parts[partIndex].quantity = Math.max(0, originalQuantity + parseInt(update.adjustment));
+        }
+        
+        parts[partIndex].lastModified = timestamp;
+        parts[partIndex].modifiedBy = modifiedBy;
+        
+        updatedParts.push(parts[partIndex]);
+        
+        // Log quantity change
+        transactions.push({
+          id: Date.now() + partIndex,
+          partId: parts[partIndex].id,
+          partNumber: parts[partIndex].partNumber,
+          action: 'quantity_update',
+          fromQuantity: originalQuantity,
+          toQuantity: parts[partIndex].quantity,
+          user: modifiedBy,
+          timestamp: timestamp,
+          notes: `Quantity updated: ${originalQuantity} → ${parts[partIndex].quantity}`
+        });
+      }
+    }
+    
+    await writeParts(parts);
+    await writeTransactions(transactions);
+    
+    res.json({ 
+      success: true, 
+      updated: updatedParts.length,
+      updatedParts 
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to bulk update quantities' });
+  }
+});
+
+// Get parts by location/shelf
+app.get('/api/parts/by-location/:shelf', async (req, res) => {
+  try {
+    const shelf = decodeURIComponent(req.params.shelf);
+    const parts = await readParts();
+    
+    const partsInLocation = parts.filter(part => 
+      part.shelf && part.shelf.toLowerCase().includes(shelf.toLowerCase())
+    );
+    
+    res.json(partsInLocation);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get parts by location' });
+  }
+});
+
+// Get inventory report
+app.get('/api/reports/inventory', async (req, res) => {
+  try {
+    const parts = await readParts();
+    const shelves = await readShelves();
+    
+    // Group parts by shelf
+    const locationReport = {};
+    parts.forEach(part => {
+      const shelf = part.shelf || 'Unassigned';
+      if (!locationReport[shelf]) {
+        locationReport[shelf] = {
+          shelfInfo: shelves[shelf] || { name: shelf, description: 'No description' },
+          parts: [],
+          totalQuantity: 0,
+          categories: new Set()
+        };
+      }
+      locationReport[shelf].parts.push(part);
+      locationReport[shelf].totalQuantity += part.quantity || 0;
+      locationReport[shelf].categories.add(part.category);
+    });
+    
+    // Convert categories Set to Array for JSON serialization
+    Object.values(locationReport).forEach(location => {
+      location.categories = Array.from(location.categories);
+    });
+    
+    // Low stock alerts
+    const lowStockParts = parts.filter(part => 
+      part.quantity <= (part.minQuantity || 1)
+    );
+    
+    // Category breakdown
+    const categoryStats = parts.reduce((acc, part) => {
+      const category = part.category || 'Uncategorized';
+      if (!acc[category]) {
+        acc[category] = { count: 0, totalQuantity: 0 };
+      }
+      acc[category].count++;
+      acc[category].totalQuantity += part.quantity || 0;
+      return acc;
+    }, {});
+    
+    res.json({
+      locationReport,
+      lowStockParts,
+      categoryStats,
+      totalParts: parts.length,
+      totalQuantity: parts.reduce((sum, part) => sum + (part.quantity || 0), 0),
+      reportGenerated: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to generate inventory report' });
+  }
+});
+
+// Data backup and validation endpoints
+// Create full data backup
+app.get('/api/backup/create', async (req, res) => {
+  try {
+    const parts = await readParts();
+    const shelves = await readShelves();
+    const transactions = await readTransactions();
+    
+    const backup = {
+      timestamp: new Date().toISOString(),
+      version: '1.0',
+      data: {
+        parts,
+        shelves,
+        transactions
+      },
+      metadata: {
+        totalParts: parts.length,
+        totalTransactions: transactions.length,
+        totalShelves: Object.keys(shelves).length
+      }
+    };
+    
+    res.json(backup);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create backup' });
+  }
+});
+
+// Validate data integrity
+app.get('/api/backup/validate', async (req, res) => {
+  try {
+    const parts = await readParts();
+    const shelves = await readShelves();
+    const transactions = await readTransactions();
+    
+    const validation = {
+      timestamp: new Date().toISOString(),
+      isValid: true,
+      errors: [],
+      warnings: [],
+      summary: {
+        totalParts: parts.length,
+        totalShelves: Object.keys(shelves).length,
+        totalTransactions: transactions.length
+      }
+    };
+    
+    // Validate parts data
+    parts.forEach((part, index) => {
+      if (!part.id) {
+        validation.errors.push(`Part at index ${index} missing ID`);
+        validation.isValid = false;
+      }
+      if (!part.partNumber) {
+        validation.errors.push(`Part ${part.id} missing part number`);
+        validation.isValid = false;
+      }
+      if (part.quantity < 0) {
+        validation.warnings.push(`Part ${part.partNumber} has negative quantity`);
+      }
+      if (part.shelf && !shelves[part.shelf]) {
+        validation.warnings.push(`Part ${part.partNumber} references non-existent shelf: ${part.shelf}`);
+      }
+    });
+    
+    // Check for duplicate part numbers
+    const partNumbers = parts.map(p => p.partNumber);
+    const duplicatePartNumbers = partNumbers.filter((num, index) => partNumbers.indexOf(num) !== index);
+    if (duplicatePartNumbers.length > 0) {
+      validation.warnings.push(`Duplicate part numbers found: ${[...new Set(duplicatePartNumbers)].join(', ')}`);
+    }
+    
+    // Validate transactions reference existing parts
+    const partIds = new Set(parts.map(p => p.id));
+    transactions.forEach((transaction, index) => {
+      if (transaction.partId && !partIds.has(transaction.partId)) {
+        validation.warnings.push(`Transaction ${transaction.id} references non-existent part ID: ${transaction.partId}`);
+      }
+    });
+    
+    res.json(validation);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to validate data' });
+  }
+});
+
+// Restore from backup (POST with backup data)
+app.post('/api/backup/restore', async (req, res) => {
+  try {
+    const { data, confirm } = req.body;
+    
+    if (!confirm) {
+      return res.status(400).json({ error: 'Restoration requires confirmation' });
+    }
+    
+    if (!data || !data.parts || !data.shelves || !data.transactions) {
+      return res.status(400).json({ error: 'Invalid backup data format' });
+    }
+    
+    // Create backup of current data before restoration
+    const currentBackup = {
+      timestamp: new Date().toISOString(),
+      parts: await readParts(),
+      shelves: await readShelves(),
+      transactions: await readTransactions()
+    };
+    
+    // Write backup data to disk
+    await writeParts(data.parts);
+    await writeShelves(data.shelves);
+    await writeTransactions(data.transactions);
+    
+    res.json({ 
+      success: true, 
+      message: 'Data restored successfully',
+      restoredCounts: {
+        parts: data.parts.length,
+        shelves: Object.keys(data.shelves).length,
+        transactions: data.transactions.length
+      },
+      previousBackup: currentBackup
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to restore backup' });
+  }
+});
+
+// Auto-backup creation endpoint (can be called by cron job)
+app.post('/api/backup/auto-create', async (req, res) => {
+  try {
+    const parts = await readParts();
+    const shelves = await readShelves();
+    const transactions = await readTransactions();
+    
+    const backupFileName = `backup-${new Date().toISOString().split('T')[0]}.json`;
+    const backupPath = path.join(__dirname, 'backups', backupFileName);
+    
+    // Ensure backups directory exists
+    await fs.mkdir(path.join(__dirname, 'backups'), { recursive: true });
+    
+    const backup = {
+      timestamp: new Date().toISOString(),
+      version: '1.0',
+      data: { parts, shelves, transactions },
+      metadata: {
+        totalParts: parts.length,
+        totalTransactions: transactions.length,
+        totalShelves: Object.keys(shelves).length
+      }
+    };
+    
+    await fs.writeFile(backupPath, JSON.stringify(backup, null, 2));
+    
+    res.json({ 
+      success: true, 
+      backupFile: backupFileName,
+      backupPath: backupPath,
+      size: JSON.stringify(backup).length
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create auto-backup' });
   }
 });
 
@@ -874,17 +1189,29 @@ app.use('*', (req, res) => {
 
 // Initialize database and start server
 async function startServer() {
-  await initializeDatabase();
-  
-  const baseUrl = process.env.NODE_ENV === 'production' 
-    ? `https://wki-tool-room-system-1.onrender.com` 
-    : `http://localhost:${PORT}`;
+  try {
+    // Initialize database service (MongoDB or JSON fallback)
+    await dbService.initialize();
+    
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? `https://wki-tool-room-system-1.onrender.com` 
+      : `http://localhost:${PORT}`;
 
-  app.listen(PORT, () => {
-    console.log(`WKI Tool Room API Server running on port ${PORT}`);
-    console.log(`Health check: ${baseUrl}/api/health`);
-    console.log(`API endpoints available at: ${baseUrl}/api/`);
-  });
+    app.listen(PORT, () => {
+      console.log(`WKI Tool Room API Server running on port ${PORT}`);
+      console.log(`Health check: ${baseUrl}/api/health`);
+      console.log(`API endpoints available at: ${baseUrl}/api/`);
+      
+      if (dbService.useMongoDb) {
+        console.log('📊 Connected to MongoDB - Data will persist through deployments');
+      } else {
+        console.log('⚠️  Using JSON files - Data will be lost on redeployment');
+      }
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
 }
 
 startServer().catch(console.error);

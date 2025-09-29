@@ -1,9 +1,13 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings, Upload, Download, Share } from 'lucide-react';
+import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings, Upload, Download, Share, BarChart3, Database } from 'lucide-react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import MobileNavigation from './components/MobileNavigation';
 import ThemeToggle from './components/ThemeToggle';
 import ExcelUpload from './components/ExcelUpload';
+import LocationManager from './components/LocationManager';
+import AdvancedFilters from './components/AdvancedFilters';
+import InventoryReports from './components/InventoryReports';
+import DataManagement from './components/DataManagement';
 import pwaManager from './utils/pwa';
 
 const InventorySystem = () => {
@@ -60,6 +64,20 @@ const InventorySystem = () => {
 
   // Excel Upload State
   const [showExcelUpload, setShowExcelUpload] = useState(false);
+
+  // Location Manager State
+  const [showLocationManager, setShowLocationManager] = useState(false);
+
+  // Advanced Filters State
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filteredInventory, setFilteredInventory] = useState([]);
+  const [activeFilters, setActiveFilters] = useState({});
+
+  // Reports State
+  const [showReports, setShowReports] = useState(false);
+
+  // Data Management State
+  const [showDataManagement, setShowDataManagement] = useState(false);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 
     (process.env.NODE_ENV === 'production' 
@@ -463,8 +481,20 @@ const InventorySystem = () => {
     };
   }, [fetchParts, fetchTransactions, fetchDashboardStats, fetchShelves]);
 
-  // Filter inventory based on search term
-  const filteredInventory = useMemo(() => {
+  // Filter change handler for advanced filters
+  const handleFilterChange = useCallback((filtered, filters) => {
+    setFilteredInventory(filtered);
+    setActiveFilters(filters);
+  }, []);
+
+  // Filter inventory based on search term and advanced filters
+  const displayInventory = useMemo(() => {
+    // If advanced filters are active, use the filtered inventory
+    if (Object.keys(activeFilters).length > 0 && Object.values(activeFilters).some(v => v && v !== 'all')) {
+      return filteredInventory;
+    }
+    
+    // Otherwise, use basic search filter
     if (!searchTerm) return inventory;
     
     return inventory.filter(item => 
@@ -472,7 +502,7 @@ const InventorySystem = () => {
       item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.category.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [searchTerm, inventory]);
+  }, [searchTerm, inventory, filteredInventory, activeFilters]);
 
   const handlePartSelect = (part) => {
     setSelectedPart(part);
@@ -1525,6 +1555,20 @@ const InventorySystem = () => {
               <span>Import Excel</span>
             </button>
             <button
+              onClick={() => setShowLocationManager(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 transition-colors"
+            >
+              <MapPin className="w-5 h-5" />
+              <span>Manage Locations</span>
+            </button>
+            <button
+              onClick={() => setShowDataManagement(true)}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center space-x-2 transition-colors"
+            >
+              <Database className="w-5 h-5" />
+              <span>Data Management</span>
+            </button>
+            <button
               onClick={() => setShowAddPartModal(true)}
               className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center space-x-2 transition-colors"
             >
@@ -2444,6 +2488,30 @@ const InventorySystem = () => {
               )}
             </div>
 
+            {/* Advanced Filters - Only show on inventory view */}
+            {activeView === 'inventory' && (
+              <>
+                <AdvancedFilters
+                  inventory={inventory}
+                  shelves={shelves}
+                  onFilterChange={handleFilterChange}
+                  isOpen={showAdvancedFilters}
+                  onToggle={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                />
+                
+                {/* Inventory Controls */}
+                <div className="flex flex-wrap gap-3 justify-end">
+                  <button
+                    onClick={() => setShowReports(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    <span>Reports</span>
+                  </button>
+                </div>
+              </>
+            )}
+
             {/* Controls */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 sm:space-x-4">
               {/* Search controls can go here if needed */}
@@ -2486,13 +2554,13 @@ const InventorySystem = () => {
 
               {/* Parts List */}
               <div className="space-y-3 h-[500px] overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg p-3">
-                {filteredInventory.length === 0 && !loading ? (
+                {displayInventory.length === 0 && !loading ? (
                   <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                     <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p>No parts found matching your search.</p>
                   </div>
                 ) : (
-                  filteredInventory.map((part) => (
+                  displayInventory.map((part) => (
                     <div
                       key={part.id}
                       className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
@@ -2830,6 +2898,27 @@ const InventorySystem = () => {
         isVisible={showExcelUpload}
         onClose={() => setShowExcelUpload(false)}
         onDataImport={handleExcelImport}
+      />
+      <LocationManager
+        isOpen={showLocationManager}
+        onClose={() => setShowLocationManager(false)}
+        inventory={inventory}
+        shelves={shelves}
+        onLocationUpdate={loadInventory}
+        apiCall={apiCall}
+      />
+      <InventoryReports
+        isOpen={showReports}
+        onClose={() => setShowReports(false)}
+        inventory={inventory}
+        shelves={shelves}
+        transactionHistory={transactionHistory}
+        apiCall={apiCall}
+      />
+      <DataManagement
+        isOpen={showDataManagement}
+        onClose={() => setShowDataManagement(false)}
+        apiCall={apiCall}
       />
       <ImageModal />
 
