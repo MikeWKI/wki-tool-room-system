@@ -2351,14 +2351,14 @@ const InventorySystem = () => {
           className="min-h-screen flex items-center justify-center relative overflow-hidden"
           style={{
             backgroundImage: "url('/WKIFlag.png')",
-            backgroundSize: 'cover',
+            backgroundSize: 'contain',
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center',
-            backgroundColor: '#dc2626' // Red background for better contrast
+            backgroundColor: '#1f2937' // Dark background for better contrast
           }}
         >
           {/* Dark overlay for better text readability */}
-          <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+          <div className="absolute inset-0 bg-black bg-opacity-60"></div>
           
           {/* Splash Content */}
           <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
@@ -2366,13 +2366,26 @@ const InventorySystem = () => {
               WKI Tool Room - Inventory Mgmt. App
             </h1>
             <div className="border-t-4 border-white w-32 mx-auto my-6"></div>
-            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-yellow-300 mb-8 drop-shadow-lg">
-              The Worlds Best! If anyone could do it better they already would be!
-            </h2>
+            <div className="mb-8">
+              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-yellow-300 drop-shadow-lg">
+                The Worlds Best!
+              </h2>
+              <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-medium text-yellow-200 mt-2 drop-shadow-lg">
+                If anyone could do it better they already would be!
+              </h3>
+            </div>
             <div className="mt-12">
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-3"></div>
-                <span className="text-white text-lg">Loading...</span>
+              <div className="text-center">
+                <p className="text-white text-lg mb-4">App Initializing</p>
+                <div className="w-64 mx-auto bg-gray-700 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-yellow-400 to-yellow-200 h-full rounded-full animate-[progress_2.5s_ease-out_forwards]"
+                    style={{
+                      width: '0%',
+                      animation: 'progress 2.5s ease-out forwards'
+                    }}
+                  ></div>
+                </div>
               </div>
             </div>
           </div>
