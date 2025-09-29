@@ -156,103 +156,188 @@ class DatabaseService {
 
   async getParts() {
     if (this.useMongoDb) {
-      return await Part.find({}).lean();
-    } else {
       try {
-        const data = await fs.readFile(this.PARTS_FILE, 'utf8');
-        return JSON.parse(data);
+        return await Part.find({}).lean();
       } catch (error) {
+        console.error('MongoDB getParts error:', error);
+        // Fall back to JSON
+        return await this.readPartsFromFile();
+      }
+    } else {
+      return await this.readPartsFromFile();
+    }
+  }
+
+  async readPartsFromFile() {
+    try {
+      await fs.mkdir(this.DB_DIR, { recursive: true });
+      const data = await fs.readFile(this.PARTS_FILE, 'utf8');
+      return JSON.parse(data);
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        // File doesn't exist, return empty array
+        await fs.writeFile(this.PARTS_FILE, JSON.stringify([], null, 2));
         return [];
       }
+      console.error('Error reading parts file:', error);
+      return [];
     }
   }
 
   async saveParts(parts) {
     if (this.useMongoDb) {
-      await Part.deleteMany({});
-      if (parts.length > 0) {
-        await Part.insertMany(parts);
+      try {
+        await Part.deleteMany({});
+        if (parts.length > 0) {
+          await Part.insertMany(parts);
+        }
+        return true;
+      } catch (error) {
+        console.error('MongoDB saveParts error:', error);
+        // Fall back to JSON
+        return await this.savePartsToFile(parts);
       }
     } else {
-      try {
-        await fs.mkdir(this.DB_DIR, { recursive: true });
-        await fs.writeFile(this.PARTS_FILE, JSON.stringify(parts, null, 2));
-      } catch (error) {
-        console.error('Error saving parts:', error);
-      }
+      return await this.savePartsToFile(parts);
+    }
+  }
+
+  async savePartsToFile(parts) {
+    try {
+      await fs.mkdir(this.DB_DIR, { recursive: true });
+      await fs.writeFile(this.PARTS_FILE, JSON.stringify(parts, null, 2));
+      return true;
+    } catch (error) {
+      console.error('Error saving parts file:', error);
+      return false;
     }
   }
 
   async getTransactions() {
     if (this.useMongoDb) {
-      return await Transaction.find({}).lean();
-    } else {
       try {
-        const data = await fs.readFile(this.TRANSACTIONS_FILE, 'utf8');
-        return JSON.parse(data);
+        return await Transaction.find({}).lean();
       } catch (error) {
+        console.error('MongoDB getTransactions error:', error);
+        return await this.readTransactionsFromFile();
+      }
+    } else {
+      return await this.readTransactionsFromFile();
+    }
+  }
+
+  async readTransactionsFromFile() {
+    try {
+      await fs.mkdir(this.DB_DIR, { recursive: true });
+      const data = await fs.readFile(this.TRANSACTIONS_FILE, 'utf8');
+      return JSON.parse(data);
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        await fs.writeFile(this.TRANSACTIONS_FILE, JSON.stringify([], null, 2));
         return [];
       }
+      console.error('Error reading transactions file:', error);
+      return [];
     }
   }
 
   async saveTransactions(transactions) {
     if (this.useMongoDb) {
-      await Transaction.deleteMany({});
-      if (transactions.length > 0) {
-        await Transaction.insertMany(transactions);
+      try {
+        await Transaction.deleteMany({});
+        if (transactions.length > 0) {
+          await Transaction.insertMany(transactions);
+        }
+        return true;
+      } catch (error) {
+        console.error('MongoDB saveTransactions error:', error);
+        return await this.saveTransactionsToFile(transactions);
       }
     } else {
-      try {
-        await fs.mkdir(this.DB_DIR, { recursive: true });
-        await fs.writeFile(this.TRANSACTIONS_FILE, JSON.stringify(transactions, null, 2));
-      } catch (error) {
-        console.error('Error saving transactions:', error);
-      }
+      return await this.saveTransactionsToFile(transactions);
+    }
+  }
+
+  async saveTransactionsToFile(transactions) {
+    try {
+      await fs.mkdir(this.DB_DIR, { recursive: true });
+      await fs.writeFile(this.TRANSACTIONS_FILE, JSON.stringify(transactions, null, 2));
+      return true;
+    } catch (error) {
+      console.error('Error saving transactions file:', error);
+      return false;
     }
   }
 
   async getShelves() {
     if (this.useMongoDb) {
-      const shelves = await Shelf.find({}).lean();
-      const shelvesObj = {};
-      shelves.forEach(shelf => {
-        shelvesObj[shelf.shelfId] = {
-          name: shelf.name,
-          imageUrl: shelf.imageUrl,
-          description: shelf.description
-        };
-      });
-      return shelvesObj;
-    } else {
       try {
-        const data = await fs.readFile(this.SHELVES_FILE, 'utf8');
-        return JSON.parse(data);
+        const shelves = await Shelf.find({}).lean();
+        const shelvesObj = {};
+        shelves.forEach(shelf => {
+          shelvesObj[shelf.shelfId] = {
+            name: shelf.name,
+            imageUrl: shelf.imageUrl,
+            description: shelf.description
+          };
+        });
+        return shelvesObj;
       } catch (error) {
-        return this.getDefaultShelves();
+        console.error('MongoDB getShelves error:', error);
+        return await this.readShelvesFromFile();
       }
+    } else {
+      return await this.readShelvesFromFile();
+    }
+  }
+
+  async readShelvesFromFile() {
+    try {
+      await fs.mkdir(this.DB_DIR, { recursive: true });
+      const data = await fs.readFile(this.SHELVES_FILE, 'utf8');
+      return JSON.parse(data);
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        const defaultShelves = this.getDefaultShelves();
+        await fs.writeFile(this.SHELVES_FILE, JSON.stringify(defaultShelves, null, 2));
+        return defaultShelves;
+      }
+      console.error('Error reading shelves file:', error);
+      return this.getDefaultShelves();
     }
   }
 
   async saveShelves(shelves) {
     if (this.useMongoDb) {
-      await Shelf.deleteMany({});
-      const shelfDocs = Object.entries(shelves).map(([id, shelfData]) => ({
-        shelfId: id,
-        name: shelfData.name,
-        imageUrl: shelfData.imageUrl,
-        description: shelfData.description
-      }));
-      if (shelfDocs.length > 0) {
-        await Shelf.insertMany(shelfDocs);
+      try {
+        await Shelf.deleteMany({});
+        const shelfDocs = Object.entries(shelves).map(([id, shelfData]) => ({
+          shelfId: id,
+          name: shelfData.name,
+          imageUrl: shelfData.imageUrl,
+          description: shelfData.description
+        }));
+        if (shelfDocs.length > 0) {
+          await Shelf.insertMany(shelfDocs);
+        }
+        return true;
+      } catch (error) {
+        console.error('MongoDB saveShelves error:', error);
+        return await this.saveShelvesToFile(shelves);
       }
     } else {
-      try {
-        await fs.mkdir(this.DB_DIR, { recursive: true });
-        await fs.writeFile(this.SHELVES_FILE, JSON.stringify(shelves, null, 2));
-      } catch (error) {
-        console.error('Error saving shelves:', error);
-      }
+      return await this.saveShelvesToFile(shelves);
+    }
+  }
+
+  async saveShelvesToFile(shelves) {
+    try {
+      await fs.mkdir(this.DB_DIR, { recursive: true });
+      await fs.writeFile(this.SHELVES_FILE, JSON.stringify(shelves, null, 2));
+      return true;
+    } catch (error) {
+      console.error('Error saving shelves file:', error);
+      return false;
     }
   }
 
