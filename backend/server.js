@@ -68,7 +68,7 @@ async function readParts() {
 
 async function writeParts(parts) {
   try {
-    await dbService.write('parts', parts);
+    await dbService.saveParts(parts);
     return true;
   } catch (error) {
     console.error('Error writing parts:', error);
@@ -87,7 +87,7 @@ async function readTransactions() {
 
 async function writeTransactions(transactions) {
   try {
-    await dbService.write('transactions', transactions);
+    await dbService.saveTransactions(transactions);
     return true;
   } catch (error) {
     console.error('Error writing transactions:', error);
@@ -106,7 +106,7 @@ async function readShelves() {
 
 async function writeShelves(shelves) {
   try {
-    await dbService.write('shelves', shelves);
+    await dbService.saveShelves(shelves);
     return true;
   } catch (error) {
     console.error('Error writing shelves:', error);
