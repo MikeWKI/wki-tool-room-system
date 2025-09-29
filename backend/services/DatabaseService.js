@@ -187,10 +187,20 @@ class DatabaseService {
   async saveParts(parts) {
     if (this.useMongoDb) {
       try {
+        // Clean and validate parts data before saving
+        const cleanParts = parts.map(part => ({
+          ...part,
+          description: part.description || '', // Ensure description is never null/undefined
+          category: part.category || 'Uncategorized', // Ensure category exists
+          quantity: Number(part.quantity) || 0,
+          minQuantity: Number(part.minQuantity) || 1
+        }));
+
         await Part.deleteMany({});
-        if (parts.length > 0) {
-          await Part.insertMany(parts);
+        if (cleanParts.length > 0) {
+          await Part.insertMany(cleanParts);
         }
+        console.log(`✅ Saved ${cleanParts.length} parts to MongoDB`);
         return true;
       } catch (error) {
         console.error('MongoDB saveParts error:', error);
@@ -244,10 +254,20 @@ class DatabaseService {
   async saveTransactions(transactions) {
     if (this.useMongoDb) {
       try {
+        // Clean and validate transaction data before saving
+        const cleanTransactions = transactions.map(transaction => ({
+          ...transaction,
+          partId: transaction.partId || null, // Allow null partId for bulk imports
+          action: transaction.action || 'created', // Default action
+          user: transaction.user || 'System', // Ensure user is set
+          timestamp: transaction.timestamp || new Date()
+        }));
+
         await Transaction.deleteMany({});
-        if (transactions.length > 0) {
-          await Transaction.insertMany(transactions);
+        if (cleanTransactions.length > 0) {
+          await Transaction.insertMany(cleanTransactions);
         }
+        console.log(`✅ Saved ${cleanTransactions.length} transactions to MongoDB`);
         return true;
       } catch (error) {
         console.error('MongoDB saveTransactions error:', error);

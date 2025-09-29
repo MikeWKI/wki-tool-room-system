@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const partSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
   partNumber: { type: String, required: true },
-  description: { type: String, required: true },
+  description: { type: String, default: '' }, // Allow empty descriptions
   shelf: { type: String, default: null },
   category: { type: String, required: true },
   status: { type: String, enum: ['available', 'checked_out'], default: 'available' },
@@ -35,11 +35,11 @@ const shelfSchema = new mongoose.Schema({
 // Transaction Schema
 const transactionSchema = new mongoose.Schema({
   id: { type: Number, required: true },
-  partId: { type: Number, required: true },
+  partId: { type: Number, default: null }, // Make optional for bulk imports
   partNumber: { type: String, required: true },
   action: { 
     type: String, 
-    enum: ['checkout', 'checkin', 'location_change', 'quantity_update', 'created', 'updated'],
+    enum: ['checkout', 'checkin', 'location_change', 'quantity_update', 'created', 'updated', 'import'], // Add 'import'
     required: true 
   },
   user: { type: String, required: true },
