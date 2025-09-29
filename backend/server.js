@@ -5,8 +5,11 @@ const rateLimit = require('express-rate-limit');
 const fs = require('fs').promises;
 const path = require('path');
 const multer = require('multer');
-const dbService = require('./services/DatabaseService');
+const DatabaseService = require('./services/DatabaseService');
 require('dotenv').config();
+
+// Create instance of DatabaseService
+const dbService = new DatabaseService();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
