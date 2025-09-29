@@ -20,6 +20,7 @@ const InventorySystem = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isOnline, setIsOnline] = useState(true);
+  const [appInitialized, setAppInitialized] = useState(false);
 
   // PWA State
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
@@ -438,10 +439,16 @@ const InventorySystem = () => {
 
   // Initial data load
   useEffect(() => {
+    // Start loading data immediately
     fetchParts();
     fetchTransactions();
     fetchDashboardStats();
     fetchShelves();
+
+    // Show splash screen for 2-3 seconds regardless of data loading
+    setTimeout(() => {
+      setAppInitialized(true);
+    }, 2500);
 
     // Check online status
     const handleOnline = () => setIsOnline(true);
@@ -2338,8 +2345,8 @@ const InventorySystem = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
-      {/* Splash Screen - Show during initial loading or when inventory is empty */}
-      {((loading && inventory.length === 0) || (inventory.length === 0 && !loading)) && (
+      {/* Splash Screen - Show for 2-3 seconds during initial app load */}
+      {!appInitialized && (
         <div 
           className="min-h-screen flex items-center justify-center relative overflow-hidden"
           style={{
@@ -2363,32 +2370,17 @@ const InventorySystem = () => {
               The Worlds Best! If anyone could do it better they already would be!
             </h2>
             <div className="mt-12">
-              {loading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-3"></div>
-                  <span className="text-white text-lg">Loading...</span>
-                </div>
-              ) : (
-                <button
-                  onClick={() => {
-                    setLoading(true);
-                    fetchParts();
-                    fetchTransactions();
-                    fetchDashboardStats();
-                    fetchShelves();
-                  }}
-                  className="bg-white hover:bg-gray-100 text-red-600 font-bold py-4 px-8 rounded-lg text-lg transition-colors duration-300 shadow-lg"
-                >
-                  Enter Tool Room
-                </button>
-              )}
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-3"></div>
+                <span className="text-white text-lg">Loading...</span>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Main App Content - Show when inventory has data */}
-      {inventory.length > 0 && (
+      {/* Main App Content - Show after splash screen completes */}
+      {appInitialized && (
         <>
           {/* Header */}
           <div className="bg-red-700 dark:bg-red-800 text-white shadow-lg">
