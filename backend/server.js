@@ -1036,7 +1036,7 @@ app.post('/api/import/excel', upload.single('excelFile'), async (req, res) => {
     console.log(`Excel file saved: ${savedFilePath}`);
 
     // Read existing parts to get the next available ID
-    const existingParts = await readParts();
+    const existingParts = await dbService.getParts();
     let nextId = Math.max(...existingParts.map(p => p.id), 0) + 1;
 
     // Process and validate parts data
@@ -1076,14 +1076,10 @@ app.post('/api/import/excel', upload.single('excelFile'), async (req, res) => {
 
     // Add parts to existing inventory
     const updatedParts = [...existingParts, ...validParts];
-    const success = await writeParts(updatedParts);
-
-    if (!success) {
-      return res.status(500).json({ error: 'Failed to save imported parts' });
-    }
+    await dbService.saveParts(updatedParts);
 
     // Create transaction records for the import
-    const transactions = await readTransactions();
+    const transactions = await dbService.getTransactions();
     const importTransaction = {
       id: Date.now(),
       partId: null,
@@ -1097,7 +1093,7 @@ app.post('/api/import/excel', upload.single('excelFile'), async (req, res) => {
     };
 
     transactions.unshift(importTransaction);
-    await writeTransactions(transactions);
+    await dbService.saveTransactions(transactions);
 
     res.json({
       success: true,
