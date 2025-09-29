@@ -2303,8 +2303,52 @@ const InventorySystem = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
-      {/* Header */}
-      <div className="bg-red-700 dark:bg-red-800 text-white shadow-lg">
+      {/* Splash Screen - Show when inventory is empty and not loading */}
+      {inventory.length === 0 && !loading && (
+        <div 
+          className="min-h-screen flex items-center justify-center relative overflow-hidden"
+          style={{
+            backgroundImage: "url('/WKIFlag.png')",
+            backgroundSize: 'contain',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center',
+            backgroundColor: '#1f2937' // Dark background for better contrast
+          }}
+        >
+          {/* Dark overlay for better text readability */}
+          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+          
+          {/* Splash Content */}
+          <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 shadow-lg">
+              WKI Tool Room - Inventory Mgmt. App
+            </h1>
+            <div className="border-t-4 border-red-500 w-24 mx-auto my-6"></div>
+            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-red-300 mb-8">
+              The Worlds Best! If anyone could do it better they already would be!
+            </h2>
+            <div className="mt-12">
+              <button
+                onClick={() => {
+                  fetchParts();
+                  fetchTransactions();
+                  fetchDashboardStats();
+                  fetchShelves();
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors duration-300 shadow-lg"
+              >
+                Enter Tool Room
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main App Content - Show when inventory has data or is loading */}
+      {(inventory.length > 0 || loading) && (
+        <>
+          {/* Header */}
+          <div className="bg-red-700 dark:bg-red-800 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -2985,6 +3029,8 @@ const InventorySystem = () => {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
 
       {/* Mobile Install Prompt */}
