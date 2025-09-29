@@ -2138,7 +2138,7 @@ const InventorySystem = () => {
                 Module Cabinet Drawers
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {Array.from({length: 20}, (_, i) => i + 1).map(drawerNum => {
+                {Array.from({length: 1}, (_, i) => i + 1).map(drawerNum => {
                   const imagePath = `shelfs/Module/Module_Drawer_${drawerNum}.JPG`;
                   return (
                     <div key={`module-${drawerNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-purple-400 hover:bg-purple-50 transition-colors cursor-pointer"
