@@ -2904,7 +2904,7 @@ const InventorySystem = () => {
         onClose={() => setShowLocationManager(false)}
         inventory={inventory}
         shelves={shelves}
-        onLocationUpdate={loadInventory}
+        onLocationUpdate={refreshData}
         apiCall={apiCall}
       />
       <InventoryReports
