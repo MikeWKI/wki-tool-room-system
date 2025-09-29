@@ -2338,42 +2338,57 @@ const InventorySystem = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
-      {/* Splash Screen - Show during initial loading */}
-      {loading && inventory.length === 0 && (
+      {/* Splash Screen - Show during initial loading or when inventory is empty */}
+      {((loading && inventory.length === 0) || (inventory.length === 0 && !loading)) && (
         <div 
           className="min-h-screen flex items-center justify-center relative overflow-hidden"
           style={{
             backgroundImage: "url('/WKIFlag.png')",
-            backgroundSize: 'contain',
+            backgroundSize: 'cover',
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center',
-            backgroundColor: '#1f2937' // Dark background for better contrast
+            backgroundColor: '#dc2626' // Red background for better contrast
           }}
         >
           {/* Dark overlay for better text readability */}
-          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+          <div className="absolute inset-0 bg-black bg-opacity-50"></div>
           
           {/* Splash Content */}
           <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 shadow-lg">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 drop-shadow-lg">
               WKI Tool Room - Inventory Mgmt. App
             </h1>
-            <div className="border-t-4 border-red-500 w-24 mx-auto my-6"></div>
-            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-red-300 mb-8">
+            <div className="border-t-4 border-white w-32 mx-auto my-6"></div>
+            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-yellow-300 mb-8 drop-shadow-lg">
               The Worlds Best! If anyone could do it better they already would be!
             </h2>
             <div className="mt-12">
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-3"></div>
-                <span className="text-white text-lg">Loading...</span>
-              </div>
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-3"></div>
+                  <span className="text-white text-lg">Loading...</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setLoading(true);
+                    fetchParts();
+                    fetchTransactions();
+                    fetchDashboardStats();
+                    fetchShelves();
+                  }}
+                  className="bg-white hover:bg-gray-100 text-red-600 font-bold py-4 px-8 rounded-lg text-lg transition-colors duration-300 shadow-lg"
+                >
+                  Enter Tool Room
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Main App Content - Show when not in initial loading state */}
-      {!(loading && inventory.length === 0) && (
+      {/* Main App Content - Show when inventory has data */}
+      {inventory.length > 0 && (
         <>
           {/* Header */}
           <div className="bg-red-700 dark:bg-red-800 text-white shadow-lg">
