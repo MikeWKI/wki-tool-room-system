@@ -2466,7 +2466,7 @@ const InventorySystem = () => {
                   onClick={() => setActiveView('inventory')}
                   className={`px-3 lg:px-4 py-2 rounded-lg transition-colors ${
                     activeView === 'inventory' 
-                      ? 'bg-white text-red-700 font-medium' 
+                      ? 'bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 font-medium' 
                       : 'text-red-100 hover:bg-red-600 hover:text-white'
                   }`}
                 >
@@ -2480,7 +2480,7 @@ const InventorySystem = () => {
                   onClick={() => setActiveView('history')}
                   className={`px-3 lg:px-4 py-2 rounded-lg transition-colors ${
                     activeView === 'history' 
-                      ? 'bg-white text-red-700 font-medium' 
+                      ? 'bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 font-medium' 
                       : 'text-red-100 hover:bg-red-600 hover:text-white'
                   }`}
                 >
@@ -2494,7 +2494,7 @@ const InventorySystem = () => {
                   onClick={() => setActiveView('layout')}
                   className={`px-3 lg:px-4 py-2 rounded-lg transition-colors ${
                     activeView === 'layout' 
-                      ? 'bg-white text-red-700 font-medium' 
+                      ? 'bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 font-medium' 
                       : 'text-red-100 hover:bg-red-600 hover:text-white'
                   }`}
                 >
@@ -2508,7 +2508,7 @@ const InventorySystem = () => {
                   onClick={handleManageClick}
                   className={`px-3 lg:px-4 py-2 rounded-lg transition-colors ${
                     activeView === 'manage' 
-                      ? 'bg-white text-red-700 font-medium' 
+                      ? 'bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 font-medium' 
                       : 'text-red-100 hover:bg-red-600 hover:text-white'
                   }`}
                 >
@@ -2931,10 +2931,10 @@ const InventorySystem = () => {
         ) : activeView === 'manage' && isManageUnlocked ? (
           <ManageInventoryView />
         ) : activeView === 'manage' && !isManageUnlocked ? (
-          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
             <Settings className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Management Access Required</h3>
-            <p className="text-gray-600 mb-4">You need to enter the correct PIN to access the management features.</p>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Management Access Required</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">You need to enter the correct PIN to access the management features.</p>
             <button
               onClick={() => setShowPinModal(true)}
               className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700"
@@ -2950,29 +2950,29 @@ const InventorySystem = () => {
       {/* Dashboard Stats */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white rounded-lg shadow-md p-6 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
             <div className="text-3xl font-bold text-red-600 mb-2">
               {dashboardStats.totalParts || inventory.length}
             </div>
-            <div className="text-gray-600">Total Parts</div>
+            <div className="text-gray-600 dark:text-gray-300">Total Parts</div>
           </div>
-          <div className="bg-white rounded-lg shadow-md p-6 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
             <div className="text-3xl font-bold text-green-600 mb-2">
               {dashboardStats.availableParts || inventory.filter(part => part.status === 'available').length}
             </div>
-            <div className="text-gray-600">Available</div>
+            <div className="text-gray-600 dark:text-gray-300">Available</div>
           </div>
-          <div className="bg-white rounded-lg shadow-md p-6 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
             <div className="text-3xl font-bold text-orange-600 mb-2">
               {dashboardStats.checkedOutParts || inventory.filter(part => part.status === 'checked_out').length}
             </div>
-            <div className="text-gray-600">Checked Out</div>
+            <div className="text-gray-600 dark:text-gray-300">Checked Out</div>
           </div>
-          <div className="bg-white rounded-lg shadow-md p-6 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
             <div className="text-3xl font-bold text-blue-600 mb-2">
               {dashboardStats.totalTransactions || transactionHistory.length}
             </div>
-            <div className="text-gray-600">Total Transactions</div>
+            <div className="text-gray-600 dark:text-gray-300">Total Transactions</div>
           </div>
         </div>
       </div>
