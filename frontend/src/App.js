@@ -412,25 +412,25 @@ const InventorySystem = () => {
     
     // CAT Parts patterns
     if (rackStr.includes('cat') || shelfStr.includes('cat')) {
-      const boxNum = shelfStr.match(/\d+/) || rackStr.match(/\d+/);
-      if (boxNum) {
-        return `shelfs/Cat/CAT_Box_${boxNum[0]}.JPG`;
+      const drawerNum = shelfStr.match(/\d+/) || rackStr.match(/\d+/);
+      if (drawerNum) {
+        return `shelfs/CAT/CAT_Drawer_${drawerNum[0]}.JPG`;
       }
     }
     
     // Detroit Parts patterns
     if (rackStr.includes('detroit') || shelfStr.includes('detroit')) {
-      const boxNum = shelfStr.match(/\d+/) || rackStr.match(/\d+/);
-      if (boxNum) {
-        return `shelfs/Detroit/Detroit_Box_${boxNum[0]}.JPG`;
+      const drawerNum = shelfStr.match(/\d+/) || rackStr.match(/\d+/);
+      if (drawerNum) {
+        return `shelfs/Detroit/Detroit_Drawer_${drawerNum[0]}.JPG`;
       }
     }
     
     // MX Tools patterns
     if (rackStr.includes('mx') || shelfStr.includes('mx')) {
-      const slotNum = shelfStr.match(/\d+/) || rackStr.match(/\d+/);
-      if (slotNum) {
-        return `shelfs/MX/MX_Slot_${slotNum[0]}.JPG`;
+      const drawerNum = shelfStr.match(/\d+/) || rackStr.match(/\d+/);
+      if (drawerNum) {
+        return `shelfs/MX/MX_Drawer_${drawerNum[0]}.JPG`;
       }
     }
     
