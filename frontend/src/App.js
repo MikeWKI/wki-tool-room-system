@@ -2176,7 +2176,7 @@ const InventorySystem = () => {
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {Array.from({length: 3}, (_, i) => i + 1).map(drawerNum => {
-                  const imagePath = `shelfs/CAT/CAT_Drawer_${drawerNum}.JPG`;
+                  const imagePath = `shelfs/Cat/CAT_Drawer_${drawerNum}.JPG`;
                   return (
                     <div key={`cat-${drawerNum}`} className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-yellow-400 hover:bg-yellow-50 transition-colors cursor-pointer"
                          onClick={() => handleImageClick({ id: `cat-${drawerNum}`, title: `CAT Drawer ${drawerNum}`, filename: imagePath, description: `Caterpillar Box Drawer ${drawerNum} storage detail` })}>
