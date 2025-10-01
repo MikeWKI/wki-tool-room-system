@@ -292,7 +292,7 @@ const InventoryReports = ({
                       <div className="space-y-2">
                         {Object.entries(reportData.categoryStats).map(([category, stats]) => (
                           <div key={category} className="flex justify-between items-center py-2 border-b">
-                            <span className="font-medium">{category}</span>
+                            <span className="font-medium text-gray-900">{category}</span>
                             <div className="text-right">
                               <span className="text-sm text-gray-600">{stats.count} parts</span>
                               <br />
@@ -378,8 +378,8 @@ const InventoryReports = ({
                         .slice(0, 5)
                         .map(([user, count]) => (
                           <div key={user} className="flex justify-between">
-                            <span>{user}</span>
-                            <span className="font-medium">{count} transactions</span>
+                            <span className="text-gray-900">{user}</span>
+                            <span className="font-medium text-gray-900">{count} transactions</span>
                           </div>
                         ))}
                     </div>
@@ -427,7 +427,7 @@ const InventoryReports = ({
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 text-gray-700"
           >
             Close
           </button>

@@ -301,14 +301,14 @@ const LocationManager = ({
                     />
                   </td>
                   <td className="p-3 font-medium text-blue-600">{part.partNumber}</td>
-                  <td className="p-3">{part.description}</td>
+                  <td className="p-3 text-gray-900">{part.description}</td>
                   <td className="p-3">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm text-gray-700">
                       <MapPin className="w-3 h-3" />
                       {part.shelf || 'Unassigned'}
                     </span>
                   </td>
-                  <td className="p-3">{part.category}</td>
+                  <td className="p-3 text-gray-900">{part.category}</td>
                   <td className="p-3">
                     <span className={`px-2 py-1 rounded text-sm ${
                       part.quantity <= (part.minQuantity || 1) 
@@ -348,7 +348,7 @@ const LocationManager = ({
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 text-gray-700"
             >
               Close
             </button>

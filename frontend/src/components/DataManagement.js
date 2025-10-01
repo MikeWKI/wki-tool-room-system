@@ -232,22 +232,22 @@ const DataManagement = ({
                     <div>
                       <span className="text-gray-600">Timestamp:</span>
                       <br />
-                      <span className="font-medium">{new Date(backupData.timestamp).toLocaleString()}</span>
+                      <span className="font-medium text-gray-900">{new Date(backupData.timestamp).toLocaleString()}</span>
                     </div>
                     <div>
                       <span className="text-gray-600">Parts:</span>
                       <br />
-                      <span className="font-medium">{backupData.metadata.totalParts}</span>
+                      <span className="font-medium text-gray-900">{backupData.metadata.totalParts}</span>
                     </div>
                     <div>
                       <span className="text-gray-600">Shelves:</span>
                       <br />
-                      <span className="font-medium">{backupData.metadata.totalShelves}</span>
+                      <span className="font-medium text-gray-900">{backupData.metadata.totalShelves}</span>
                     </div>
                     <div>
                       <span className="text-gray-600">Transactions:</span>
                       <br />
-                      <span className="font-medium">{backupData.metadata.totalTransactions}</span>
+                      <span className="font-medium text-gray-900">{backupData.metadata.totalTransactions}</span>
                     </div>
                   </div>
                 </div>
@@ -294,17 +294,17 @@ const DataManagement = ({
                     <div className="bg-white p-3 rounded">
                       <span className="text-gray-600">Parts:</span>
                       <br />
-                      <span className="font-medium text-lg">{validationResult.summary.totalParts}</span>
+                      <span className="font-medium text-lg text-gray-900">{validationResult.summary.totalParts}</span>
                     </div>
                     <div className="bg-white p-3 rounded">
                       <span className="text-gray-600">Shelves:</span>
                       <br />
-                      <span className="font-medium text-lg">{validationResult.summary.totalShelves}</span>
+                      <span className="font-medium text-lg text-gray-900">{validationResult.summary.totalShelves}</span>
                     </div>
                     <div className="bg-white p-3 rounded">
                       <span className="text-gray-600">Transactions:</span>
                       <br />
-                      <span className="font-medium text-lg">{validationResult.summary.totalTransactions}</span>
+                      <span className="font-medium text-lg text-gray-900">{validationResult.summary.totalTransactions}</span>
                     </div>
                   </div>
 
@@ -348,7 +348,7 @@ const DataManagement = ({
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 text-gray-700"
           >
             Close
           </button>

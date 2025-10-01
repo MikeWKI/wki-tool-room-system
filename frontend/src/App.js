@@ -2288,7 +2288,7 @@ const InventorySystem = () => {
                 <h5 className="font-medium text-blue-900">Future Enhancement</h5>
                 <p className="text-sm text-blue-700 mt-1">
                   When parts are looked up, the corresponding shelf/drawer image will be automatically displayed 
-                  based on the rack and shelf location data in your inventory. This will help locate parts quickly 
+                  based on the rack and shelf location data in our inventory. This will help locate parts quickly 
                   by showing the exact drawer or shelf where each part is stored.
                 </p>
               </div>
