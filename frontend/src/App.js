@@ -414,7 +414,7 @@ const InventorySystem = () => {
     if (rackStr.includes('cat') || shelfStr.includes('cat')) {
       const drawerNum = shelfStr.match(/\d+/) || rackStr.match(/\d+/);
       if (drawerNum) {
-        return `shelfs/CAT/CAT_Drawer_${drawerNum[0]}.JPG`;
+        return `shelfs/Cat/CAT_Drawer_${drawerNum[0]}.JPG`;
       }
     }
     
