@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings, Upload, Download, Share, BarChart3, Database } from 'lucide-react';
+import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings, Upload, Download, Share, BarChart3, Database, Camera, Eye } from 'lucide-react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import MobileNavigation from './components/MobileNavigation';
 import ThemeToggle from './components/ThemeToggle';
@@ -13,14 +13,6 @@ import { useEnhancedSearch } from './hooks/useEnhancedSearch';
 import pwaManager from './utils/pwa';
 
 const InventorySystem = () => {
-  // Enhanced Search Implementation
-  const enhancedSearch = useEnhancedSearch(
-    inventory, 
-    ['partNumber', 'description', 'category', 'shelf'],
-    '',
-    300
-  );
-  
   const [selectedPart, setSelectedPart] = useState(null);
   const [currentUser, setCurrentUser] = useState('');
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -69,6 +61,14 @@ const InventorySystem = () => {
   const [transactionHistory, setTransactionHistory] = useState([]);
   const [dashboardStats, setDashboardStats] = useState({});
 
+  // Enhanced Search Implementation (after inventory is declared)
+  const enhancedSearch = useEnhancedSearch(
+    inventory, 
+    ['partNumber', 'description', 'category', 'shelf'],
+    '',
+    300
+  );
+
   // Easter Egg State
   const [logoClickCount, setLogoClickCount] = useState(0);
   const [firstClickTime, setFirstClickTime] = useState(null);
@@ -90,6 +90,13 @@ const InventorySystem = () => {
 
   // Data Management State
   const [showDataManagement, setShowDataManagement] = useState(false);
+
+  // Camera Security State
+  const [showCameraPasswordModal, setShowCameraPasswordModal] = useState(false);
+  const [showCameraFeeds, setShowCameraFeeds] = useState(false);
+  const [cameraPassword, setCameraPassword] = useState('');
+  const [cameraPasswordError, setCameraPasswordError] = useState('');
+  const [isCameraAuthenticated, setIsCameraAuthenticated] = useState(false);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 
     (process.env.NODE_ENV === 'production' 
@@ -828,6 +835,38 @@ const InventorySystem = () => {
   const handlePWANotificationInstall = () => {
     handleInstallApp();
     handleDismissPWANotification();
+  };
+
+  // Camera Security Functions
+  const handleCameraAccess = () => {
+    if (isCameraAuthenticated) {
+      setShowCameraFeeds(true);
+    } else {
+      setShowCameraPasswordModal(true);
+    }
+  };
+
+  const handleCameraPasswordSubmit = (e) => {
+    e.preventDefault();
+    if (cameraPassword === 'MERICA!') {
+      setIsCameraAuthenticated(true);
+      setShowCameraPasswordModal(false);
+      setShowCameraFeeds(true);
+      setCameraPassword('');
+      setCameraPasswordError('');
+    } else {
+      setCameraPasswordError('Incorrect password');
+    }
+  };
+
+  const handleCloseCameraModal = () => {
+    setShowCameraPasswordModal(false);
+    setCameraPassword('');
+    setCameraPasswordError('');
+  };
+
+  const handleCloseCameraFeeds = () => {
+    setShowCameraFeeds(false);
   };
 
   const CheckoutModal = () => {
@@ -1685,6 +1724,123 @@ const InventorySystem = () => {
       </div>
     );
   };
+
+  const CameraPasswordModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+        <h3 className="text-lg font-semibold mb-4 text-red-600 dark:text-red-400">Security Camera Access</h3>
+        <p className="text-gray-700 dark:text-gray-300 mb-4">
+          Enter the password to access the security camera feeds.
+        </p>
+        <form onSubmit={handleCameraPasswordSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+            <input
+              type="password"
+              value={cameraPassword}
+              onChange={(e) => setCameraPassword(e.target.value)}
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              placeholder="Enter camera access password"
+              autoFocus
+              required
+            />
+            {cameraPasswordError && (
+              <p className="text-sm text-red-600 dark:text-red-400 mt-1">{cameraPasswordError}</p>
+            )}
+          </div>
+          <div className="flex space-x-3">
+            <button
+              type="submit"
+              className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Access Cameras
+            </button>
+            <button
+              type="button"
+              onClick={handleCloseCameraModal}
+              className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+
+  const CameraFeedsModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl h-5/6 mx-4 my-4 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
+          <div className="flex items-center space-x-2">
+            <Camera className="w-6 h-6 text-red-600" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Security Camera Feeds</h3>
+          </div>
+          <button
+            onClick={handleCloseCameraFeeds}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        
+        {/* Camera Feeds */}
+        <div className="flex-1 flex p-4 space-x-4">
+          {/* Left Camera Feed */}
+          <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+            <div className="p-3 bg-gray-200 dark:bg-gray-600 border-b border-gray-300 dark:border-gray-500">
+              <h4 className="font-medium text-gray-900 dark:text-gray-100 flex items-center">
+                <Eye className="w-4 h-4 mr-2" />
+                Camera 1 (192.168.231.88)
+              </h4>
+            </div>
+            <div className="h-full">
+              <iframe
+                src="http://192.168.231.88/cgi-bin/guestimage.html"
+                className="w-full h-full border-0"
+                title="Security Camera 1"
+                sandbox="allow-scripts allow-same-origin"
+              />
+            </div>
+          </div>
+          
+          {/* Right Camera Feed */}
+          <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+            <div className="p-3 bg-gray-200 dark:bg-gray-600 border-b border-gray-300 dark:border-gray-500">
+              <h4 className="font-medium text-gray-900 dark:text-gray-100 flex items-center">
+                <Eye className="w-4 h-4 mr-2" />
+                Camera 2 (192.168.231.87)
+              </h4>
+            </div>
+            <div className="h-full">
+              <iframe
+                src="http://192.168.231.87/cgi-bin/guestimage.html"
+                className="w-full h-full border-0"
+                title="Security Camera 2"
+                sandbox="allow-scripts allow-same-origin"
+              />
+            </div>
+          </div>
+        </div>
+        
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-750">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Live security camera feeds • Click and drag to navigate
+            </p>
+            <button
+              onClick={handleCloseCameraFeeds}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Close Cameras
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   const TransactionList = () => (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -2628,6 +2784,15 @@ const InventorySystem = () => {
                 </button>
               )}
 
+              {/* Security Camera Button */}
+              <button
+                onClick={handleCameraAccess}
+                className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                title="Security Cameras"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+
               {/* Share Button */}
               <button
                 onClick={handleShareApp}
@@ -3175,6 +3340,8 @@ const InventorySystem = () => {
       {showDeleteShelfConfirm && <DeleteShelfConfirmModal />}
       {showPinModal && <PinModal />}
       {showInstallInstructions && <InstallInstructionsModal />}
+      {showCameraPasswordModal && <CameraPasswordModal />}
+      {showCameraFeeds && <CameraFeedsModal />}
       {showEasterEgg && <EasterEggModal />}
       <ExcelUpload 
         isVisible={showExcelUpload}
