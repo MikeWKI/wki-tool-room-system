@@ -157,6 +157,74 @@ const InventorySystem = () => {
   const [cameraStatus, setCameraStatus] = useState({});
   const [allowCameraAttempt, setAllowCameraAttempt] = useState(true);
 
+  // Global keyboard event handler for closing modals with Escape key
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        // Close any open modal in order of priority
+        if (showImageModal) {
+          setShowImageModal(false);
+        } else if (showDeleteConfirm) {
+          setShowDeleteConfirm(false);
+          setPartToDelete(null);
+        } else if (showAddPartModal) {
+          setShowAddPartModal(false);
+        } else if (showEditPartModal) {
+          setShowEditPartModal(false);
+          setEditingPart(null);
+        } else if (showCheckoutModal) {
+          setShowCheckoutModal(false);
+        } else if (showCheckinModal) {
+          setShowCheckinModal(false);
+        } else if (showPinModal) {
+          setShowPinModal(false);
+          setPinInput('');
+          setPinError('');
+        } else if (showInstallInstructions) {
+          setShowInstallInstructions(false);
+        } else if (showCameraPasswordModal) {
+          setShowCameraPasswordModal(false);
+          setCameraPassword('');
+          setCameraPasswordError('');
+        } else if (showCameraFeeds) {
+          setShowCameraFeeds(false);
+        } else if (showEasterEgg) {
+          setShowEasterEgg(false);
+        } else if (showExcelUpload) {
+          setShowExcelUpload(false);
+        } else if (showLocationManager) {
+          setShowLocationManager(false);
+        } else if (showReports) {
+          setShowReports(false);
+        } else if (showDataManagement) {
+          setShowDataManagement(false);
+        } else if (showAddShelfModal) {
+          setShowAddShelfModal(false);
+        } else if (showEditShelfModal) {
+          setShowEditShelfModal(false);
+          setEditingShelf(null);
+        } else if (showDeleteShelfConfirm) {
+          setShowDeleteShelfConfirm(false);
+          setShelfToDelete(null);
+        }
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [
+    showImageModal, showDeleteConfirm, showAddPartModal, showEditPartModal,
+    showCheckoutModal, showCheckinModal, showPinModal, showInstallInstructions,
+    showCameraPasswordModal, showCameraFeeds, showEasterEgg, showExcelUpload,
+    showLocationManager, showReports, showDataManagement, showAddShelfModal,
+    showEditShelfModal, showDeleteShelfConfirm
+  ]);
+
   const API_BASE_URL = process.env.REACT_APP_API_URL || 
     (process.env.NODE_ENV === 'production' 
       ? 'https://wki-tool-room-system-1.onrender.com/api'
@@ -958,8 +1026,18 @@ const InventorySystem = () => {
     const [userName, setUserName] = useState(currentUser || '');
     
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowCheckoutModal(false);
+          }
+        }}
+      >
+        <div 
+          className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4"
+          onClick={(e) => e.stopPropagation()}
+        >
           <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Check Out Part</h3>
           <div className="mb-4">
             <p className="text-sm text-gray-600 dark:text-gray-400">Part: {selectedPart?.partNumber}</p>
@@ -1027,8 +1105,18 @@ const InventorySystem = () => {
     const [userName, setUserName] = useState(currentUser || '');
     
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowCheckinModal(false);
+          }
+        }}
+      >
+        <div 
+          className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4"
+          onClick={(e) => e.stopPropagation()}
+        >
           <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Check In Part</h3>
           <div className="mb-4">
             <p className="text-sm text-gray-600 dark:text-gray-400">Part: {selectedPart?.partNumber}</p>
@@ -1094,8 +1182,18 @@ const InventorySystem = () => {
   // Easter Egg Modal
   const EasterEggModal = () => {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-md mx-4 text-center">
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowEasterEgg(false);
+          }
+        }}
+      >
+        <div 
+          className="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-md mx-4 text-center"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="mb-6">
             <div className="text-6xl mb-4">🚛</div>
             <h3 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
@@ -1164,8 +1262,18 @@ const InventorySystem = () => {
     ];
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto">
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowAddPartModal(false);
+          }
+        }}
+      >
+        <div 
+          className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
           <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Add New Part</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -1325,8 +1433,19 @@ const InventorySystem = () => {
     ];
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto">
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowEditPartModal(false);
+            setEditingPart(null);
+          }
+        }}
+      >
+        <div 
+          className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
           <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Edit Part</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -1429,8 +1548,19 @@ const InventorySystem = () => {
 
   // Delete Confirmation Modal
   const DeleteConfirmModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          setShowDeleteConfirm(false);
+          setPartToDelete(null);
+        }
+      }}
+    >
+      <div 
+        className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-lg font-semibold mb-4 text-red-600">Delete Part</h3>
         <p className="text-gray-700 mb-6">
           Are you sure you want to delete <strong>{partToDelete?.partNumber}</strong>?
@@ -1500,8 +1630,18 @@ const InventorySystem = () => {
     };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto">
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowAddShelfModal(false);
+          }
+        }}
+      >
+        <div 
+          className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
           <h3 className="text-lg font-semibold mb-4">Add New Shelf</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -1606,8 +1746,19 @@ const InventorySystem = () => {
     };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto">
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowEditShelfModal(false);
+            setEditingShelf(null);
+          }
+        }}
+      >
+        <div 
+          className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
           <h3 className="text-lg font-semibold mb-4">Edit Shelf</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -1692,8 +1843,19 @@ const InventorySystem = () => {
 
   // Delete Shelf Confirmation Modal
   const DeleteShelfConfirmModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          setShowDeleteShelfConfirm(false);
+          setShelfToDelete(null);
+        }
+      }}
+    >
+      <div 
+        className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-lg font-semibold mb-4 text-red-600">Delete Shelf</h3>
         <p className="text-gray-700 mb-6">
           Are you sure you want to delete shelf <strong>{shelfToDelete?.name}</strong>?
@@ -1725,8 +1887,20 @@ const InventorySystem = () => {
 
   // PIN Entry Modal
   const PinModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          setShowPinModal(false);
+          setPinInput('');
+          setPinError('');
+        }
+      }}
+    >
+      <div 
+        className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-lg font-semibold mb-4 text-red-600">Management Access Required</h3>
         <p className="text-gray-700 mb-4">
           Please enter the management PIN to access the manage page.
@@ -1778,8 +1952,18 @@ const InventorySystem = () => {
     const instructions = getInstallInstructions();
     
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowInstallInstructions(false);
+          }
+        }}
+      >
+        <div 
+          className="bg-white rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-red-600">Install WKI Tool Room Inventory</h3>
             <button
@@ -1848,8 +2032,20 @@ const InventorySystem = () => {
   };
 
   const CameraPasswordModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          setShowCameraPasswordModal(false);
+          setCameraPassword('');
+          setCameraPasswordError('');
+        }
+      }}
+    >
+      <div 
+        className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-lg font-semibold mb-4 text-red-600 dark:text-red-400">Security Camera Access</h3>
         <p className="text-gray-700 dark:text-gray-300 mb-4">
           Enter the password to access the security camera feeds.
@@ -1933,8 +2129,18 @@ const InventorySystem = () => {
     };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl h-5/6 mx-4 my-4 flex flex-col">
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            handleClose();
+          }
+        }}
+      >
+        <div 
+          className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl h-5/6 mx-4 my-4 flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
             <div className="flex items-center space-x-2">
@@ -2805,8 +3011,18 @@ const InventorySystem = () => {
     if (!showImageModal || !selectedImage) return null;
 
     return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="relative max-w-5xl max-h-[90vh] w-full">
+      <div 
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowImageModal(false);
+          }
+        }}
+      >
+        <div 
+          className="relative max-w-5xl max-h-[90vh] w-full"
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             onClick={(e) => {
               e.preventDefault();
