@@ -893,8 +893,12 @@ const InventorySystem = () => {
     });
   };
 
-  const handleCloseCameraFeeds = () => {
-    console.log('Closing camera feeds');
+  const handleCloseCameraFeeds = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    console.log('❌ CLOSE BUTTON CLICKED - Closing camera feeds');
     setShowCameraFeeds(false);
   };
 
@@ -1827,17 +1831,25 @@ const InventorySystem = () => {
     ];
 
     const CameraFeed = ({ camera }) => {
-      const openCameraFeed = () => {
-        console.log('Opening camera feed:', camera.url);
+      console.log('Rendering CameraFeed for:', camera.name);
+      
+      const openCameraFeed = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🎥 CAMERA BUTTON CLICKED - Opening camera feed:', camera.url);
         window.open(camera.url, '_blank', 'noopener,noreferrer');
       };
 
-      const copyUrlToClipboard = () => {
-        console.log('Copying URL to clipboard:', camera.url);
+      const copyUrlToClipboard = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('📋 COPY BUTTON CLICKED - Copying URL to clipboard:', camera.url);
         navigator.clipboard.writeText(camera.url).then(() => {
-          console.log('URL copied successfully');
+          console.log('✅ URL copied successfully');
+          alert('Camera URL copied to clipboard!');
         }).catch(err => {
-          console.error('Failed to copy URL:', err);
+          console.error('❌ Failed to copy URL:', err);
+          alert('Failed to copy URL to clipboard');
         });
       };
 
@@ -1869,7 +1881,8 @@ const InventorySystem = () => {
                 <div className="space-y-3">
                   <button
                     onClick={openCameraFeed}
-                    className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 font-medium"
+                    style={{ pointerEvents: 'auto', zIndex: 10 }}
+                    className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 font-medium cursor-pointer"
                   >
                     <ExternalLink className="w-5 h-5" />
                     <span>Open Camera Feed</span>
@@ -1877,7 +1890,8 @@ const InventorySystem = () => {
                   
                   <button
                     onClick={copyUrlToClipboard}
-                    className="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2"
+                    style={{ pointerEvents: 'auto', zIndex: 10 }}
+                    className="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2 cursor-pointer"
                   >
                     <Copy className="w-4 h-4" />
                     <span>Copy URL</span>
@@ -1896,8 +1910,15 @@ const InventorySystem = () => {
     };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl h-5/6 mx-4 my-4 flex flex-col">
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+        style={{ pointerEvents: 'auto' }}
+      >
+        <div 
+          className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl h-5/6 mx-4 my-4 flex flex-col"
+          style={{ pointerEvents: 'auto' }}
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
             <div className="flex items-center space-x-2">
@@ -1906,7 +1927,8 @@ const InventorySystem = () => {
             </div>
             <button
               onClick={handleCloseCameraFeeds}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              style={{ pointerEvents: 'auto', zIndex: 10 }}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
             >
               <X className="w-6 h-6" />
             </button>
@@ -1946,7 +1968,8 @@ const InventorySystem = () => {
               </div>
               <button
                 onClick={handleCloseCameraFeeds}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                style={{ pointerEvents: 'auto', zIndex: 10 }}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors cursor-pointer"
               >
                 Close Cameras
               </button>
