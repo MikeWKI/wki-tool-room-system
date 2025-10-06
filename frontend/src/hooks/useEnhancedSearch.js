@@ -1,5 +1,10 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 
+// Helper function to get nested values from objects
+const getNestedValue = (obj, path) => {
+  return path.split('.').reduce((current, key) => current?.[key], obj);
+};
+
 export const useEnhancedSearch = (items, searchFields, initialSearchTerm = '', debounceMs = 300) => {
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(initialSearchTerm);
@@ -44,6 +49,7 @@ export const useEnhancedSearch = (items, searchFields, initialSearchTerm = '', d
         setIsVoiceSearchActive(false);
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load search history and usage patterns from localStorage
@@ -335,11 +341,6 @@ export const useEnhancedSearch = (items, searchFields, initialSearchTerm = '', d
     setSearchHistory([]);
     localStorage.removeItem('wki-search-history');
   }, []);
-
-  // Helper function to get nested values
-  const getNestedValue = (obj, path) => {
-    return path.split('.').reduce((current, key) => current?.[key], obj);
-  };
 
   return {
     searchTerm,
