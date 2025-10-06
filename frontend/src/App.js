@@ -12,6 +12,82 @@ import EnhancedSearchBar from './components/EnhancedSearchBar';
 import { useEnhancedSearch } from './hooks/useEnhancedSearch';
 import pwaManager from './utils/pwa';
 
+// Camera Feed Component (defined outside App to use hooks properly)
+const CameraFeed = ({ camera }) => {
+  const openCameraFeed = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('🎥 Opening camera feed:', camera.url);
+    window.open(camera.url, '_blank', 'noopener,noreferrer');
+  }, [camera.url]);
+
+  const copyUrlToClipboard = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('📋 Copying URL to clipboard:', camera.url);
+    navigator.clipboard.writeText(camera.url).then(() => {
+      console.log('✅ URL copied successfully');
+      alert('Camera URL copied to clipboard!');
+    }).catch(err => {
+      console.error('❌ Failed to copy URL:', err);
+      alert('Failed to copy URL to clipboard');
+    });
+  }, [camera.url]);
+
+  return (
+    <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+      <div className="p-3 bg-gray-200 dark:bg-gray-600 border-b border-gray-300 dark:border-gray-500">
+        <div className="flex items-center justify-between">
+          <h4 className="font-medium text-gray-900 dark:text-gray-100 flex items-center">
+            <Eye className="w-4 h-4 mr-2" />
+            {camera.name}
+          </h4>
+          <div className="flex items-center text-blue-600 dark:text-blue-400">
+            <span className="text-xs">Click to view</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="relative h-full min-h-96">
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+          <div className="text-center p-6 max-w-sm">
+            <Camera className="w-24 h-24 text-blue-500 mx-auto mb-6" />
+            <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 text-lg">
+              {camera.name}
+            </h4>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              Camera feed will open in a new tab. Ensure you're connected to the office network for access.
+            </p>
+            
+            <div className="space-y-3">
+              <button
+                onClick={openCameraFeed}
+                className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 font-medium"
+              >
+                <ExternalLink className="w-5 h-5" />
+                <span>Open Camera Feed</span>
+              </button>
+              
+              <button
+                onClick={copyUrlToClipboard}
+                className="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2"
+              >
+                <Copy className="w-4 h-4" />
+                <span>Copy URL</span>
+              </button>
+            </div>
+            
+            <div className="mt-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-left">
+              <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">Camera URL:</p>
+              <p className="text-xs text-blue-700 dark:text-blue-300 font-mono break-all">{camera.url}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const InventorySystem = () => {
   const [selectedPart, setSelectedPart] = useState(null);
   const [currentUser, setCurrentUser] = useState('');
@@ -1833,82 +1909,6 @@ const InventorySystem = () => {
       </div>
     </div>
   );
-
-  // Camera Feed Component (moved outside to prevent re-creation)
-  const CameraFeed = ({ camera }) => {
-    const openCameraFeed = useCallback((e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      console.log('🎥 Opening camera feed:', camera.url);
-      window.open(camera.url, '_blank', 'noopener,noreferrer');
-    }, [camera.url]);
-
-    const copyUrlToClipboard = useCallback((e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      console.log('📋 Copying URL to clipboard:', camera.url);
-      navigator.clipboard.writeText(camera.url).then(() => {
-        console.log('✅ URL copied successfully');
-        alert('Camera URL copied to clipboard!');
-      }).catch(err => {
-        console.error('❌ Failed to copy URL:', err);
-        alert('Failed to copy URL to clipboard');
-      });
-    }, [camera.url]);
-
-    return (
-      <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-        <div className="p-3 bg-gray-200 dark:bg-gray-600 border-b border-gray-300 dark:border-gray-500">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium text-gray-900 dark:text-gray-100 flex items-center">
-              <Eye className="w-4 h-4 mr-2" />
-              {camera.name}
-            </h4>
-            <div className="flex items-center text-blue-600 dark:text-blue-400">
-              <span className="text-xs">Click to view</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="relative h-full min-h-96">
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
-            <div className="text-center p-6 max-w-sm">
-              <Camera className="w-24 h-24 text-blue-500 mx-auto mb-6" />
-              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 text-lg">
-                {camera.name}
-              </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                Camera feed will open in a new tab. Ensure you're connected to the office network for access.
-              </p>
-              
-              <div className="space-y-3">
-                <button
-                  onClick={openCameraFeed}
-                  className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 font-medium"
-                >
-                  <ExternalLink className="w-5 h-5" />
-                  <span>Open Camera Feed</span>
-                </button>
-                
-                <button
-                  onClick={copyUrlToClipboard}
-                  className="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2"
-                >
-                  <Copy className="w-4 h-4" />
-                  <span>Copy URL</span>
-                </button>
-              </div>
-              
-              <div className="mt-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-left">
-                <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">Camera URL:</p>
-                <p className="text-xs text-blue-700 dark:text-blue-300 font-mono break-all">{camera.url}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   const CameraFeedsModal = () => {
     // Camera configuration
