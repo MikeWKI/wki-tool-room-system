@@ -847,8 +847,6 @@ const InventorySystem = () => {
       // Reset camera status when opening feeds
       setCameraErrors({});
       setCameraStatus({});
-      // Fetch current camera status
-      fetchCameraConfig();
     } else {
       setShowCameraPasswordModal(true);
     }
@@ -865,8 +863,6 @@ const InventorySystem = () => {
       // Reset camera status when authenticated
       setCameraErrors({});
       setCameraStatus({});
-      // Fetch current camera status
-      fetchCameraConfig();
     } else {
       setCameraPasswordError('Incorrect password');
     }
@@ -900,46 +896,6 @@ const InventorySystem = () => {
   const handleCloseCameraFeeds = () => {
     setShowCameraFeeds(false);
   };
-
-  // Camera configuration and status functions
-  const fetchCameraConfig = useCallback(async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/cameras`);
-      if (response.ok) {
-        const config = await response.json();
-        
-        // Check status of each camera
-        for (const camera of config.cameras) {
-          checkCameraStatus(camera.id);
-        }
-        return config;
-      }
-    } catch (error) {
-      console.error('Failed to fetch camera config:', error);
-    }
-  }, [API_BASE_URL]);
-
-  const checkCameraStatus = useCallback(async (cameraId) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/camera/${cameraId}/status`);
-      if (response.ok) {
-        const status = await response.json();
-        setCameraStatus(prev => ({
-          ...prev,
-          [cameraId]: status
-        }));
-        
-        if (status.status === 'offline' || status.status === 'error') {
-          handleCameraError(cameraId, status.error || 'Camera offline');
-        } else {
-          handleCameraLoad(cameraId);
-        }
-      }
-    } catch (error) {
-      console.error(`Failed to check camera ${cameraId} status:`, error);
-      handleCameraError(cameraId, error.message);
-    }
-  }, [API_BASE_URL]);
 
   const openDirectCamera = (cameraUrl) => {
     window.open(cameraUrl, '_blank', 'width=800,height=600,toolbar=no,menubar=no');
@@ -1242,30 +1198,52 @@ const InventorySystem = () => {
   // Edit Part Modal
   const EditPartModal = () => {
     const [formData, setFormData] = useState({
-      partNumber: editingPart?.partNumber || '',
-      description: editingPart?.description || '',
-      shelf: editingPart?.shelf || '',
-      category: editingPart?.category || '',
-      quantity: editingPart?.quantity || 1,
-      minQuantity: editingPart?.minQuantity || 1
+      partNumber: '',
+      description: '',
+      shelf: '',
+      category: '',
+      quantity: 1,
+      minQuantity: 1
     });
 
+    // Use a stable reference for editingPart to prevent infinite loops
+    const stableEditingPart = useMemo(() => {
+      if (!editingPart) return null;
+      return {
+        id: editingPart.id,
+        partNumber: editingPart.partNumber,
+        description: editingPart.description,
+        shelf: editingPart.shelf,
+        category: editingPart.category,
+        quantity: editingPart.quantity,
+        minQuantity: editingPart.minQuantity
+      };
+    }, [
+      editingPart?.id,
+      editingPart?.partNumber,
+      editingPart?.description,
+      editingPart?.shelf,
+      editingPart?.category,
+      editingPart?.quantity,
+      editingPart?.minQuantity
+    ]);
+
     useEffect(() => {
-      if (editingPart) {
+      if (stableEditingPart) {
         setFormData({
-          partNumber: editingPart.partNumber || '',
-          description: editingPart.description || '',
-          shelf: editingPart.shelf || '',
-          category: editingPart.category || '',
-          quantity: editingPart.quantity || 1,
-          minQuantity: editingPart.minQuantity || 1
+          partNumber: stableEditingPart.partNumber || '',
+          description: stableEditingPart.description || '',
+          shelf: stableEditingPart.shelf || '',
+          category: stableEditingPart.category || '',
+          quantity: stableEditingPart.quantity || 1,
+          minQuantity: stableEditingPart.minQuantity || 1
         });
       }
-    }, [editingPart?.id]); // Only depend on the part ID instead of the whole object
+    }, [stableEditingPart]);
 
     const handleSubmit = async (e) => {
       e.preventDefault();
-      const success = await updatePart(editingPart.id, formData);
+      const success = await updatePart(stableEditingPart.id, formData);
       if (success) {
         setEditingPart(null);
       }
