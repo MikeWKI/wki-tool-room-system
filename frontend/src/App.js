@@ -151,7 +151,10 @@ const InventorySystem = () => {
           setShowDebugModal(false);
         }
       }}
-      style={{ zIndex: 99999 }}
+      style={{ 
+        zIndex: 99999,
+        pointerEvents: 'auto'
+      }}
     >
       <div 
         className="bg-white rounded-lg p-8 max-w-md mx-4 border-4 border-green-500"
@@ -159,23 +162,49 @@ const InventorySystem = () => {
           console.log('DEBUG: Modal content clicked');
           e.stopPropagation();
         }}
+        style={{ 
+          pointerEvents: 'auto'
+        }}
       >
-        <h2 className="text-2xl font-bold text-red-600 mb-4">DEBUG MODAL</h2>
-        <p className="mb-4">If you can click this button, basic modal functionality works:</p>
+        <h2 className="text-2xl font-bold text-red-600 mb-4">🚨 EMERGENCY DEBUG 🚨</h2>
+        <p className="mb-4">Testing React event handlers:</p>
         <button
-          onClick={() => {
-            console.log('DEBUG: Button clicked!');
-            alert('Button works!');
+          onClick={(e) => {
+            console.log('EMERGENCY: Test button onClick fired!');
+            alert('EMERGENCY: React onClick works!');
+          }}
+          onMouseDown={(e) => {
+            console.log('EMERGENCY: Button mousedown detected!');
+          }}
+          onMouseUp={(e) => {
+            console.log('EMERGENCY: Button mouseup detected!');
+          }}
+          onPointerDown={(e) => {
+            console.log('EMERGENCY: Button pointerdown detected!');
           }}
           className="bg-green-500 text-white px-4 py-2 rounded mr-2"
+          style={{ 
+            pointerEvents: 'auto',
+            cursor: 'pointer'
+          }}
         >
-          Test Button
+          🚨 EMERGENCY TEST 🚨
         </button>
         <button
-          onClick={() => setShowDebugModal(false)}
+          onClick={() => {
+            console.log('EMERGENCY: Close button onClick fired!');
+            setShowDebugModal(false);
+          }}
+          onMouseDown={(e) => {
+            console.log('EMERGENCY: Close button mousedown detected!');
+          }}
           className="bg-red-500 text-white px-4 py-2 rounded"
+          style={{ 
+            pointerEvents: 'auto',
+            cursor: 'pointer'
+          }}
         >
-          Close
+          🚨 CLOSE 🚨
         </button>
       </div>
     </div>
@@ -746,9 +775,24 @@ const InventorySystem = () => {
         bubbles: e.bubbles,
         cancelable: e.cancelable,
         defaultPrevented: e.defaultPrevented,
+        isTrusted: e.isTrusted,
+        type: e.type,
         x: e.clientX,
         y: e.clientY
       });
+      
+      // Check if React event handlers exist
+      const reactProps = Object.keys(e.target).filter(key => key.startsWith('__react'));
+      console.log('EMERGENCY: React props on target:', reactProps);
+      
+      // Check for onClick handlers specifically
+      const hasOnClick = e.target.onclick || e.target.getAttribute('onclick');
+      console.log('EMERGENCY: Has onClick handler:', hasOnClick);
+      
+      // Try to manually trigger React events
+      if (e.target.click && typeof e.target.click === 'function') {
+        console.log('EMERGENCY: Element has click() method');
+      }
     };
     
     document.addEventListener('click', debugClicks, true); // Capture phase
