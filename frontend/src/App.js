@@ -3470,8 +3470,8 @@ const InventorySystem = () => {
         {/* Search and Controls */}
         {(activeView === 'inventory' || activeView === 'manage') && (
           <div className="mb-6 space-y-4">
-            {/* TEMPORARILY DISABLED Enhanced Search Bar for testing */}
-            {/* <EnhancedSearchBar
+            {/* Enhanced Search Bar - RE-ENABLED with React 18 fix */}
+            <EnhancedSearchBar
               searchTerm={enhancedSearch.searchTerm}
               setSearchTerm={enhancedSearch.setSearchTerm}
               suggestions={enhancedSearch.suggestions}
@@ -3488,21 +3488,7 @@ const InventorySystem = () => {
               clearSearchHistory={enhancedSearch.clearSearchHistory}
               categories={enhancedSearch.categories}
               onCategorySelect={handleCategorySelect}
-            /> */}
-
-            {/* Fallback: Simple search input for testing */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search parts..."
-                value={enhancedSearch.searchTerm}
-                onChange={(e) => enhancedSearch.setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
-              </div>
-            </div>
+            />
 
             {/* Advanced Filters - Only show on inventory view */}
             {activeView === 'inventory' && (

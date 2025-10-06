@@ -25,17 +25,21 @@ const EnhancedSearchBar = ({
   const searchRef = useRef(null);
   const suggestionsRef = useRef(null);
 
-  // Handle clicks outside to close suggestions
+  // Handle clicks outside to close suggestions - FIXED to not interfere with React 18
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setShowSuggestions(false);
-        setShowCategoryBrowser(false);
-      }
+      // CRITICAL FIX: Use setTimeout to avoid interfering with React's event delegation
+      setTimeout(() => {
+        if (searchRef.current && !searchRef.current.contains(event.target)) {
+          setShowSuggestions(false);
+          setShowCategoryBrowser(false);
+        }
+      }, 0);
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    // CRITICAL FIX: Use 'click' instead of 'mousedown' to avoid React 18 conflicts
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, [setShowSuggestions]);
 
   const handleInputChange = (e) => {
