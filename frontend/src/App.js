@@ -28,6 +28,7 @@ const InventorySystem = () => {
   const [isInstalled, setIsInstalled] = useState(false);
   const [showPWANotification, setShowPWANotification] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallInstructions, setShowInstallInstructions] = useState(false);
 
   // Inventory Management State
   const [showAddPartModal, setShowAddPartModal] = useState(false);
@@ -468,8 +469,15 @@ const InventorySystem = () => {
     };
     const handlePWAUpdateAvailable = () => setShowUpdateNotification(true);
     const handlePWAOnlineStatus = (event) => setIsOnline(event.detail.online);
+    const handleAppInstalled = () => {
+      console.log('App was installed');
+      setIsInstalled(true);
+      setShowInstallPrompt(false);
+      setShowInstallInstructions(false);
+    };
     
     window.addEventListener('beforeinstallprompt', handlePWAInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
     window.addEventListener('pwa-update-available', handlePWAUpdateAvailable);
     window.addEventListener('pwa-online-status', handlePWAOnlineStatus);
     
@@ -496,6 +504,7 @@ const InventorySystem = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('beforeinstallprompt', handlePWAInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
       window.removeEventListener('pwa-update-available', handlePWAUpdateAvailable);
       window.removeEventListener('pwa-online-status', handlePWAOnlineStatus);
       // Clear deferred prompt
@@ -666,7 +675,8 @@ const InventorySystem = () => {
   // PWA Functions
   const handleInstallApp = async () => {
     if (!deferredPrompt) {
-      console.log('No deferred prompt available');
+      console.log('No deferred prompt available, showing installation instructions');
+      setShowInstallInstructions(true);
       return;
     }
 
@@ -689,6 +699,8 @@ const InventorySystem = () => {
       setDeferredPrompt(null);
     } catch (error) {
       console.error('Error during PWA installation:', error);
+      // Fallback to showing instructions
+      setShowInstallInstructions(true);
     }
   };
 
@@ -702,6 +714,77 @@ const InventorySystem = () => {
       });
     }
     setShowUpdateNotification(false);
+  };
+
+  // Get browser-specific installation instructions
+  const getInstallInstructions = () => {
+    const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+    const isEdge = /Edge/.test(navigator.userAgent) || /Edg/.test(navigator.userAgent);
+    const isFirefox = /Firefox/.test(navigator.userAgent);
+    const isSafari = /Safari/.test(navigator.userAgent) && /Apple Computer/.test(navigator.vendor);
+    const isOpera = /OPR/.test(navigator.userAgent);
+    
+    if (isChrome) {
+      return {
+        browser: 'Chrome',
+        steps: [
+          'Click the three dots menu (⋮) in the top right corner',
+          'Select "Install WKI Tool Room Inventory..."',
+          'Click "Install" in the confirmation dialog',
+          'The app will be added to your desktop and start menu'
+        ]
+      };
+    } else if (isEdge) {
+      return {
+        browser: 'Microsoft Edge',
+        steps: [
+          'Click the three dots menu (...) in the top right corner',
+          'Select "Apps" → "Install this site as an app"',
+          'Click "Install" in the confirmation dialog',
+          'The app will be added to your start menu and taskbar'
+        ]
+      };
+    } else if (isFirefox) {
+      return {
+        browser: 'Firefox',
+        steps: [
+          'Look for the install icon in the address bar',
+          'Click the install icon if available',
+          'Or bookmark this page for easy access',
+          'Note: Full PWA support varies in Firefox'
+        ]
+      };
+    } else if (isSafari) {
+      return {
+        browser: 'Safari',
+        steps: [
+          'Tap the Share button at the bottom of the screen',
+          'Scroll down and tap "Add to Home Screen"',
+          'Edit the name if desired and tap "Add"',
+          'The app icon will appear on your home screen'
+        ]
+      };
+    } else if (isOpera) {
+      return {
+        browser: 'Opera',
+        steps: [
+          'Click the Opera menu button',
+          'Select "Install app..."',
+          'Click "Install" in the confirmation dialog',
+          'The app will be added to your desktop'
+        ]
+      };
+    } else {
+      return {
+        browser: 'Your Browser',
+        steps: [
+          'Look for an install button in your browser\'s address bar',
+          'Check your browser\'s menu for "Install app" options',
+          'Bookmark this page for quick access',
+          'Consider using Chrome or Edge for the best PWA experience'
+        ]
+      };
+    }
   };
 
   const handleShareApp = async () => {
@@ -1516,6 +1599,79 @@ const InventorySystem = () => {
       </div>
     </div>
   );
+
+  const InstallInstructionsModal = () => {
+    const instructions = getInstallInstructions();
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-red-600">Install WKI Tool Room Inventory</h3>
+            <button
+              onClick={() => setShowInstallInstructions(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <div className="mb-4">
+            <p className="text-gray-700 mb-3">
+              Install this app on your device for a better experience! You'll be able to access it even when offline.
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p className="text-blue-800 text-sm font-medium">
+                Detected Browser: {instructions.browser}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold text-gray-900">Installation Steps:</h4>
+            <ol className="space-y-3">
+              {instructions.steps.map((step, index) => (
+                <li key={index} className="flex items-start space-x-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-sm font-medium">
+                    {index + 1}
+                  </span>
+                  <span className="text-gray-700">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="mt-6 bg-gray-50 rounded-lg p-4">
+            <h5 className="font-medium text-gray-900 mb-2">Benefits of Installing:</h5>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>• Access the app from your desktop or home screen</li>
+              <li>• Works offline for viewing inventory</li>
+              <li>• Faster loading and better performance</li>
+              <li>• Native app-like experience</li>
+            </ul>
+          </div>
+
+          <div className="flex space-x-3 mt-6">
+            <button
+              onClick={() => setShowInstallInstructions(false)}
+              className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+            >
+              Got it!
+            </button>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                setShowInstallInstructions(false);
+              }}
+              className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400"
+            >
+              Copy URL
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const TransactionList = () => (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -2449,7 +2605,7 @@ const InventorySystem = () => {
               </div>
 
               {/* PWA Install Button */}
-              {showInstallPrompt && !isInstalled && (
+              {!isInstalled && (
                 <button
                   onClick={handleInstallApp}
                   className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
@@ -3007,6 +3163,7 @@ const InventorySystem = () => {
       {showEditShelfModal && <EditShelfModal />}
       {showDeleteShelfConfirm && <DeleteShelfConfirmModal />}
       {showPinModal && <PinModal />}
+      {showInstallInstructions && <InstallInstructionsModal />}
       {showEasterEgg && <EasterEggModal />}
       <ExcelUpload 
         isVisible={showExcelUpload}
