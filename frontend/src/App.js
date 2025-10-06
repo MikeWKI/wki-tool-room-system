@@ -1624,7 +1624,14 @@ const InventorySystem = () => {
       {/* Parts Management Table */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold">All Parts</h3>
+          <h3 className="text-lg font-semibold">
+            {searchTerm ? `Search Results (${displayInventory.length} found)` : `All Parts (${displayInventory.length})`}
+          </h3>
+          {searchTerm && (
+            <p className="text-sm text-gray-600 mt-1">
+              Showing results for "{searchTerm}"
+            </p>
+          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -1638,7 +1645,7 @@ const InventorySystem = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {inventory.map((part) => (
+              {displayInventory.map((part) => (
                 <tr key={part.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
@@ -1716,6 +1723,18 @@ const InventorySystem = () => {
               ))}
             </tbody>
           </table>
+          {displayInventory.length === 0 && inventory.length > 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p>No parts found matching your search.</p>
+              <button
+                onClick={() => setSearchTerm('')}
+                className="mt-2 text-red-600 hover:text-red-800"
+              >
+                Clear search
+              </button>
+            </div>
+          )}
           {inventory.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
