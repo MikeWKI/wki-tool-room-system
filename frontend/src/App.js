@@ -12,28 +12,8 @@ import EnhancedSearchBar from './components/EnhancedSearchBar';
 import { useEnhancedSearch } from './hooks/useEnhancedSearch';
 import pwaManager from './utils/pwa';
 
-// Camera Feed Component (defined outside App to use hooks properly)
-const CameraFeed = ({ camera }) => {
-  const openCameraFeed = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('🎥 Opening camera feed:', camera.url);
-    window.open(camera.url, '_blank', 'noopener,noreferrer');
-  }, [camera.url]);
-
-  const copyUrlToClipboard = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('📋 Copying URL to clipboard:', camera.url);
-    navigator.clipboard.writeText(camera.url).then(() => {
-      console.log('✅ URL copied successfully');
-      alert('Camera URL copied to clipboard!');
-    }).catch(err => {
-      console.error('❌ Failed to copy URL:', err);
-      alert('Failed to copy URL to clipboard');
-    });
-  }, [camera.url]);
-
+// Camera Feed Component (simplified without hooks)
+const CameraFeed = ({ camera, onOpenCamera, onCopyUrl }) => {
   return (
     <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
       <div className="p-3 bg-gray-200 dark:bg-gray-600 border-b border-gray-300 dark:border-gray-500">
@@ -61,7 +41,7 @@ const CameraFeed = ({ camera }) => {
             
             <div className="space-y-3">
               <button
-                onClick={openCameraFeed}
+                onClick={() => onOpenCamera(camera.url)}
                 className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 font-medium"
               >
                 <ExternalLink className="w-5 h-5" />
@@ -69,7 +49,7 @@ const CameraFeed = ({ camera }) => {
               </button>
               
               <button
-                onClick={copyUrlToClipboard}
+                onClick={() => onCopyUrl(camera.url)}
                 className="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2"
               >
                 <Copy className="w-4 h-4" />
@@ -1912,7 +1892,7 @@ const InventorySystem = () => {
 
   const CameraFeedsModal = () => {
     // Camera configuration
-    const cameras = useMemo(() => [
+    const cameras = [
       {
         id: 'camera1',
         name: 'Camera 1 (192.168.231.88)',
@@ -1925,16 +1905,32 @@ const InventorySystem = () => {
         ip: '192.168.231.87',
         url: 'http://192.168.231.87/cgi-bin/guestimage.html'
       }
-    ], []);
+    ];
 
-    const handleClose = useCallback((e) => {
+    const handleClose = (e) => {
       if (e) {
         e.preventDefault();
         e.stopPropagation();
       }
       console.log('❌ Closing camera feeds');
       setShowCameraFeeds(false);
-    }, []);
+    };
+
+    const handleOpenCamera = (url) => {
+      console.log('🎥 Opening camera feed:', url);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    };
+
+    const handleCopyUrl = (url) => {
+      console.log('📋 Copying URL to clipboard:', url);
+      navigator.clipboard.writeText(url).then(() => {
+        console.log('✅ URL copied successfully');
+        alert('Camera URL copied to clipboard!');
+      }).catch(err => {
+        console.error('❌ Failed to copy URL:', err);
+        alert('Failed to copy URL to clipboard');
+      });
+    };
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
@@ -1967,7 +1963,12 @@ const InventorySystem = () => {
           {/* Camera Feeds */}
           <div className="flex-1 flex p-4 space-x-4 overflow-hidden">
             {cameras.map((camera) => (
-              <CameraFeed key={camera.id} camera={camera} />
+              <CameraFeed 
+                key={camera.id} 
+                camera={camera} 
+                onOpenCamera={handleOpenCamera}
+                onCopyUrl={handleCopyUrl}
+              />
             ))}
           </div>
           
