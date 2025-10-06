@@ -97,6 +97,8 @@ const InventorySystem = () => {
   const [cameraPassword, setCameraPassword] = useState('');
   const [cameraPasswordError, setCameraPasswordError] = useState('');
   const [isCameraAuthenticated, setIsCameraAuthenticated] = useState(false);
+  const [cameraErrors, setCameraErrors] = useState({});
+  const [cameraStatus, setCameraStatus] = useState({});
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 
     (process.env.NODE_ENV === 'production' 
@@ -841,6 +843,9 @@ const InventorySystem = () => {
   const handleCameraAccess = () => {
     if (isCameraAuthenticated) {
       setShowCameraFeeds(true);
+      // Reset camera status when opening feeds
+      setCameraErrors({});
+      setCameraStatus({});
     } else {
       setShowCameraPasswordModal(true);
     }
@@ -854,6 +859,9 @@ const InventorySystem = () => {
       setShowCameraFeeds(true);
       setCameraPassword('');
       setCameraPasswordError('');
+      // Reset camera status when authenticated
+      setCameraErrors({});
+      setCameraStatus({});
     } else {
       setCameraPasswordError('Incorrect password');
     }
@@ -863,6 +871,25 @@ const InventorySystem = () => {
     setShowCameraPasswordModal(false);
     setCameraPassword('');
     setCameraPasswordError('');
+  };
+
+  const handleCameraError = (cameraId, error) => {
+    setCameraErrors(prev => ({
+      ...prev,
+      [cameraId]: error
+    }));
+  };
+
+  const handleCameraLoad = (cameraId) => {
+    setCameraStatus(prev => ({
+      ...prev,
+      [cameraId]: 'loaded'
+    }));
+    setCameraErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[cameraId];
+      return newErrors;
+    });
   };
 
   const handleCloseCameraFeeds = () => {
@@ -1768,79 +1795,215 @@ const InventorySystem = () => {
     </div>
   );
 
-  const CameraFeedsModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl h-5/6 mx-4 my-4 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
-          <div className="flex items-center space-x-2">
-            <Camera className="w-6 h-6 text-red-600" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Security Camera Feeds</h3>
-          </div>
-          <button
-            onClick={handleCloseCameraFeeds}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-        
-        {/* Camera Feeds */}
-        <div className="flex-1 flex p-4 space-x-4">
-          {/* Left Camera Feed */}
-          <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-            <div className="p-3 bg-gray-200 dark:bg-gray-600 border-b border-gray-300 dark:border-gray-500">
+  const CameraFeedsModal = () => {
+    // Camera configuration with secure fallback
+    const cameras = [
+      {
+        id: 'camera1',
+        name: 'Camera 1 (192.168.231.88)',
+        ip: '192.168.231.88',
+        // Try HTTPS first, fallback to HTTP for internal networks
+        urls: [
+          'https://192.168.231.88/cgi-bin/guestimage.html',
+          'http://192.168.231.88/cgi-bin/guestimage.html'
+        ]
+      },
+      {
+        id: 'camera2', 
+        name: 'Camera 2 (192.168.231.87)',
+        ip: '192.168.231.87',
+        urls: [
+          'https://192.168.231.87/cgi-bin/guestimage.html',
+          'http://192.168.231.87/cgi-bin/guestimage.html'
+        ]
+      }
+    ];
+
+    const CameraFeed = ({ camera }) => {
+      const [currentUrlIndex, setCurrentUrlIndex] = useState(0);
+      const [isLoading, setIsLoading] = useState(true);
+      const [hasError, setHasError] = useState(false);
+      const [connectionStatus, setConnectionStatus] = useState('connecting');
+
+      const handleLoad = () => {
+        setIsLoading(false);
+        setHasError(false);
+        setConnectionStatus('connected');
+        handleCameraLoad(camera.id);
+      };
+
+      const handleError = () => {
+        setIsLoading(false);
+        if (currentUrlIndex < camera.urls.length - 1) {
+          // Try next URL
+          setCurrentUrlIndex(currentUrlIndex + 1);
+          setConnectionStatus('retrying');
+        } else {
+          setHasError(true);
+          setConnectionStatus('failed');
+          handleCameraError(camera.id, 'Unable to connect to camera feed');
+        }
+      };
+
+      const currentUrl = camera.urls[currentUrlIndex];
+      const isHttps = currentUrl.startsWith('https://');
+
+      return (
+        <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+          <div className="p-3 bg-gray-200 dark:bg-gray-600 border-b border-gray-300 dark:border-gray-500">
+            <div className="flex items-center justify-between">
               <h4 className="font-medium text-gray-900 dark:text-gray-100 flex items-center">
                 <Eye className="w-4 h-4 mr-2" />
-                Camera 1 (192.168.231.88)
+                {camera.name}
               </h4>
-            </div>
-            <div className="h-full">
-              <iframe
-                src="http://192.168.231.88/cgi-bin/guestimage.html"
-                className="w-full h-full border-0"
-                title="Security Camera 1"
-                sandbox="allow-scripts allow-same-origin"
-              />
+              <div className="flex items-center space-x-2">
+                {connectionStatus === 'connecting' && (
+                  <div className="flex items-center text-yellow-600 dark:text-yellow-400">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-1"></div>
+                    <span className="text-xs">Connecting...</span>
+                  </div>
+                )}
+                {connectionStatus === 'connected' && (
+                  <div className="flex items-center text-green-600 dark:text-green-400">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                    <span className="text-xs">Live</span>
+                  </div>
+                )}
+                {connectionStatus === 'retrying' && (
+                  <div className="flex items-center text-orange-600 dark:text-orange-400">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse mr-1"></div>
+                    <span className="text-xs">Retrying...</span>
+                  </div>
+                )}
+                {connectionStatus === 'failed' && (
+                  <div className="flex items-center text-red-600 dark:text-red-400">
+                    <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
+                    <span className="text-xs">Offline</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           
-          {/* Right Camera Feed */}
-          <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-            <div className="p-3 bg-gray-200 dark:bg-gray-600 border-b border-gray-300 dark:border-gray-500">
-              <h4 className="font-medium text-gray-900 dark:text-gray-100 flex items-center">
-                <Eye className="w-4 h-4 mr-2" />
-                Camera 2 (192.168.231.87)
-              </h4>
-            </div>
-            <div className="h-full">
+          <div className="relative h-full min-h-96">
+            {isLoading && !hasError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+                <div className="text-center">
+                  <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-2" />
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Loading camera feed...</p>
+                  {!isHttps && (
+                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                      Using insecure connection
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {hasError ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+                <div className="text-center p-6">
+                  <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Camera Unavailable</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Unable to connect to camera at {camera.ip}
+                  </p>
+                  <div className="text-xs text-gray-500 dark:text-gray-500 space-y-1">
+                    <p>• Check if camera is powered on</p>
+                    <p>• Verify network connection</p>
+                    <p>• Camera may not support HTTPS</p>
+                    <p>• Browser security may block mixed content</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setCurrentUrlIndex(0);
+                      setHasError(false);
+                      setIsLoading(true);
+                      setConnectionStatus('connecting');
+                    }}
+                    className="mt-4 bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
+                  >
+                    Retry Connection
+                  </button>
+                </div>
+              </div>
+            ) : (
               <iframe
-                src="http://192.168.231.87/cgi-bin/guestimage.html"
+                src={currentUrl}
                 className="w-full h-full border-0"
-                title="Security Camera 2"
-                sandbox="allow-scripts allow-same-origin"
+                title={`Security ${camera.name}`}
+                sandbox="allow-scripts allow-same-origin allow-forms"
+                onLoad={handleLoad}
+                onError={handleError}
+                loading="lazy"
               />
-            </div>
+            )}
           </div>
         </div>
-        
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-750">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Live security camera feeds • Click and drag to navigate
-            </p>
+      );
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl h-5/6 mx-4 my-4 flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
+            <div className="flex items-center space-x-2">
+              <Camera className="w-6 h-6 text-red-600" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Security Camera Feeds</h3>
+            </div>
             <button
               onClick={handleCloseCameraFeeds}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             >
-              Close Cameras
+              <X className="w-6 h-6" />
             </button>
+          </div>
+          
+          {/* Security Notice */}
+          <div className="px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
+            <div className="flex items-center space-x-2 text-yellow-800 dark:text-yellow-200">
+              <AlertCircle className="w-4 h-4" />
+              <p className="text-sm">
+                Camera feeds may be blocked by browser security for HTTP connections. 
+                For best results, ensure cameras support HTTPS or access from internal network.
+              </p>
+            </div>
+          </div>
+          
+          {/* Camera Feeds */}
+          <div className="flex-1 flex p-4 space-x-4 overflow-hidden">
+            {cameras.map((camera) => (
+              <CameraFeed key={camera.id} camera={camera} />
+            ))}
+          </div>
+          
+          {/* Footer */}
+          <div className="p-4 border-t border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-750">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Live security camera feeds • Click and drag to navigate
+                </p>
+                {Object.keys(cameraErrors).length > 0 && (
+                  <div className="flex items-center text-red-600 dark:text-red-400">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    <span className="text-sm">{Object.keys(cameraErrors).length} camera(s) offline</span>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={handleCloseCameraFeeds}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Close Cameras
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const TransactionList = () => (
     <div className="bg-white rounded-lg shadow-md p-6">
