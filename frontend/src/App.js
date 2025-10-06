@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings, Upload, Download, Share, BarChart3, Database, Camera, Eye, Shield, ExternalLink, Copy, Server, Globe } from 'lucide-react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import MobileNavigation from './components/MobileNavigation';
@@ -166,21 +166,12 @@ const InventorySystem = () => {
           pointerEvents: 'auto'
         }}
       >
-        <h2 className="text-2xl font-bold text-red-600 mb-4">🚨 EMERGENCY DEBUG 🚨</h2>
-        <p className="mb-4">Testing React event handlers:</p>
+        <h2 className="text-2xl font-bold text-red-600 mb-4">🚨 REACT ONCLICK TEST 🚨</h2>
+        <p className="mb-4">Testing if React onClick works after removing debug listeners:</p>
         <button
           onClick={(e) => {
-            console.log('EMERGENCY: Test button onClick fired!');
-            alert('EMERGENCY: React onClick works!');
-          }}
-          onMouseDown={(e) => {
-            console.log('EMERGENCY: Button mousedown detected!');
-          }}
-          onMouseUp={(e) => {
-            console.log('EMERGENCY: Button mouseup detected!');
-          }}
-          onPointerDown={(e) => {
-            console.log('EMERGENCY: Button pointerdown detected!');
+            console.log('SUCCESS: React onClick fired!');
+            alert('SUCCESS: React onClick works!');
           }}
           className="bg-green-500 text-white px-4 py-2 rounded mr-2"
           style={{ 
@@ -188,15 +179,12 @@ const InventorySystem = () => {
             cursor: 'pointer'
           }}
         >
-          🚨 EMERGENCY TEST 🚨
+          🚨 REACT TEST 🚨
         </button>
         <button
           onClick={() => {
-            console.log('EMERGENCY: Close button onClick fired!');
+            console.log('SUCCESS: React close onClick fired!');
             setShowDebugModal(false);
-          }}
-          onMouseDown={(e) => {
-            console.log('EMERGENCY: Close button mousedown detected!');
           }}
           className="bg-red-500 text-white px-4 py-2 rounded"
           style={{ 
@@ -204,7 +192,7 @@ const InventorySystem = () => {
             cursor: 'pointer'
           }}
         >
-          🚨 CLOSE 🚨
+          🚨 REACT CLOSE 🚨
         </button>
       </div>
     </div>
@@ -789,14 +777,29 @@ const InventorySystem = () => {
       const hasOnClick = e.target.onclick || e.target.getAttribute('onclick');
       console.log('EMERGENCY: Has onClick handler:', hasOnClick);
       
-      // Try to manually trigger React events
-      if (e.target.click && typeof e.target.click === 'function') {
-        console.log('EMERGENCY: Element has click() method');
+      // CRITICAL: Check if something is preventing React events
+      if (e.defaultPrevented) {
+        console.log('EMERGENCY: Event was preventDefault()ed - this breaks React!');
+      }
+      
+      // Check if event propagation was stopped
+      if (e.cancelBubble || !e.bubbles) {
+        console.log('EMERGENCY: Event propagation was stopped - this breaks React!');
+      }
+      
+      // Look for React's event delegation
+      const reactRoot = document.getElementById('root');
+      if (reactRoot) {
+        const reactEventProps = Object.keys(reactRoot).filter(key => key.includes('event') || key.includes('react'));
+        console.log('EMERGENCY: React root event props:', reactEventProps);
       }
     };
     
+    // TEMPORARILY DISABLE debugging event listeners to test if they're causing the issue
+    /*
     document.addEventListener('click', debugClicks, true); // Capture phase
     document.addEventListener('click', debugClicks, false); // Bubble phase
+    */
 
     // Hide immediately and repeatedly
     hideLoader();
@@ -810,8 +813,11 @@ const InventorySystem = () => {
     setTimeout(() => clearInterval(interval), 10000);
     
     return () => {
+      // TEMPORARILY DISABLE cleanup
+      /*
       document.removeEventListener('click', debugClicks, true);
       document.removeEventListener('click', debugClicks, false);
+      */
       clearInterval(interval);
     };
   }, []);
@@ -3464,8 +3470,8 @@ const InventorySystem = () => {
         {/* Search and Controls */}
         {(activeView === 'inventory' || activeView === 'manage') && (
           <div className="mb-6 space-y-4">
-            {/* Enhanced Search Bar */}
-            <EnhancedSearchBar
+            {/* TEMPORARILY DISABLED Enhanced Search Bar for testing */}
+            {/* <EnhancedSearchBar
               searchTerm={enhancedSearch.searchTerm}
               setSearchTerm={enhancedSearch.setSearchTerm}
               suggestions={enhancedSearch.suggestions}
@@ -3482,7 +3488,21 @@ const InventorySystem = () => {
               clearSearchHistory={enhancedSearch.clearSearchHistory}
               categories={enhancedSearch.categories}
               onCategorySelect={handleCategorySelect}
-            />
+            /> */}
+
+            {/* Fallback: Simple search input for testing */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search parts..."
+                value={enhancedSearch.searchTerm}
+                onChange={(e) => enhancedSearch.setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+            </div>
 
             {/* Advanced Filters - Only show on inventory view */}
             {activeView === 'inventory' && (
