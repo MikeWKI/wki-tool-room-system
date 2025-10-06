@@ -44,10 +44,12 @@ const InventoryGrid = memo(({
       {inventory.map((part) => (
         <div
           key={part.id}
-          className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer border-l-4 border-transparent hover:border-red-500"
-          onClick={() => onPartSelect(part)}
+          className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 border-l-4 border-transparent hover:border-red-500"
         >
-          <div className="p-6">
+          <div 
+            className="p-6 cursor-pointer"
+            onClick={() => onPartSelect(part)}
+          >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-2">
                 <Package className="w-5 h-5 text-gray-500" />
@@ -100,24 +102,20 @@ const InventoryGrid = memo(({
                 </div>
               )}
             </div>
+          </div>
             
-            <div className="mt-4 flex space-x-2">
+          <div className="px-6 pb-6">
+            <div className="flex space-x-2">
               {part.status === 'available' ? (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCheckout(part);
-                  }}
+                  onClick={() => onCheckout(part)}
                   className="flex-1 bg-red-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-700 transition-colors"
                 >
                   Check Out
                 </button>
               ) : (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCheckin(part);
-                  }}
+                  onClick={() => onCheckin(part)}
                   className="flex-1 bg-green-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-green-700 transition-colors"
                 >
                   Check In

@@ -1510,11 +1510,7 @@ const InventorySystem = () => {
               </button>
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setShowAddPartModal(false);
-                }}
+                onClick={() => setShowAddPartModal(false)}
                 disabled={loading}
                 className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:cursor-not-allowed"
               >
@@ -1681,9 +1677,7 @@ const InventorySystem = () => {
               </button>
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
+                onClick={() => {
                   setShowEditPartModal(false);
                   setEditingPart(null);
                 }}
@@ -1722,20 +1716,14 @@ const InventorySystem = () => {
         </p>
         <div className="flex space-x-3">
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              deletePart(partToDelete.id);
-            }}
+            onClick={() => deletePart(partToDelete.id)}
             disabled={loading}
             className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Delete'}
           </button>
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
+            onClick={() => {
               setShowDeleteConfirm(false);
               setPartToDelete(null);
             }}
