@@ -6,6 +6,8 @@ const fs = require('fs').promises;
 const path = require('path');
 const multer = require('multer');
 const DatabaseService = require('./services/DatabaseService');
+const http = require('http');
+const https = require('https');
 require('dotenv').config();
 
 // Create instance of DatabaseService
@@ -1124,6 +1126,130 @@ app.get('/api/health', (req, res) => {
       process.env.FRONTEND_URL || 'http://localhost:3000',
       process.env.CORS_ORIGIN || 'https://wki-tool-room-system.onrender.com',
       'https://wki-tool-room-system-1.onrender.com'
+    ]
+  });
+});
+
+// Camera proxy endpoints
+app.get('/api/camera/:id/status', async (req, res) => {
+  const cameraId = req.params.id;
+  const cameraUrls = {
+    '1': 'http://192.168.231.88',
+    '2': 'http://192.168.231.87'
+  };
+  
+  const cameraUrl = cameraUrls[cameraId];
+  if (!cameraUrl) {
+    return res.status(404).json({ error: 'Camera not found' });
+  }
+
+  try {
+    // Simple HTTP request to check if camera is accessible
+    const protocol = cameraUrl.startsWith('https') ? https : http;
+    const request = protocol.get(cameraUrl, (response) => {
+      res.json({ 
+        status: 'online', 
+        url: cameraUrl,
+        statusCode: response.statusCode 
+      });
+    });
+
+    request.on('error', (error) => {
+      res.json({ 
+        status: 'offline', 
+        url: cameraUrl,
+        error: error.message 
+      });
+    });
+
+    request.setTimeout(5000, () => {
+      request.destroy();
+      res.json({ 
+        status: 'timeout', 
+        url: cameraUrl,
+        error: 'Connection timeout' 
+      });
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      status: 'error', 
+      url: cameraUrl,
+      error: error.message 
+    });
+  }
+});
+
+// Camera stream proxy endpoint
+app.get('/api/camera/:id/stream', (req, res) => {
+  const cameraId = req.params.id;
+  const cameraUrls = {
+    '1': 'http://192.168.231.88',
+    '2': 'http://192.168.231.87'
+  };
+  
+  const cameraUrl = cameraUrls[cameraId];
+  if (!cameraUrl) {
+    return res.status(404).json({ error: 'Camera not found' });
+  }
+
+  try {
+    const protocol = cameraUrl.startsWith('https') ? https : http;
+    const request = protocol.get(cameraUrl, (cameraResponse) => {
+      // Set appropriate headers for streaming
+      res.setHeader('Content-Type', cameraResponse.headers['content-type'] || 'text/html');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      
+      // Pipe the camera response to our response
+      cameraResponse.pipe(res);
+    });
+
+    request.on('error', (error) => {
+      console.error(`Camera ${cameraId} error:`, error.message);
+      res.status(503).json({ 
+        error: 'Camera unavailable', 
+        details: error.message 
+      });
+    });
+
+    request.setTimeout(10000, () => {
+      request.destroy();
+      res.status(408).json({ 
+        error: 'Camera timeout',
+        details: 'Connection to camera timed out'
+      });
+    });
+
+  } catch (error) {
+    console.error(`Camera ${cameraId} proxy error:`, error);
+    res.status(500).json({ 
+      error: 'Proxy error', 
+      details: error.message 
+    });
+  }
+});
+
+// Get camera configuration
+app.get('/api/cameras', (req, res) => {
+  res.json({
+    cameras: [
+      {
+        id: '1',
+        name: 'Camera 1',
+        ip: '192.168.231.88',
+        statusUrl: '/api/camera/1/status',
+        streamUrl: '/api/camera/1/stream',
+        directUrl: 'http://192.168.231.88'
+      },
+      {
+        id: '2', 
+        name: 'Camera 2',
+        ip: '192.168.231.87',
+        statusUrl: '/api/camera/2/status',
+        streamUrl: '/api/camera/2/stream',
+        directUrl: 'http://192.168.231.87'
+      }
     ]
   });
 });
