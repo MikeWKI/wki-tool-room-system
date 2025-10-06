@@ -893,15 +893,6 @@ const InventorySystem = () => {
     });
   };
 
-  const handleCloseCameraFeeds = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    console.log('❌ CLOSE BUTTON CLICKED - Closing camera feeds');
-    setShowCameraFeeds(false);
-  };
-
   const openDirectCamera = (cameraUrl) => {
     window.open(cameraUrl, '_blank', 'width=800,height=600,toolbar=no,menubar=no');
   };
@@ -945,7 +936,9 @@ const InventorySystem = () => {
           </div>
           <div className="flex space-x-3">
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 if (userName.trim()) {
                   setCurrentUser(userName.trim());
                   handleCheckout(notes);
@@ -957,7 +950,11 @@ const InventorySystem = () => {
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Confirm Checkout'}
             </button>
             <button
-              onClick={() => setShowCheckoutModal(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowCheckoutModal(false);
+              }}
               disabled={loading}
               className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 disabled:cursor-not-allowed"
             >
@@ -1008,7 +1005,9 @@ const InventorySystem = () => {
           </div>
           <div className="flex space-x-3">
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 if (userName.trim()) {
                   setCurrentUser(userName.trim());
                   handleCheckin(notes);
@@ -1020,7 +1019,11 @@ const InventorySystem = () => {
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Confirm Check In'}
             </button>
             <button
-              onClick={() => setShowCheckinModal(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowCheckinModal(false);
+              }}
               disabled={loading}
               className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 disabled:cursor-not-allowed"
             >
@@ -1047,7 +1050,11 @@ const InventorySystem = () => {
             </p>
           </div>
           <button
-            onClick={() => setShowEasterEgg(false)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowEasterEgg(false);
+            }}
             className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
           >
             Close
@@ -1187,7 +1194,11 @@ const InventorySystem = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setShowAddPartModal(false)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowAddPartModal(false);
+                }}
                 disabled={loading}
                 className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:cursor-not-allowed"
               >
@@ -1342,7 +1353,9 @@ const InventorySystem = () => {
               </button>
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   setShowEditPartModal(false);
                   setEditingPart(null);
                 }}
@@ -1370,14 +1383,20 @@ const InventorySystem = () => {
         </p>
         <div className="flex space-x-3">
           <button
-            onClick={() => deletePart(partToDelete.id)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              deletePart(partToDelete.id);
+            }}
             disabled={loading}
             className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Delete'}
           </button>
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               setShowDeleteConfirm(false);
               setPartToDelete(null);
             }}
@@ -1682,7 +1701,9 @@ const InventorySystem = () => {
             </button>
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 setShowPinModal(false);
                 setPinInput('');
                 setPinError('');
@@ -1813,9 +1834,85 @@ const InventorySystem = () => {
     </div>
   );
 
+  // Camera Feed Component (moved outside to prevent re-creation)
+  const CameraFeed = ({ camera }) => {
+    const openCameraFeed = useCallback((e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('🎥 Opening camera feed:', camera.url);
+      window.open(camera.url, '_blank', 'noopener,noreferrer');
+    }, [camera.url]);
+
+    const copyUrlToClipboard = useCallback((e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('📋 Copying URL to clipboard:', camera.url);
+      navigator.clipboard.writeText(camera.url).then(() => {
+        console.log('✅ URL copied successfully');
+        alert('Camera URL copied to clipboard!');
+      }).catch(err => {
+        console.error('❌ Failed to copy URL:', err);
+        alert('Failed to copy URL to clipboard');
+      });
+    }, [camera.url]);
+
+    return (
+      <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+        <div className="p-3 bg-gray-200 dark:bg-gray-600 border-b border-gray-300 dark:border-gray-500">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium text-gray-900 dark:text-gray-100 flex items-center">
+              <Eye className="w-4 h-4 mr-2" />
+              {camera.name}
+            </h4>
+            <div className="flex items-center text-blue-600 dark:text-blue-400">
+              <span className="text-xs">Click to view</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="relative h-full min-h-96">
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+            <div className="text-center p-6 max-w-sm">
+              <Camera className="w-24 h-24 text-blue-500 mx-auto mb-6" />
+              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 text-lg">
+                {camera.name}
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                Camera feed will open in a new tab. Ensure you're connected to the office network for access.
+              </p>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={openCameraFeed}
+                  className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 font-medium"
+                >
+                  <ExternalLink className="w-5 h-5" />
+                  <span>Open Camera Feed</span>
+                </button>
+                
+                <button
+                  onClick={copyUrlToClipboard}
+                  className="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2"
+                >
+                  <Copy className="w-4 h-4" />
+                  <span>Copy URL</span>
+                </button>
+              </div>
+              
+              <div className="mt-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-left">
+                <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">Camera URL:</p>
+                <p className="text-xs text-blue-700 dark:text-blue-300 font-mono break-all">{camera.url}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const CameraFeedsModal = () => {
     // Camera configuration
-    const cameras = [
+    const cameras = useMemo(() => [
       {
         id: 'camera1',
         name: 'Camera 1 (192.168.231.88)',
@@ -1828,97 +1925,20 @@ const InventorySystem = () => {
         ip: '192.168.231.87',
         url: 'http://192.168.231.87/cgi-bin/guestimage.html'
       }
-    ];
+    ], []);
 
-    const CameraFeed = ({ camera }) => {
-      console.log('Rendering CameraFeed for:', camera.name);
-      
-      const openCameraFeed = (e) => {
+    const handleClose = useCallback((e) => {
+      if (e) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('🎥 CAMERA BUTTON CLICKED - Opening camera feed:', camera.url);
-        window.open(camera.url, '_blank', 'noopener,noreferrer');
-      };
-
-      const copyUrlToClipboard = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log('📋 COPY BUTTON CLICKED - Copying URL to clipboard:', camera.url);
-        navigator.clipboard.writeText(camera.url).then(() => {
-          console.log('✅ URL copied successfully');
-          alert('Camera URL copied to clipboard!');
-        }).catch(err => {
-          console.error('❌ Failed to copy URL:', err);
-          alert('Failed to copy URL to clipboard');
-        });
-      };
-
-      return (
-        <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-          <div className="p-3 bg-gray-200 dark:bg-gray-600 border-b border-gray-300 dark:border-gray-500">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium text-gray-900 dark:text-gray-100 flex items-center">
-                <Eye className="w-4 h-4 mr-2" />
-                {camera.name}
-              </h4>
-              <div className="flex items-center text-blue-600 dark:text-blue-400">
-                <span className="text-xs">Click to view</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="relative h-full min-h-96">
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
-              <div className="text-center p-6 max-w-sm">
-                <Camera className="w-24 h-24 text-blue-500 mx-auto mb-6" />
-                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 text-lg">
-                  {camera.name}
-                </h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                  Camera feed will open in a new tab. Ensure you're connected to the office network for access.
-                </p>
-                
-                <div className="space-y-3">
-                  <button
-                    onClick={openCameraFeed}
-                    style={{ pointerEvents: 'auto', zIndex: 10 }}
-                    className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 font-medium cursor-pointer"
-                  >
-                    <ExternalLink className="w-5 h-5" />
-                    <span>Open Camera Feed</span>
-                  </button>
-                  
-                  <button
-                    onClick={copyUrlToClipboard}
-                    style={{ pointerEvents: 'auto', zIndex: 10 }}
-                    className="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2 cursor-pointer"
-                  >
-                    <Copy className="w-4 h-4" />
-                    <span>Copy URL</span>
-                  </button>
-                </div>
-                
-                <div className="mt-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-left">
-                  <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">Camera URL:</p>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 font-mono break-all">{camera.url}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    };
+      }
+      console.log('❌ Closing camera feeds');
+      setShowCameraFeeds(false);
+    }, []);
 
     return (
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
-        style={{ pointerEvents: 'auto' }}
-      >
-        <div 
-          className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl h-5/6 mx-4 my-4 flex flex-col"
-          style={{ pointerEvents: 'auto' }}
-          onClick={(e) => e.stopPropagation()}
-        >
+      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl h-5/6 mx-4 my-4 flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
             <div className="flex items-center space-x-2">
@@ -1926,9 +1946,8 @@ const InventorySystem = () => {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Security Camera Feeds</h3>
             </div>
             <button
-              onClick={handleCloseCameraFeeds}
-              style={{ pointerEvents: 'auto', zIndex: 10 }}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
+              onClick={handleClose}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             >
               <X className="w-6 h-6" />
             </button>
@@ -1967,9 +1986,8 @@ const InventorySystem = () => {
                 )}
               </div>
               <button
-                onClick={handleCloseCameraFeeds}
-                style={{ pointerEvents: 'auto', zIndex: 10 }}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors cursor-pointer"
+                onClick={handleClose}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
               >
                 Close Cameras
               </button>
@@ -2789,7 +2807,11 @@ const InventorySystem = () => {
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div className="relative max-w-5xl max-h-[90vh] w-full">
           <button
-            onClick={() => setShowImageModal(false)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowImageModal(false);
+            }}
             className="absolute top-4 right-4 z-10 bg-red-600 hover:bg-red-700 text-white rounded-full p-2 transition-colors duration-300 shadow-lg"
           >
             <X className="w-6 h-6" />

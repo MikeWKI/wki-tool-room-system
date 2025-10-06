@@ -145,7 +145,11 @@ const LocationManager = ({
             <h2 className="text-xl font-bold">Location Manager</h2>
           </div>
           <button
-            onClick={onClose}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
             className="p-1 hover:bg-red-700 rounded"
           >
             <X className="w-6 h-6" />
