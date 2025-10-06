@@ -179,15 +179,28 @@ class PWAManager {
   }
 
   hideLoadingScreen() {
-    setTimeout(() => {
+    const hideLoader = () => {
       const loader = document.getElementById('pwa-loader');
       if (loader) {
         loader.classList.add('hidden');
+        loader.style.display = 'none';
+        loader.style.pointerEvents = 'none';
+        loader.style.visibility = 'hidden';
         setTimeout(() => {
-          loader.remove();
-        }, 300);
+          if (loader.parentNode) {
+            loader.remove();
+          }
+        }, 100);
       }
-    }, 1000);
+    };
+
+    // Hide immediately
+    hideLoader();
+    
+    // Also hide after a delay as backup
+    setTimeout(hideLoader, 500);
+    setTimeout(hideLoader, 1000);
+    setTimeout(hideLoader, 2000);
   }
 
   trackInstallation() {

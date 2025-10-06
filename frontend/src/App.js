@@ -655,6 +655,32 @@ const InventorySystem = () => {
     };
   }, [fetchParts, fetchTransactions, fetchDashboardStats, fetchShelves]);
 
+  // Ensure PWA loader is hidden once app is fully loaded
+  useEffect(() => {
+    const hideLoader = () => {
+      const loader = document.getElementById('pwa-loader');
+      if (loader) {
+        loader.classList.add('hidden');
+        loader.style.display = 'none';
+        loader.style.pointerEvents = 'none';
+        loader.style.visibility = 'hidden';
+        loader.style.zIndex = '-1';
+        setTimeout(() => {
+          if (loader.parentNode) {
+            loader.remove();
+          }
+        }, 100);
+      }
+    };
+
+    // Hide immediately
+    hideLoader();
+    
+    // Also set intervals to ensure it's hidden
+    const interval = setInterval(hideLoader, 500);
+    setTimeout(() => clearInterval(interval), 5000);
+  }, []);
+
   // Filter change handler for advanced filters
   const handleFilterChange = useCallback((filtered, filters) => {
     setFilteredInventory(filtered);
@@ -1263,7 +1289,8 @@ const InventorySystem = () => {
 
     return (
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+        style={{ zIndex: 10000 }}
         onClick={(e) => {
           if (e.target === e.currentTarget) {
             setShowAddPartModal(false);
@@ -1434,7 +1461,8 @@ const InventorySystem = () => {
 
     return (
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+        style={{ zIndex: 10000 }}
         onClick={(e) => {
           if (e.target === e.currentTarget) {
             setShowEditPartModal(false);
@@ -1549,7 +1577,8 @@ const InventorySystem = () => {
   // Delete Confirmation Modal
   const DeleteConfirmModal = () => (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+      style={{ zIndex: 10000 }}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           setShowDeleteConfirm(false);
@@ -3012,7 +3041,8 @@ const InventorySystem = () => {
 
     return (
       <div 
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+        style={{ zIndex: 10000 }}
         onClick={(e) => {
           if (e.target === e.currentTarget) {
             setShowImageModal(false);
