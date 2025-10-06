@@ -1845,54 +1845,31 @@ const InventorySystem = () => {
   );
 
   const CameraFeedsModal = () => {
-    // Camera configuration with secure fallback
+    // Camera configuration
     const cameras = [
       {
         id: 'camera1',
         name: 'Camera 1 (192.168.231.88)',
         ip: '192.168.231.88',
-        // Try HTTPS first, fallback to HTTP for internal networks
-        urls: [
-          'https://192.168.231.88/cgi-bin/guestimage.html',
-          'http://192.168.231.88/cgi-bin/guestimage.html'
-        ]
+        url: 'http://192.168.231.88/cgi-bin/guestimage.html'
       },
       {
         id: 'camera2', 
         name: 'Camera 2 (192.168.231.87)',
         ip: '192.168.231.87',
-        urls: [
-          'https://192.168.231.87/cgi-bin/guestimage.html',
-          'http://192.168.231.87/cgi-bin/guestimage.html'
-        ]
+        url: 'http://192.168.231.87/cgi-bin/guestimage.html'
       }
     ];
 
     const CameraFeed = ({ camera }) => {
-      const [imageError, setImageError] = useState(false);
-      const [imageLoaded, setImageLoaded] = useState(false);
-      const [showRetry, setShowRetry] = useState(false);
-      const directUrl = `http://${camera.ip}`;
-
-      const openCameraInNewTab = () => {
-        window.open(directUrl, '_blank', 'noopener,noreferrer');
+      const openCameraFeed = () => {
+        window.open(camera.url, '_blank', 'noopener,noreferrer');
       };
 
       const copyUrlToClipboard = () => {
-        navigator.clipboard.writeText(directUrl).then(() => {
+        navigator.clipboard.writeText(camera.url).then(() => {
           // Could add a toast notification here
         });
-      };
-
-      const retryLoad = () => {
-        setImageError(false);
-        setImageLoaded(false);
-        setShowRetry(false);
-      };
-
-      const handleIframeError = () => {
-        setImageError(true);
-        setShowRetry(true);
       };
 
       return (
@@ -1903,107 +1880,47 @@ const InventorySystem = () => {
                 <Eye className="w-4 h-4 mr-2" />
                 {camera.name}
               </h4>
-              <div className="flex items-center space-x-2">
-                {allowCameraAttempt && (
-                  <div className={`flex items-center ${
-                    imageLoaded ? 'text-green-600 dark:text-green-400' : 
-                    imageError ? 'text-red-600 dark:text-red-400' : 
-                    'text-yellow-600 dark:text-yellow-400'
-                  }`}>
-                    <span className={`w-2 h-2 ${
-                      imageLoaded ? 'bg-green-500' : 
-                      imageError ? 'bg-red-500' : 
-                      'bg-yellow-500'
-                    } rounded-full mr-1`}></span>
-                    <span className="text-xs">
-                      {imageLoaded ? 'Connected' : imageError ? 'Failed' : 'Connecting...'}
-                    </span>
-                  </div>
-                )}
+              <div className="flex items-center text-blue-600 dark:text-blue-400">
+                <span className="text-xs">Click to view</span>
               </div>
             </div>
           </div>
           
           <div className="relative h-full min-h-96">
-            {allowCameraAttempt && !imageError ? (
-              <>
-                {!imageLoaded && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Loading camera feed...</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                        This may take a moment or fail if not on office network
-                      </p>
-                    </div>
-                  </div>
-                )}
-                <iframe
-                  src={directUrl}
-                  className={`w-full h-full border-0 ${imageLoaded ? 'block' : 'opacity-0'}`}
-                  title={`${camera.name} Feed`}
-                  onLoad={() => setImageLoaded(true)}
-                  onError={handleIframeError}
-                  sandbox="allow-same-origin allow-scripts"
-                />
-              </>
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
-                <div className="text-center p-6 max-w-sm">
-                  {imageError ? (
-                    <>
-                      <AlertCircle className="w-16 h-16 text-orange-500 mx-auto mb-4" />
-                      <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Camera Not Available</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Camera feeds are only accessible from devices connected to the office network.
-                        You can try opening the camera in a new tab or copy the URL to access later.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-                      <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Camera Access</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Access camera feed using the options below.
-                      </p>
-                    </>
-                  )}
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+              <div className="text-center p-6 max-w-sm">
+                <Camera className="w-24 h-24 text-blue-500 mx-auto mb-6" />
+                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 text-lg">
+                  {camera.name}
+                </h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                  Camera feed will open in a new tab. Ensure you're connected to the office network for access.
+                </p>
+                
+                <div className="space-y-3">
+                  <button
+                    onClick={openCameraFeed}
+                    className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 font-medium"
+                  >
+                    <ExternalLink className="w-5 h-5" />
+                    <span>Open Camera Feed</span>
+                  </button>
                   
-                  <div className="space-y-3">
-                    <button
-                      onClick={openCameraInNewTab}
-                      className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      <span>Open in New Tab</span>
-                    </button>
-                    
-                    <button
-                      onClick={copyUrlToClipboard}
-                      className="w-full bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2"
-                    >
-                      <Copy className="w-4 h-4" />
-                      <span>Copy URL</span>
-                    </button>
-                    
-                    {showRetry && (
-                      <button
-                        onClick={retryLoad}
-                        className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                        <span>Try Again</span>
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-left">
-                    <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">Camera URL:</p>
-                    <p className="text-xs text-blue-700 dark:text-blue-300 font-mono break-all">{directUrl}</p>
-                  </div>
+                  <button
+                    onClick={copyUrlToClipboard}
+                    className="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Copy className="w-4 h-4" />
+                    <span>Copy URL</span>
+                  </button>
+                </div>
+                
+                <div className="mt-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-left">
+                  <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">Camera URL:</p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 font-mono break-all">{camera.url}</p>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       );
@@ -2031,9 +1948,8 @@ const InventorySystem = () => {
             <div className="flex items-center space-x-2 text-blue-800 dark:text-blue-200">
               <AlertCircle className="w-4 h-4" />
               <p className="text-sm">
-                <strong>Camera Access:</strong> Camera feeds will attempt to load directly. 
-                If feeds don't appear, cameras are only accessible from devices connected to the office network. 
-                Use "Open in New Tab" button for alternative access.
+                <strong>Camera Access:</strong> Click "Open Camera Feed" to view cameras in a new tab. 
+                Camera feeds are only accessible from devices connected to the office network.
               </p>
             </div>
           </div>
