@@ -701,25 +701,58 @@ const InventorySystem = () => {
     const hideLoader = () => {
       const loader = document.getElementById('pwa-loader');
       if (loader) {
-        console.log('Forcefully hiding PWA loader');
-        loader.classList.add('hidden');
-        loader.style.display = 'none !important';
-        loader.style.pointerEvents = 'none !important';
-        loader.style.visibility = 'hidden !important';
-        loader.style.zIndex = '-9999 !important';
+        console.log('EMERGENCY: Forcefully removing PWA loader completely');
         loader.remove();
       }
       
       // Also check for any other loaders
       const allLoaders = document.querySelectorAll('[id*="loader"], [class*="loader"], [class*="loading"]');
       allLoaders.forEach(el => {
-        if (el.style.zIndex > 1000) {
-          console.log('Found high z-index element:', el);
-          el.style.display = 'none !important';
-          el.style.pointerEvents = 'none !important';
-        }
+        console.log('EMERGENCY: Removing potential blocking element:', el);
+        el.remove();
+      });
+      
+      // EMERGENCY: Check what's at the center of the screen blocking clicks
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const elementAtCenter = document.elementFromPoint(centerX, centerY);
+      console.log('EMERGENCY: Element at screen center:', {
+        element: elementAtCenter,
+        tag: elementAtCenter?.tagName,
+        id: elementAtCenter?.id,
+        className: elementAtCenter?.className,
+        zIndex: elementAtCenter ? getComputedStyle(elementAtCenter).zIndex : 'N/A',
+        pointerEvents: elementAtCenter ? getComputedStyle(elementAtCenter).pointerEvents : 'N/A'
+      });
+      
+      // Check all elements at center point
+      const allElementsAtCenter = document.elementsFromPoint(centerX, centerY);
+      console.log('EMERGENCY: All elements at center (in order):', allElementsAtCenter.map((el, index) => ({
+        index,
+        tag: el.tagName,
+        id: el.id,
+        className: el.className,
+        zIndex: getComputedStyle(el).zIndex,
+        pointerEvents: getComputedStyle(el).pointerEvents
+      })));
+    };
+
+    // Add global click debugging
+    const debugClicks = (e) => {
+      console.log('EMERGENCY CLICK DEBUG:', {
+        target: e.target,
+        currentTarget: e.currentTarget,
+        phase: e.eventPhase,
+        bubbles: e.bubbles,
+        cancelable: e.cancelable,
+        defaultPrevented: e.defaultPrevented,
+        x: e.clientX,
+        y: e.clientY
       });
     };
+    
+    document.addEventListener('click', debugClicks, true); // Capture phase
+    document.addEventListener('click', debugClicks, false); // Bubble phase
 
     // Hide immediately and repeatedly
     hideLoader();
@@ -731,6 +764,12 @@ const InventorySystem = () => {
     // Also set intervals to ensure it's hidden
     const interval = setInterval(hideLoader, 1000);
     setTimeout(() => clearInterval(interval), 10000);
+    
+    return () => {
+      document.removeEventListener('click', debugClicks, true);
+      document.removeEventListener('click', debugClicks, false);
+      clearInterval(interval);
+    };
   }, []);
 
   // Filter change handler for advanced filters
