@@ -2072,9 +2072,7 @@ const InventorySystem = () => {
             </button>
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
+              onClick={() => {
                 setShowPinModal(false);
                 setPinInput('');
                 setPinError('');
@@ -2244,11 +2242,7 @@ const InventorySystem = () => {
       }
     ];
 
-    const handleClose = (e) => {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
+    const handleClose = () => {
       console.log('❌ Closing camera feeds');
       setShowCameraFeeds(false);
     };
@@ -3166,11 +3160,7 @@ const InventorySystem = () => {
           onClick={(e) => e.stopPropagation()}
         >
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowImageModal(false);
-            }}
+            onClick={() => setShowImageModal(false)}
             className="absolute top-4 right-4 z-10 bg-red-600 hover:bg-red-700 text-white rounded-full p-2 transition-colors duration-300 shadow-lg"
           >
             <X className="w-6 h-6" />
