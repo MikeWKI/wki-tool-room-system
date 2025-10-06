@@ -894,6 +894,7 @@ const InventorySystem = () => {
   };
 
   const handleCloseCameraFeeds = () => {
+    console.log('Closing camera feeds');
     setShowCameraFeeds(false);
   };
 
@@ -1198,54 +1199,40 @@ const InventorySystem = () => {
   // Edit Part Modal
   const EditPartModal = () => {
     const [formData, setFormData] = useState({
-      partNumber: '',
-      description: '',
-      shelf: '',
-      category: '',
-      quantity: 1,
-      minQuantity: 1
+      partNumber: editingPart?.partNumber || '',
+      description: editingPart?.description || '',
+      shelf: editingPart?.shelf || '',
+      category: editingPart?.category || '',
+      quantity: editingPart?.quantity || 1,
+      minQuantity: editingPart?.minQuantity || 1
     });
 
-    // Use a stable reference for editingPart to prevent infinite loops
-    const stableEditingPart = useMemo(() => {
-      if (!editingPart) return null;
-      return {
-        id: editingPart.id,
-        partNumber: editingPart.partNumber,
-        description: editingPart.description,
-        shelf: editingPart.shelf,
-        category: editingPart.category,
-        quantity: editingPart.quantity,
-        minQuantity: editingPart.minQuantity
-      };
-    }, [
-      editingPart?.id,
-      editingPart?.partNumber,
-      editingPart?.description,
-      editingPart?.shelf,
-      editingPart?.category,
-      editingPart?.quantity,
-      editingPart?.minQuantity
-    ]);
-
     useEffect(() => {
-      if (stableEditingPart) {
+      if (editingPart) {
         setFormData({
-          partNumber: stableEditingPart.partNumber || '',
-          description: stableEditingPart.description || '',
-          shelf: stableEditingPart.shelf || '',
-          category: stableEditingPart.category || '',
-          quantity: stableEditingPart.quantity || 1,
-          minQuantity: stableEditingPart.minQuantity || 1
+          partNumber: editingPart.partNumber || '',
+          description: editingPart.description || '',
+          shelf: editingPart.shelf || '',
+          category: editingPart.category || '',
+          quantity: editingPart.quantity || 1,
+          minQuantity: editingPart.minQuantity || 1
         });
       }
-    }, [stableEditingPart]);
+    }, [editingPart?.id]);
 
     const handleSubmit = async (e) => {
       e.preventDefault();
-      const success = await updatePart(stableEditingPart.id, formData);
+      if (!editingPart || !editingPart.id) {
+        console.error('No editing part selected');
+        return;
+      }
+      console.log('Form submitted with data:', formData);
+      console.log('Editing part:', editingPart);
+      const success = await updatePart(editingPart.id, formData);
+      console.log('Update result:', success);
       if (success) {
         setEditingPart(null);
+        setShowEditPartModal(false);
       }
     };
 
@@ -1841,12 +1828,16 @@ const InventorySystem = () => {
 
     const CameraFeed = ({ camera }) => {
       const openCameraFeed = () => {
+        console.log('Opening camera feed:', camera.url);
         window.open(camera.url, '_blank', 'noopener,noreferrer');
       };
 
       const copyUrlToClipboard = () => {
+        console.log('Copying URL to clipboard:', camera.url);
         navigator.clipboard.writeText(camera.url).then(() => {
-          // Could add a toast notification here
+          console.log('URL copied successfully');
+        }).catch(err => {
+          console.error('Failed to copy URL:', err);
         });
       };
 
