@@ -1237,9 +1237,7 @@ const InventorySystem = () => {
           </div>
           <div className="flex space-x-3">
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
+              onClick={() => {
                 if (userName.trim()) {
                   setCurrentUser(userName.trim());
                   handleCheckout(notes);
@@ -1251,11 +1249,7 @@ const InventorySystem = () => {
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Confirm Checkout'}
             </button>
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowCheckoutModal(false);
-              }}
+              onClick={() => setShowCheckoutModal(false)}
               disabled={loading}
               className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 disabled:cursor-not-allowed"
             >
@@ -1316,9 +1310,7 @@ const InventorySystem = () => {
           </div>
           <div className="flex space-x-3">
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
+              onClick={() => {
                 if (userName.trim()) {
                   setCurrentUser(userName.trim());
                   handleCheckin(notes);
@@ -1330,11 +1322,7 @@ const InventorySystem = () => {
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Confirm Check In'}
             </button>
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowCheckinModal(false);
-              }}
+              onClick={() => setShowCheckinModal(false)}
               disabled={loading}
               className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 disabled:cursor-not-allowed"
             >
@@ -1371,11 +1359,7 @@ const InventorySystem = () => {
             </p>
           </div>
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowEasterEgg(false);
-            }}
+            onClick={() => setShowEasterEgg(false)}
             className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
           >
             Close
