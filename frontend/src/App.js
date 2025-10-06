@@ -139,6 +139,47 @@ const InventorySystem = () => {
   // Advanced Filters State
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filteredInventory, setFilteredInventory] = useState([]);
+  const [showDebugModal, setShowDebugModal] = useState(false);
+
+  // Debug Modal to test if basic modal functionality works
+  const DebugModal = () => (
+    <div 
+      className="fixed inset-0 bg-red-500 bg-opacity-75 flex items-center justify-center !z-[99999]"
+      onClick={(e) => {
+        console.log('DEBUG: Backdrop clicked', e.target === e.currentTarget);
+        if (e.target === e.currentTarget) {
+          setShowDebugModal(false);
+        }
+      }}
+      style={{ zIndex: 99999 }}
+    >
+      <div 
+        className="bg-white rounded-lg p-8 max-w-md mx-4 border-4 border-green-500"
+        onClick={(e) => {
+          console.log('DEBUG: Modal content clicked');
+          e.stopPropagation();
+        }}
+      >
+        <h2 className="text-2xl font-bold text-red-600 mb-4">DEBUG MODAL</h2>
+        <p className="mb-4">If you can click this button, basic modal functionality works:</p>
+        <button
+          onClick={() => {
+            console.log('DEBUG: Button clicked!');
+            alert('Button works!');
+          }}
+          className="bg-green-500 text-white px-4 py-2 rounded mr-2"
+        >
+          Test Button
+        </button>
+        <button
+          onClick={() => setShowDebugModal(false)}
+          className="bg-red-500 text-white px-4 py-2 rounded"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
   const [activeFilters, setActiveFilters] = useState({});
 
   // Reports State
@@ -660,25 +701,36 @@ const InventorySystem = () => {
     const hideLoader = () => {
       const loader = document.getElementById('pwa-loader');
       if (loader) {
+        console.log('Forcefully hiding PWA loader');
         loader.classList.add('hidden');
-        loader.style.display = 'none';
-        loader.style.pointerEvents = 'none';
-        loader.style.visibility = 'hidden';
-        loader.style.zIndex = '-1';
-        setTimeout(() => {
-          if (loader.parentNode) {
-            loader.remove();
-          }
-        }, 100);
+        loader.style.display = 'none !important';
+        loader.style.pointerEvents = 'none !important';
+        loader.style.visibility = 'hidden !important';
+        loader.style.zIndex = '-9999 !important';
+        loader.remove();
       }
+      
+      // Also check for any other loaders
+      const allLoaders = document.querySelectorAll('[id*="loader"], [class*="loader"], [class*="loading"]');
+      allLoaders.forEach(el => {
+        if (el.style.zIndex > 1000) {
+          console.log('Found high z-index element:', el);
+          el.style.display = 'none !important';
+          el.style.pointerEvents = 'none !important';
+        }
+      });
     };
 
-    // Hide immediately
+    // Hide immediately and repeatedly
     hideLoader();
+    setTimeout(hideLoader, 100);
+    setTimeout(hideLoader, 500);
+    setTimeout(hideLoader, 1000);
+    setTimeout(hideLoader, 2000);
     
     // Also set intervals to ensure it's hidden
-    const interval = setInterval(hideLoader, 500);
-    setTimeout(() => clearInterval(interval), 5000);
+    const interval = setInterval(hideLoader, 1000);
+    setTimeout(() => clearInterval(interval), 10000);
   }, []);
 
   // Filter change handler for advanced filters
@@ -1577,8 +1629,7 @@ const InventorySystem = () => {
   // Delete Confirmation Modal
   const DeleteConfirmModal = () => (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
-      style={{ zIndex: 10000 }}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center !z-[10000]"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           setShowDeleteConfirm(false);
@@ -3200,6 +3251,15 @@ const InventorySystem = () => {
                 <Camera className="w-4 h-4" />
               </button>
 
+              {/* DEBUG: Test Modal Button */}
+              <button
+                onClick={() => setShowDebugModal(true)}
+                className="p-2 bg-yellow-500/20 rounded-lg hover:bg-yellow-500/40 transition-colors"
+                title="Debug Modal Test"
+              >
+                🐛
+              </button>
+
               {/* Share Button */}
               <button
                 onClick={handleShareApp}
@@ -3750,6 +3810,7 @@ const InventorySystem = () => {
       {showCameraPasswordModal && <CameraPasswordModal />}
       {showCameraFeeds && <CameraFeedsModal />}
       {showEasterEgg && <EasterEggModal />}
+      {showDebugModal && <DebugModal />}
       <ExcelUpload 
         isVisible={showExcelUpload}
         onClose={() => setShowExcelUpload(false)}
