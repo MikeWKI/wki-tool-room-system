@@ -541,10 +541,12 @@ const InventorySystem = () => {
   const displayInventory = useMemo(() => {
     // If advanced filters are active, use the filtered inventory
     if (Object.keys(activeFilters).length > 0 && Object.values(activeFilters).some(v => v && v !== 'all')) {
+      console.log('Using filtered inventory:', filteredInventory.length, 'items');
       return filteredInventory;
     }
     
     // Otherwise, use enhanced search results
+    console.log('Using enhanced search results:', enhancedSearch.filteredItems.length, 'items');
     return enhancedSearch.filteredItems;
   }, [enhancedSearch.filteredItems, filteredInventory, activeFilters]);
 
@@ -1252,6 +1254,7 @@ const InventorySystem = () => {
 
     useEffect(() => {
       if (editingPart) {
+        console.log('EditPartModal: Setting form data for part:', editingPart);
         setFormData({
           partNumber: editingPart.partNumber,
           description: editingPart.description,
@@ -1314,12 +1317,12 @@ const InventorySystem = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Shelf Location*</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Shelf Location*</label>
               <select
                 required
                 value={formData.shelf}
                 onChange={(e) => setFormData({...formData, shelf: e.target.value})}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-red-500"
               >
                 <option value="">Select Shelf Location</option>
                 {shelfLocations.map(location => (
@@ -1328,12 +1331,12 @@ const InventorySystem = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category*</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category*</label>
               <select
                 required
                 value={formData.category}
                 onChange={(e) => setFormData({...formData, category: e.target.value})}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-red-500"
               >
                 <option value="">Select Category</option>
                 {categories.map(cat => (
@@ -1343,23 +1346,23 @@ const InventorySystem = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
                 <input
                   type="number"
                   min="0"
                   value={formData.quantity}
                   onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})}
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Min Quantity</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Min Quantity</label>
                 <input
                   type="number"
                   min="1"
                   value={formData.minQuantity}
                   onChange={(e) => setFormData({...formData, minQuantity: parseInt(e.target.value) || 1})}
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 />
               </div>
             </div>
@@ -1378,7 +1381,7 @@ const InventorySystem = () => {
                   setEditingPart(null);
                 }}
                 disabled={loading}
-                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:cursor-not-allowed"
+                className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -2170,6 +2173,7 @@ const InventorySystem = () => {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => {
+                          console.log('Edit button clicked for part:', part);
                           setEditingPart(part);
                           setShowEditPartModal(true);
                         }}
@@ -3221,6 +3225,7 @@ const InventorySystem = () => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
+                                console.log('Mobile edit button clicked for part:', part);
                                 setEditingPart(part);
                                 setShowEditPartModal(true);
                               }}
