@@ -541,12 +541,10 @@ const InventorySystem = () => {
   const displayInventory = useMemo(() => {
     // If advanced filters are active, use the filtered inventory
     if (Object.keys(activeFilters).length > 0 && Object.values(activeFilters).some(v => v && v !== 'all')) {
-      console.log('Using filtered inventory:', filteredInventory.length, 'items');
       return filteredInventory;
     }
     
     // Otherwise, use enhanced search results
-    console.log('Using enhanced search results:', enhancedSearch.filteredItems.length, 'items');
     return enhancedSearch.filteredItems;
   }, [enhancedSearch.filteredItems, filteredInventory, activeFilters]);
 
@@ -1254,17 +1252,16 @@ const InventorySystem = () => {
 
     useEffect(() => {
       if (editingPart) {
-        console.log('EditPartModal: Setting form data for part:', editingPart);
         setFormData({
-          partNumber: editingPart.partNumber,
-          description: editingPart.description,
-          shelf: editingPart.shelf,
-          category: editingPart.category,
-          quantity: editingPart.quantity,
-          minQuantity: editingPart.minQuantity
+          partNumber: editingPart.partNumber || '',
+          description: editingPart.description || '',
+          shelf: editingPart.shelf || '',
+          category: editingPart.category || '',
+          quantity: editingPart.quantity || 1,
+          minQuantity: editingPart.minQuantity || 1
         });
       }
-    }, [editingPart]);
+    }, [editingPart?.id]); // Only depend on the part ID instead of the whole object
 
     const handleSubmit = async (e) => {
       e.preventDefault();
@@ -2173,7 +2170,6 @@ const InventorySystem = () => {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => {
-                          console.log('Edit button clicked for part:', part);
                           setEditingPart(part);
                           setShowEditPartModal(true);
                         }}
@@ -3225,7 +3221,6 @@ const InventorySystem = () => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                console.log('Mobile edit button clicked for part:', part);
                                 setEditingPart(part);
                                 setShowEditPartModal(true);
                               }}
