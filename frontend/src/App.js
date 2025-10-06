@@ -8,10 +8,19 @@ import LocationManager from './components/LocationManager';
 import AdvancedFilters from './components/AdvancedFilters';
 import InventoryReports from './components/InventoryReports';
 import DataManagement from './components/DataManagement';
+import EnhancedSearchBar from './components/EnhancedSearchBar';
+import { useEnhancedSearch } from './hooks/useEnhancedSearch';
 import pwaManager from './utils/pwa';
 
 const InventorySystem = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  // Enhanced Search Implementation
+  const enhancedSearch = useEnhancedSearch(
+    inventory, 
+    ['partNumber', 'description', 'category', 'shelf'],
+    '',
+    300
+  );
+  
   const [selectedPart, setSelectedPart] = useState(null);
   const [currentUser, setCurrentUser] = useState('');
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -518,25 +527,29 @@ const InventorySystem = () => {
     setActiveFilters(filters);
   }, []);
 
-  // Filter inventory based on search term and advanced filters
+  // Filter inventory based on enhanced search and advanced filters
   const displayInventory = useMemo(() => {
     // If advanced filters are active, use the filtered inventory
     if (Object.keys(activeFilters).length > 0 && Object.values(activeFilters).some(v => v && v !== 'all')) {
       return filteredInventory;
     }
     
-    // Otherwise, use basic search filter
-    if (!searchTerm) return inventory;
-    
-    return inventory.filter(item => 
-      item.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [searchTerm, inventory, filteredInventory, activeFilters]);
+    // Otherwise, use enhanced search results
+    return enhancedSearch.filteredItems;
+  }, [enhancedSearch.filteredItems, filteredInventory, activeFilters]);
+
+  // Handle category selection from category browser
+  const handleCategorySelect = useCallback((categoryName) => {
+    // Set active filter for the selected category
+    setActiveFilters({ category: categoryName });
+  }, []);
 
   const handlePartSelect = (part) => {
     setSelectedPart(part);
+    // Track usage pattern for search analytics
+    if (enhancedSearch.searchTerm) {
+      enhancedSearch.updateUsagePattern(enhancedSearch.searchTerm, part);
+    }
   };
 
   // Easter Egg Function
@@ -1781,11 +1794,11 @@ const InventorySystem = () => {
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold">
-            {searchTerm ? `Search Results (${displayInventory.length} found)` : `All Parts (${displayInventory.length})`}
+            {enhancedSearch.searchTerm ? `Search Results (${displayInventory.length} found)` : `All Parts (${displayInventory.length})`}
           </h3>
-          {searchTerm && (
+          {enhancedSearch.searchTerm && (
             <p className="text-sm text-gray-600 mt-1">
-              Showing results for "{searchTerm}"
+              Showing results for "{enhancedSearch.searchTerm}"
             </p>
           )}
         </div>
@@ -1884,7 +1897,7 @@ const InventorySystem = () => {
               <Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p>No parts found matching your search.</p>
               <button
-                onClick={() => setSearchTerm('')}
+                onClick={() => enhancedSearch.setSearchTerm('')}
                 className="mt-2 text-red-600 hover:text-red-800"
               >
                 Clear search
@@ -2736,27 +2749,25 @@ const InventorySystem = () => {
         {/* Search and Controls */}
         {(activeView === 'inventory' || activeView === 'manage') && (
           <div className="mb-6 space-y-4">
-            {/* Search Bar */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search parts by number, description, or category..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  <X className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
-                </button>
-              )}
-            </div>
+            {/* Enhanced Search Bar */}
+            <EnhancedSearchBar
+              searchTerm={enhancedSearch.searchTerm}
+              setSearchTerm={enhancedSearch.setSearchTerm}
+              suggestions={enhancedSearch.suggestions}
+              showSuggestions={enhancedSearch.showSuggestions}
+              setShowSuggestions={enhancedSearch.setShowSuggestions}
+              selectedSuggestionIndex={enhancedSearch.selectedSuggestionIndex}
+              isVoiceSearchActive={enhancedSearch.isVoiceSearchActive}
+              isVoiceSupported={enhancedSearch.isVoiceSupported}
+              startVoiceSearch={enhancedSearch.startVoiceSearch}
+              stopVoiceSearch={enhancedSearch.stopVoiceSearch}
+              selectSuggestion={enhancedSearch.selectSuggestion}
+              handleKeyDown={enhancedSearch.handleKeyDown}
+              searchHistory={enhancedSearch.searchHistory}
+              clearSearchHistory={enhancedSearch.clearSearchHistory}
+              categories={enhancedSearch.categories}
+              onCategorySelect={handleCategorySelect}
+            />
 
             {/* Advanced Filters - Only show on inventory view */}
             {activeView === 'inventory' && (
