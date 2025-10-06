@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings, Upload, Download, Share, BarChart3, Database, Camera, Eye } from 'lucide-react';
+import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings, Upload, Download, Share, BarChart3, Database, Camera, Eye, Shield, ExternalLink, Copy } from 'lucide-react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import MobileNavigation from './components/MobileNavigation';
 import ThemeToggle from './components/ThemeToggle';
@@ -1820,33 +1820,19 @@ const InventorySystem = () => {
     ];
 
     const CameraFeed = ({ camera }) => {
-      const [currentUrlIndex, setCurrentUrlIndex] = useState(0);
-      const [isLoading, setIsLoading] = useState(true);
-      const [hasError, setHasError] = useState(false);
-      const [connectionStatus, setConnectionStatus] = useState('connecting');
-
-      const handleLoad = () => {
-        setIsLoading(false);
-        setHasError(false);
-        setConnectionStatus('connected');
-        handleCameraLoad(camera.id);
-      };
-
-      const handleError = () => {
-        setIsLoading(false);
-        if (currentUrlIndex < camera.urls.length - 1) {
-          // Try next URL
-          setCurrentUrlIndex(currentUrlIndex + 1);
-          setConnectionStatus('retrying');
-        } else {
-          setHasError(true);
-          setConnectionStatus('failed');
-          handleCameraError(camera.id, 'Unable to connect to camera feed');
-        }
-      };
-
-      const currentUrl = camera.urls[currentUrlIndex];
+      const [showingAccessInfo, setShowingAccessInfo] = useState(false);
+      const currentUrl = camera.urls[0]; // Use first URL
       const isHttps = currentUrl.startsWith('https://');
+
+      const openCameraInNewTab = () => {
+        window.open(currentUrl, '_blank', 'noopener,noreferrer');
+      };
+
+      const copyUrlToClipboard = () => {
+        navigator.clipboard.writeText(currentUrl).then(() => {
+          // Could add a toast notification here
+        });
+      };
 
       return (
         <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
@@ -1857,87 +1843,61 @@ const InventorySystem = () => {
                 {camera.name}
               </h4>
               <div className="flex items-center space-x-2">
-                {connectionStatus === 'connecting' && (
-                  <div className="flex items-center text-yellow-600 dark:text-yellow-400">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-1"></div>
-                    <span className="text-xs">Connecting...</span>
-                  </div>
-                )}
-                {connectionStatus === 'connected' && (
-                  <div className="flex items-center text-green-600 dark:text-green-400">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                    <span className="text-xs">Live</span>
-                  </div>
-                )}
-                {connectionStatus === 'retrying' && (
-                  <div className="flex items-center text-orange-600 dark:text-orange-400">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse mr-1"></div>
-                    <span className="text-xs">Retrying...</span>
-                  </div>
-                )}
-                {connectionStatus === 'failed' && (
-                  <div className="flex items-center text-red-600 dark:text-red-400">
-                    <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
-                    <span className="text-xs">Offline</span>
-                  </div>
-                )}
+                <div className="flex items-center text-orange-600 dark:text-orange-400">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mr-1"></div>
+                  <span className="text-xs">Security Blocked</span>
+                </div>
               </div>
             </div>
           </div>
           
           <div className="relative h-full min-h-96">
-            {isLoading && !hasError && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
-                <div className="text-center">
-                  <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Loading camera feed...</p>
-                  {!isHttps && (
-                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                      Using insecure connection
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            {hasError ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
-                <div className="text-center p-6">
-                  <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Camera Unavailable</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    Unable to connect to camera at {camera.ip}
-                  </p>
-                  <div className="text-xs text-gray-500 dark:text-gray-500 space-y-1">
-                    <p>• Check if camera is powered on</p>
-                    <p>• Verify network connection</p>
-                    <p>• Camera may not support HTTPS</p>
-                    <p>• Browser security may block mixed content</p>
-                  </div>
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+              <div className="text-center p-6 max-w-sm">
+                <Shield className="w-16 h-16 text-orange-500 mx-auto mb-4" />
+                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Camera Access Blocked</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Browser security prevents loading HTTP camera feeds on HTTPS sites.
+                </p>
+                
+                <div className="space-y-3">
                   <button
-                    onClick={() => {
-                      setCurrentUrlIndex(0);
-                      setHasError(false);
-                      setIsLoading(true);
-                      setConnectionStatus('connecting');
-                    }}
-                    className="mt-4 bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
+                    onClick={openCameraInNewTab}
+                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
                   >
-                    Retry Connection
+                    <ExternalLink className="w-4 h-4" />
+                    <span>Open in New Tab</span>
+                  </button>
+                  
+                  <button
+                    onClick={copyUrlToClipboard}
+                    className="w-full bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Copy className="w-4 h-4" />
+                    <span>Copy URL</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowingAccessInfo(!showingAccessInfo)}
+                    className="w-full text-blue-600 dark:text-blue-400 px-4 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-sm"
+                  >
+                    {showingAccessInfo ? 'Hide' : 'Show'} Access Info
                   </button>
                 </div>
+                
+                {showingAccessInfo && (
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-left">
+                    <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-2">Camera Access Options:</p>
+                    <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                      <p>• Direct URL: {camera.ip}</p>
+                      <p>• Use internal network browser</p>
+                      <p>• Disable browser security (dev only)</p>
+                      <p>• Configure camera for HTTPS</p>
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : (
-              <iframe
-                src={currentUrl}
-                className="w-full h-full border-0"
-                title={`Security ${camera.name}`}
-                sandbox="allow-scripts allow-same-origin allow-forms"
-                onLoad={handleLoad}
-                onError={handleError}
-                loading="lazy"
-              />
-            )}
+            </div>
           </div>
         </div>
       );
