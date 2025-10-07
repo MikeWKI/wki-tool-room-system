@@ -741,41 +741,29 @@ const InventorySystem = () => {
     const hideLoader = () => {
       const loader = document.getElementById('pwa-loader');
       if (loader) {
-        console.log('EMERGENCY: Forcefully removing PWA loader completely');
+        console.log('✅ Removing PWA loader');
         loader.remove();
       }
       
-      // Also check for any other loaders
-      const allLoaders = document.querySelectorAll('[id*="loader"], [class*="loader"], [class*="loading"]');
-      allLoaders.forEach(el => {
-        console.log('EMERGENCY: Removing potential blocking element:', el);
-        el.remove();
-      });
-      
-      // EMERGENCY: Check what's at the center of the screen blocking clicks
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-      const elementAtCenter = document.elementFromPoint(centerX, centerY);
-      console.log('EMERGENCY: Element at screen center:', {
-        element: elementAtCenter,
-        tag: elementAtCenter?.tagName,
-        id: elementAtCenter?.id,
-        className: elementAtCenter?.className,
-        zIndex: elementAtCenter ? getComputedStyle(elementAtCenter).zIndex : 'N/A',
-        pointerEvents: elementAtCenter ? getComputedStyle(elementAtCenter).pointerEvents : 'N/A'
-      });
-      
-      // Check all elements at center point
-      const allElementsAtCenter = document.elementsFromPoint(centerX, centerY);
-      console.log('EMERGENCY: All elements at center (in order):', allElementsAtCenter.map((el, index) => ({
-        index,
-        tag: el.tagName,
-        id: el.id,
-        className: el.className,
-        zIndex: getComputedStyle(el).zIndex,
-        pointerEvents: getComputedStyle(el).pointerEvents
-      })));
+      // ⚠️ REMOVED: Don't remove ALL elements with "loader" class - this breaks React!
+      // This was removing React-managed elements and breaking event delegation
     };
+    
+    // ✅ NEW: Safe approach - only run once at startup
+    hideLoader();
+    
+    // Run a few more times to ensure PWA loader is gone, then stop
+    const timeout1 = setTimeout(hideLoader, 100);
+    const timeout2 = setTimeout(hideLoader, 500);
+    
+    return () => {
+      clearTimeout(timeout1);
+      clearTimeout(timeout2);
+    };
+  }, []);
+  
+  // ✅ NEW: Separate useEffect for click monitoring (no DOM manipulation)
+  useEffect(() => {
 
     // Add global click debugging
     const debugClicks = (e) => {
@@ -851,28 +839,10 @@ const InventorySystem = () => {
     document.addEventListener('click', debugClicks, true); // Capture phase
     document.addEventListener('click', debugClicks, false); // Bubble phase
     */
-
-    // Hide immediately and repeatedly
-    hideLoader();
-    setTimeout(hideLoader, 100);
-    setTimeout(hideLoader, 500);
-    setTimeout(hideLoader, 1000);
-    setTimeout(hideLoader, 2000);
-    
-    // Also set intervals to ensure it's hidden
-    const interval = setInterval(hideLoader, 1000);
-    setTimeout(() => clearInterval(interval), 10000);
     
     return () => {
       // Clean up the React-safe monitor
       document.removeEventListener('click', monitorClicks, true);
-      
-      // KEEP OLD DEBUG CODE DISABLED
-      /*
-      document.removeEventListener('click', debugClicks, true);
-      document.removeEventListener('click', debugClicks, false);
-      */
-      clearInterval(interval);
     };
   }, []);
 
