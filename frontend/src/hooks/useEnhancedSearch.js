@@ -234,7 +234,8 @@ export const useEnhancedSearch = (items, searchFields, initialSearchTerm = '', d
   // Update suggestions when search term changes
   useEffect(() => {
     setSuggestions(generateSuggestions(searchTerm));
-  }, [searchTerm, generateSuggestions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
 
   // Advanced search with scoring
   const filteredItems = useMemo(() => {
