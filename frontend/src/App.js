@@ -1184,7 +1184,7 @@ const InventorySystem = () => {
   const EasterEggModal = () => {
     return (
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
         onClick={(e) => {
           if (e.target === e.currentTarget) {
             setShowEasterEgg(false);
@@ -1192,16 +1192,17 @@ const InventorySystem = () => {
         }}
       >
         <div 
-          className="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-md mx-4 text-center"
+          className="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-2xl mx-4 text-center"
         >
           <div className="mb-6">
-            <div className="text-6xl mb-4">🚛</div>
-            <h3 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
-              ADAMS 2025
+            <img 
+              src="/Kirk.jpg" 
+              alt="Lest we Forget" 
+              className="w-full h-auto rounded-lg shadow-lg mb-4"
+            />
+            <h3 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+              Lest we Forget
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              You found the easter egg!
-            </p>
           </div>
           <button
             onClick={() => setShowEasterEgg(false)}
