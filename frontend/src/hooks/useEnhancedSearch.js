@@ -6,13 +6,6 @@ const getNestedValue = (obj, path) => {
 };
 
 export const useEnhancedSearch = (items, searchFields, initialSearchTerm = '', debounceMs = 300) => {
-  // 🔍 DIAGNOSTIC: Count renders to detect re-render loops
-  const renderCount = useRef(0);
-  renderCount.current += 1;
-  if (renderCount.current % 10 === 0) {
-    console.warn(`⚠️ [useEnhancedSearch] EXCESSIVE RENDERS: ${renderCount.current} renders!`);
-  }
-  
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(initialSearchTerm);
   const [searchHistory, setSearchHistory] = useState([]);

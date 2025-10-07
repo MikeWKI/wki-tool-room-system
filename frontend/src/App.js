@@ -15,27 +15,27 @@ import pwaManager from './utils/pwa';
 // Camera Feed Component (simplified without hooks)
 const CameraFeed = ({ camera, onOpenCamera, onCopyUrl }) => {
   return (
-    <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-      <div className="p-3 bg-gray-200 dark:bg-gray-600 border-b border-gray-300 dark:border-gray-500">
+    <div className="flex-1 rounded-lg overflow-hidden">
+      <div className="p-3 bg-gray-900 bg-opacity-80 border-b border-gray-700">
         <div className="flex items-center justify-between">
-          <h4 className="font-medium text-gray-900 dark:text-gray-100 flex items-center">
+          <h4 className="font-medium text-white flex items-center">
             <Eye className="w-4 h-4 mr-2" />
             {camera.name}
           </h4>
-          <div className="flex items-center text-blue-600 dark:text-blue-400">
+          <div className="flex items-center text-blue-400">
             <span className="text-xs">Click to view</span>
           </div>
         </div>
       </div>
       
       <div className="relative h-full min-h-96">
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
-          <div className="text-center p-6 max-w-sm">
-            <Camera className="w-24 h-24 text-blue-500 mx-auto mb-6" />
-            <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 text-lg">
+        <div className="absolute inset-0 flex items-center justify-center bg-transparent">
+          <div className="text-center p-6 max-w-sm bg-gray-900 bg-opacity-80 rounded-lg">
+            <Camera className="w-16 h-16 text-blue-400 mx-auto mb-4" />
+            <h4 className="font-medium text-white mb-3 text-lg">
               {camera.name}
             </h4>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-sm text-gray-300 mb-6">
               Camera feed will open in a new tab. Ensure you're connected to the office network for access.
             </p>
             
@@ -50,16 +50,11 @@ const CameraFeed = ({ camera, onOpenCamera, onCopyUrl }) => {
               
               <button
                 onClick={() => onCopyUrl(camera.url)}
-                className="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2"
+                className="w-full bg-gray-700 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors flex items-center justify-center space-x-2"
               >
                 <Copy className="w-4 h-4" />
                 <span>Copy URL</span>
               </button>
-            </div>
-            
-            <div className="mt-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-left">
-              <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">Camera URL:</p>
-              <p className="text-xs text-blue-700 dark:text-blue-300 font-mono break-all">{camera.url}</p>
             </div>
           </div>
         </div>
@@ -69,29 +64,6 @@ const CameraFeed = ({ camera, onOpenCamera, onCopyUrl }) => {
 };
 
 const InventorySystem = () => {
-  // ✅ DIAGNOSTIC: Log React version and setup on component mount
-  useEffect(() => {
-    console.log('%c🚀 APPLICATION STARTUP DIAGNOSTIC', 'background: #4CAF50; color: white; font-size: 14px; padding: 4px 8px; border-radius: 4px;');
-    console.log('📦 React Version:', React.version);
-    console.log('🌐 User Agent:', navigator.userAgent);
-    console.log('📱 Platform:', navigator.platform);
-    console.log('⚡ Event Fixes Applied:', {
-      'stopPropagation removed from modals': true,
-      'preventDefault removed from buttons': true,
-      'EnhancedSearchBar global listener': 'disabled',
-      'React 18 compatibility': 'optimized'
-    });
-    
-    // Check if React root has event delegation
-    setTimeout(() => {
-      const root = document.getElementById('root');
-      if (root) {
-        const reactProps = Object.keys(root).filter(k => k.startsWith('__react'));
-        console.log('✅ React Root Event System:', reactProps.length > 0 ? 'Active' : 'Missing');
-      }
-    }, 1000);
-  }, []);
-  
   const [selectedPart, setSelectedPart] = useState(null);
   const [currentUser, setCurrentUser] = useState('');
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -162,64 +134,6 @@ const InventorySystem = () => {
   // Advanced Filters State
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filteredInventory, setFilteredInventory] = useState([]);
-  const [showDebugModal, setShowDebugModal] = useState(false);
-
-  // Debug Modal to test if basic modal functionality works
-  const DebugModal = () => (
-    <div 
-      className="fixed inset-0 bg-red-500 bg-opacity-75 flex items-center justify-center !z-[99999]"
-      onClick={(e) => {
-        console.log('DEBUG: Backdrop clicked', e.target === e.currentTarget);
-        if (e.target === e.currentTarget) {
-          setShowDebugModal(false);
-        }
-      }}
-      style={{ 
-        zIndex: 99999,
-        pointerEvents: 'auto'
-      }}
-    >
-      <div 
-        className="bg-white rounded-lg p-8 max-w-md mx-4 border-4 border-green-500"
-        onClick={(e) => {
-          console.log('DEBUG: Modal content clicked');
-          e.stopPropagation();
-        }}
-        style={{ 
-          pointerEvents: 'auto'
-        }}
-      >
-        <h2 className="text-2xl font-bold text-red-600 mb-4">🚨 REACT ONCLICK TEST 🚨</h2>
-        <p className="mb-4">Testing if React onClick works after removing debug listeners:</p>
-        <button
-          onClick={(e) => {
-            console.log('SUCCESS: React onClick fired!');
-            alert('SUCCESS: React onClick works!');
-          }}
-          className="bg-green-500 text-white px-4 py-2 rounded mr-2"
-          style={{ 
-            pointerEvents: 'auto',
-            cursor: 'pointer'
-          }}
-        >
-          🚨 REACT TEST 🚨
-        </button>
-        <button
-          onClick={() => {
-            console.log('SUCCESS: React close onClick fired!');
-            setShowDebugModal(false);
-          }}
-          className="bg-red-500 text-white px-4 py-2 rounded"
-          style={{ 
-            pointerEvents: 'auto',
-            cursor: 'pointer'
-          }}
-        >
-          🚨 REACT CLOSE 🚨
-        </button>
-      </div>
-    </div>
-  );
   const [activeFilters, setActiveFilters] = useState({});
 
   // Reports State
@@ -741,109 +655,18 @@ const InventorySystem = () => {
     const hideLoader = () => {
       const loader = document.getElementById('pwa-loader');
       if (loader) {
-        console.log('✅ Removing PWA loader');
         loader.remove();
       }
-      
-      // ⚠️ REMOVED: Don't remove ALL elements with "loader" class - this breaks React!
-      // This was removing React-managed elements and breaking event delegation
     };
     
-    // ✅ NEW: Safe approach - only run once at startup
+    // Run once at startup and a few more times to ensure PWA loader is gone
     hideLoader();
-    
-    // Run a few more times to ensure PWA loader is gone, then stop
     const timeout1 = setTimeout(hideLoader, 100);
     const timeout2 = setTimeout(hideLoader, 500);
     
     return () => {
       clearTimeout(timeout1);
       clearTimeout(timeout2);
-    };
-  }, []);
-  
-  // ✅ NEW: Separate useEffect for click monitoring (no DOM manipulation)
-  useEffect(() => {
-
-    // Add global click debugging
-    const debugClicks = (e) => {
-      console.log('EMERGENCY CLICK DEBUG:', {
-        target: e.target,
-        currentTarget: e.currentTarget,
-        phase: e.eventPhase,
-        bubbles: e.bubbles,
-        cancelable: e.cancelable,
-        defaultPrevented: e.defaultPrevented,
-        isTrusted: e.isTrusted,
-        type: e.type,
-        x: e.clientX,
-        y: e.clientY
-      });
-      
-      // Check if React event handlers exist
-      const reactProps = Object.keys(e.target).filter(key => key.startsWith('__react'));
-      console.log('EMERGENCY: React props on target:', reactProps);
-      
-      // Check for onClick handlers specifically
-      const hasOnClick = e.target.onclick || e.target.getAttribute('onclick');
-      console.log('EMERGENCY: Has onClick handler:', hasOnClick);
-      
-      // CRITICAL: Check if something is preventing React events
-      if (e.defaultPrevented) {
-        console.log('EMERGENCY: Event was preventDefault()ed - this breaks React!');
-      }
-      
-      // Check if event propagation was stopped
-      if (e.cancelBubble || !e.bubbles) {
-        console.log('EMERGENCY: Event propagation was stopped - this breaks React!');
-      }
-      
-      // Look for React's event delegation
-      const reactRoot = document.getElementById('root');
-      if (reactRoot) {
-        const reactEventProps = Object.keys(reactRoot).filter(key => key.includes('event') || key.includes('react'));
-        console.log('EMERGENCY: React root event props:', reactEventProps);
-      }
-    };
-    
-    // ✅ NEW: React-safe event monitoring (capture phase only, no interference)
-    const monitorClicks = (e) => {
-      // Only log, don't modify the event in any way
-      const targetInfo = {
-        tag: e.target.tagName,
-        className: e.target.className,
-        id: e.target.id,
-        isButton: e.target.tagName === 'BUTTON',
-        hasReactProps: Object.keys(e.target).some(key => key.startsWith('__react'))
-      };
-      
-      console.log('🔍 [CLICK MONITOR]', {
-        ...targetInfo,
-        phase: e.eventPhase === 1 ? 'CAPTURE' : e.eventPhase === 2 ? 'TARGET' : 'BUBBLE',
-        defaultPrevented: e.defaultPrevented,
-        propagationStopped: e.cancelBubble,
-        timestamp: Date.now()
-      });
-      
-      // Check for potential issues
-      if (e.defaultPrevented && targetInfo.isButton) {
-        console.warn('⚠️ Button click was preventDefault()ed - this may cause issues!');
-      }
-    };
-    
-    // Enable the new React-safe monitor (capture phase to see events first)
-    // ⚠️ TEMPORARILY DISABLED - Testing if monitor itself interferes with React 19
-    // document.addEventListener('click', monitorClicks, true);
-    
-    // KEEP OLD DEBUG CODE DISABLED
-    /*
-    document.addEventListener('click', debugClicks, true); // Capture phase
-    document.addEventListener('click', debugClicks, false); // Bubble phase
-    */
-    
-    return () => {
-      // Clean up the React-safe monitor
-      // document.removeEventListener('click', monitorClicks, true);
     };
   }, []);
 
@@ -1221,16 +1044,8 @@ const InventorySystem = () => {
       <div 
         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
         onClick={(e) => {
-          console.log('🔍 [MODAL BACKDROP] Click detected', { 
-            target: e.target.tagName, 
-            currentTarget: e.currentTarget.tagName,
-            isBackdrop: e.target === e.currentTarget 
-          });
           if (e.target === e.currentTarget) {
-            console.log('✅ [MODAL BACKDROP] Closing modal - backdrop clicked');
             setShowCheckoutModal(false);
-          } else {
-            console.log('ℹ️ [MODAL BACKDROP] Not closing - content clicked');
           }
         }}
       >
@@ -1270,12 +1085,9 @@ const InventorySystem = () => {
           <div className="flex space-x-3">
             <button
               onClick={() => {
-                console.log('✅ [CHECKOUT BUTTON] Confirm button clicked!', { userName: userName.trim(), hasNotes: !!notes });
                 if (userName.trim()) {
                   setCurrentUser(userName.trim());
                   handleCheckout(notes);
-                } else {
-                  console.warn('⚠️ [CHECKOUT BUTTON] No username provided');
                 }
               }}
               disabled={loading || !userName.trim()}
@@ -1284,10 +1096,7 @@ const InventorySystem = () => {
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Confirm Checkout'}
             </button>
             <button
-              onClick={() => {
-                console.log('✅ [CHECKOUT BUTTON] Cancel button clicked!');
-                setShowCheckoutModal(false);
-              }}
+              onClick={() => setShowCheckoutModal(false)}
               disabled={loading}
               className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 disabled:cursor-not-allowed"
             >
@@ -2257,14 +2066,12 @@ const InventorySystem = () => {
     const cameras = [
       {
         id: 'camera1',
-        name: 'Camera 1 (192.168.231.88)',
-        ip: '192.168.231.88',
+        name: 'Tool Room West',
         url: 'http://192.168.231.88/cgi-bin/guestimage.html'
       },
       {
         id: 'camera2', 
-        name: 'Camera 2 (192.168.231.87)',
-        ip: '192.168.231.87',
+        name: 'Tool Room East',
         url: 'http://192.168.231.87/cgi-bin/guestimage.html'
       }
     ];
@@ -2275,17 +2082,14 @@ const InventorySystem = () => {
     };
 
     const handleOpenCamera = (url) => {
-      console.log('🎥 Opening camera feed:', url);
       window.open(url, '_blank', 'noopener,noreferrer');
     };
 
     const handleCopyUrl = (url) => {
-      console.log('📋 Copying URL to clipboard:', url);
       navigator.clipboard.writeText(url).then(() => {
-        console.log('✅ URL copied successfully');
         alert('Camera URL copied to clipboard!');
       }).catch(err => {
-        console.error('❌ Failed to copy URL:', err);
+        console.error('Failed to copy URL:', err);
         alert('Failed to copy URL to clipboard');
       });
     };
@@ -2328,7 +2132,10 @@ const InventorySystem = () => {
           </div>
           
           {/* Camera Feeds */}
-          <div className="flex-1 flex p-4 space-x-4 overflow-hidden">
+          <div 
+            className="flex-1 flex p-4 space-x-4 overflow-hidden bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: 'url(/cameras.png)' }}
+          >
             {cameras.map((camera) => (
               <CameraFeed 
                 key={camera.id} 
@@ -3327,15 +3134,6 @@ const InventorySystem = () => {
                 <Camera className="w-4 h-4" />
               </button>
 
-              {/* DEBUG: Test Modal Button */}
-              <button
-                onClick={() => setShowDebugModal(true)}
-                className="p-2 bg-yellow-500/20 rounded-lg hover:bg-yellow-500/40 transition-colors"
-                title="Debug Modal Test"
-              >
-                🐛
-              </button>
-
               {/* Share Button */}
               <button
                 onClick={handleShareApp}
@@ -3886,7 +3684,6 @@ const InventorySystem = () => {
       {showCameraPasswordModal && <CameraPasswordModal />}
       {showCameraFeeds && <CameraFeedsModal />}
       {showEasterEgg && <EasterEggModal />}
-      {showDebugModal && <DebugModal />}
       <ExcelUpload 
         isVisible={showExcelUpload}
         onClose={() => setShowExcelUpload(false)}

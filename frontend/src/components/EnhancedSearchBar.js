@@ -20,13 +20,6 @@ const EnhancedSearchBar = ({
   onCategorySelect,
   className = ""
 }) => {
-  // 🔍 DIAGNOSTIC: Count renders
-  const renderCount = useRef(0);
-  renderCount.current += 1;
-  if (renderCount.current % 10 === 0) {
-    console.warn(`⚠️ [EnhancedSearchBar] EXCESSIVE RENDERS: ${renderCount.current} renders!`);
-  }
-  
   const [showCategoryBrowser, setShowCategoryBrowser] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState(new Set());
   const searchRef = useRef(null);
