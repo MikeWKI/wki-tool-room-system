@@ -6,6 +6,13 @@ const getNestedValue = (obj, path) => {
 };
 
 export const useEnhancedSearch = (items, searchFields, initialSearchTerm = '', debounceMs = 300) => {
+  // 🔍 DIAGNOSTIC: Count renders to detect re-render loops
+  const renderCount = useRef(0);
+  renderCount.current += 1;
+  if (renderCount.current % 10 === 0) {
+    console.warn(`⚠️ [useEnhancedSearch] EXCESSIVE RENDERS: ${renderCount.current} renders!`);
+  }
+  
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(initialSearchTerm);
   const [searchHistory, setSearchHistory] = useState([]);
@@ -306,27 +313,39 @@ export const useEnhancedSearch = (items, searchFields, initialSearchTerm = '', d
     addToSearchHistory(suggestion.text);
   }, [addToSearchHistory]);
 
-  // Handle keyboard navigation
+  // Handle keyboard navigation  
   const handleKeyDown = useCallback((event) => {
+    // ✅ CRITICAL FIX: Only handle if suggestions are showing
     if (!showSuggestions || suggestions.length === 0) return;
+    
+    // ✅ Only handle specific navigation keys
+    const isNavigationKey = ['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(event.key);
+    if (!isNavigationKey) return;
 
     switch (event.key) {
       case 'ArrowDown':
-        event.preventDefault();
+        event.preventDefault(); // Prevent cursor movement
         setSelectedSuggestionIndex(prev => 
           prev < suggestions.length - 1 ? prev + 1 : 0
         );
         break;
       case 'ArrowUp':
-        event.preventDefault();
+        event.preventDefault(); // Prevent cursor movement
         setSelectedSuggestionIndex(prev => 
           prev > 0 ? prev - 1 : suggestions.length - 1
         );
         break;
       case 'Enter':
-        event.preventDefault();
-        if (selectedSuggestionIndex >= 0) {
+        // ✅ CRITICAL: Only preventDefault if we're actually selecting a suggestion
+        // Otherwise, let Enter work normally (for forms, buttons, etc.)
+        if (selectedSuggestionIndex >= 0 && suggestions[selectedSuggestionIndex]) {
+          event.preventDefault();
           selectSuggestion(suggestions[selectedSuggestionIndex]);
+        }
+        // If no suggestion is selected, close suggestions but let Enter work normally
+        else {
+          setShowSuggestions(false);
+          setSelectedSuggestionIndex(-1);
         }
         break;
       case 'Escape':

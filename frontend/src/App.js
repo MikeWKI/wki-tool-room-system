@@ -832,7 +832,8 @@ const InventorySystem = () => {
     };
     
     // Enable the new React-safe monitor (capture phase to see events first)
-    document.addEventListener('click', monitorClicks, true);
+    // ⚠️ TEMPORARILY DISABLED - Testing if monitor itself interferes with React 19
+    // document.addEventListener('click', monitorClicks, true);
     
     // KEEP OLD DEBUG CODE DISABLED
     /*
@@ -842,7 +843,7 @@ const InventorySystem = () => {
     
     return () => {
       // Clean up the React-safe monitor
-      document.removeEventListener('click', monitorClicks, true);
+      // document.removeEventListener('click', monitorClicks, true);
     };
   }, []);
 
