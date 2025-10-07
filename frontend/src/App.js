@@ -69,6 +69,29 @@ const CameraFeed = ({ camera, onOpenCamera, onCopyUrl }) => {
 };
 
 const InventorySystem = () => {
+  // ✅ DIAGNOSTIC: Log React version and setup on component mount
+  useEffect(() => {
+    console.log('%c🚀 APPLICATION STARTUP DIAGNOSTIC', 'background: #4CAF50; color: white; font-size: 14px; padding: 4px 8px; border-radius: 4px;');
+    console.log('📦 React Version:', React.version);
+    console.log('🌐 User Agent:', navigator.userAgent);
+    console.log('📱 Platform:', navigator.platform);
+    console.log('⚡ Event Fixes Applied:', {
+      'stopPropagation removed from modals': true,
+      'preventDefault removed from buttons': true,
+      'EnhancedSearchBar global listener': 'disabled',
+      'React 18 compatibility': 'optimized'
+    });
+    
+    // Check if React root has event delegation
+    setTimeout(() => {
+      const root = document.getElementById('root');
+      if (root) {
+        const reactProps = Object.keys(root).filter(k => k.startsWith('__react'));
+        console.log('✅ React Root Event System:', reactProps.length > 0 ? 'Active' : 'Missing');
+      }
+    }, 1000);
+  }, []);
+  
   const [selectedPart, setSelectedPart] = useState(null);
   const [currentUser, setCurrentUser] = useState('');
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -795,7 +818,35 @@ const InventorySystem = () => {
       }
     };
     
-    // TEMPORARILY DISABLE debugging event listeners to test if they're causing the issue
+    // ✅ NEW: React-safe event monitoring (capture phase only, no interference)
+    const monitorClicks = (e) => {
+      // Only log, don't modify the event in any way
+      const targetInfo = {
+        tag: e.target.tagName,
+        className: e.target.className,
+        id: e.target.id,
+        isButton: e.target.tagName === 'BUTTON',
+        hasReactProps: Object.keys(e.target).some(key => key.startsWith('__react'))
+      };
+      
+      console.log('🔍 [CLICK MONITOR]', {
+        ...targetInfo,
+        phase: e.eventPhase === 1 ? 'CAPTURE' : e.eventPhase === 2 ? 'TARGET' : 'BUBBLE',
+        defaultPrevented: e.defaultPrevented,
+        propagationStopped: e.cancelBubble,
+        timestamp: Date.now()
+      });
+      
+      // Check for potential issues
+      if (e.defaultPrevented && targetInfo.isButton) {
+        console.warn('⚠️ Button click was preventDefault()ed - this may cause issues!');
+      }
+    };
+    
+    // Enable the new React-safe monitor (capture phase to see events first)
+    document.addEventListener('click', monitorClicks, true);
+    
+    // KEEP OLD DEBUG CODE DISABLED
     /*
     document.addEventListener('click', debugClicks, true); // Capture phase
     document.addEventListener('click', debugClicks, false); // Bubble phase
@@ -813,7 +864,10 @@ const InventorySystem = () => {
     setTimeout(() => clearInterval(interval), 10000);
     
     return () => {
-      // TEMPORARILY DISABLE cleanup
+      // Clean up the React-safe monitor
+      document.removeEventListener('click', monitorClicks, true);
+      
+      // KEEP OLD DEBUG CODE DISABLED
       /*
       document.removeEventListener('click', debugClicks, true);
       document.removeEventListener('click', debugClicks, false);
@@ -1196,14 +1250,21 @@ const InventorySystem = () => {
       <div 
         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
         onClick={(e) => {
+          console.log('🔍 [MODAL BACKDROP] Click detected', { 
+            target: e.target.tagName, 
+            currentTarget: e.currentTarget.tagName,
+            isBackdrop: e.target === e.currentTarget 
+          });
           if (e.target === e.currentTarget) {
+            console.log('✅ [MODAL BACKDROP] Closing modal - backdrop clicked');
             setShowCheckoutModal(false);
+          } else {
+            console.log('ℹ️ [MODAL BACKDROP] Not closing - content clicked');
           }
         }}
       >
         <div 
           className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4"
-          onClick={(e) => e.stopPropagation()}
         >
           <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Check Out Part</h3>
           <div className="mb-4">
@@ -1238,9 +1299,12 @@ const InventorySystem = () => {
           <div className="flex space-x-3">
             <button
               onClick={() => {
+                console.log('✅ [CHECKOUT BUTTON] Confirm button clicked!', { userName: userName.trim(), hasNotes: !!notes });
                 if (userName.trim()) {
                   setCurrentUser(userName.trim());
                   handleCheckout(notes);
+                } else {
+                  console.warn('⚠️ [CHECKOUT BUTTON] No username provided');
                 }
               }}
               disabled={loading || !userName.trim()}
@@ -1249,7 +1313,10 @@ const InventorySystem = () => {
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Confirm Checkout'}
             </button>
             <button
-              onClick={() => setShowCheckoutModal(false)}
+              onClick={() => {
+                console.log('✅ [CHECKOUT BUTTON] Cancel button clicked!');
+                setShowCheckoutModal(false);
+              }}
               disabled={loading}
               className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 disabled:cursor-not-allowed"
             >
@@ -1276,7 +1343,6 @@ const InventorySystem = () => {
       >
         <div 
           className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4"
-          onClick={(e) => e.stopPropagation()}
         >
           <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Check In Part</h3>
           <div className="mb-4">
@@ -1347,7 +1413,6 @@ const InventorySystem = () => {
       >
         <div 
           className="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-md mx-4 text-center"
-          onClick={(e) => e.stopPropagation()}
         >
           <div className="mb-6">
             <div className="text-6xl mb-4">🚛</div>
@@ -1424,7 +1489,6 @@ const InventorySystem = () => {
       >
         <div 
           className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
         >
           <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Add New Part</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -1593,7 +1657,6 @@ const InventorySystem = () => {
       >
         <div 
           className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
         >
           <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Edit Part</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -1706,7 +1769,6 @@ const InventorySystem = () => {
     >
       <div 
         className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
-        onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-lg font-semibold mb-4 text-red-600">Delete Part</h3>
         <p className="text-gray-700 mb-6">
@@ -1781,7 +1843,6 @@ const InventorySystem = () => {
       >
         <div 
           className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
         >
           <h3 className="text-lg font-semibold mb-4">Add New Shelf</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -1898,7 +1959,6 @@ const InventorySystem = () => {
       >
         <div 
           className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
         >
           <h3 className="text-lg font-semibold mb-4">Edit Shelf</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -1995,7 +2055,6 @@ const InventorySystem = () => {
     >
       <div 
         className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
-        onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-lg font-semibold mb-4 text-red-600">Delete Shelf</h3>
         <p className="text-gray-700 mb-6">
@@ -2040,7 +2099,6 @@ const InventorySystem = () => {
     >
       <div 
         className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
-        onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-lg font-semibold mb-4 text-red-600">Management Access Required</h3>
         <p className="text-gray-700 mb-4">
@@ -2101,7 +2159,6 @@ const InventorySystem = () => {
       >
         <div 
           className="bg-white rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-red-600">Install WKI Tool Room Inventory</h3>
@@ -2183,7 +2240,6 @@ const InventorySystem = () => {
     >
       <div 
         className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4"
-        onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-lg font-semibold mb-4 text-red-600 dark:text-red-400">Security Camera Access</h3>
         <p className="text-gray-700 dark:text-gray-300 mb-4">
@@ -2274,7 +2330,6 @@ const InventorySystem = () => {
       >
         <div 
           className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl h-5/6 mx-4 my-4 flex flex-col"
-          onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
@@ -3157,7 +3212,6 @@ const InventorySystem = () => {
       >
         <div 
           className="relative max-w-5xl max-h-[90vh] w-full"
-          onClick={(e) => e.stopPropagation()}
         >
           <button
             onClick={() => setShowImageModal(false)}
