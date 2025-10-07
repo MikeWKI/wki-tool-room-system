@@ -3245,6 +3245,7 @@ const InventorySystem = () => {
                 setActiveView={setActiveView}
                 isManageUnlocked={isManageUnlocked}
                 onManageClick={handleManageClick}
+                onCameraClick={() => setShowCameraPasswordModal(true)}
               />
             </div>
           </div>

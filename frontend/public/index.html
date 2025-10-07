@@ -3,23 +3,27 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/WKI_INV.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#B91C1C" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#B91C1C" media="(prefers-color-scheme: light)" />
     <meta name="color-scheme" content="light dark" />
+    
+    <!-- Enhanced PWA capabilities -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="WKI Tool Room" />
+    <meta name="application-name" content="WKI Tool Room" />
+    <meta name="msapplication-TileColor" content="#B91C1C" />
+    <meta name="msapplication-config" content="%PUBLIC_URL%/browserconfig.xml" />
+    <meta name="format-detection" content="telephone=no" />
+    
     <meta
       name="description"
       content="WKI Tool Room Inventory Management System - Professional parts tracking, checkout management, and storage organization for tool rooms and service departments."
     />
     <meta name="keywords" content="inventory management, tool room, parts tracking, WKI, automotive parts, service management" />
     <meta name="author" content="WKI Tool Room" />
-    
-    <!-- PWA Meta Tags -->
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="WKI Tool Room" />
-    <meta name="msapplication-TileColor" content="#B91C1C" />
-    <meta name="msapplication-config" content="%PUBLIC_URL%/browserconfig.xml" />
     
     <!-- Icons -->
     <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/WKI_INV.png" />
@@ -64,21 +68,42 @@
     <style>
       * {
         -webkit-tap-highlight-color: rgba(185, 28, 28, 0.2);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
       
-      /* PWA loading screen */
+      /* PWA loading screen - Enhanced with animations */
       .pwa-loader {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: #f3f4f6;
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
         display: flex;
         flex-direction: column;
         z-index: 9999;
         opacity: 1;
-        transition: opacity 0.3s ease-out;
+        transition: opacity 0.5s ease-out;
+        overflow: hidden;
+      }
+      
+      /* Animated background particles */
+      .pwa-loader::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(220, 38, 38, 0.05) 1px, transparent 1px);
+        background-size: 50px 50px;
+        animation: particle-move 20s linear infinite;
+      }
+      
+      @keyframes particle-move {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(50px, 50px); }
       }
       
       .pwa-loader.hidden {
@@ -92,20 +117,53 @@
         flex-shrink: 0;
         text-align: center;
         padding: 2rem 1rem;
+        position: relative;
+        z-index: 2;
+        animation: fade-slide-down 0.8s ease-out;
+      }
+      
+      @keyframes fade-slide-down {
+        0% {
+          opacity: 0;
+          transform: translateY(-30px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
       
       .pwa-title {
         font-size: 2.5rem;
-        font-weight: bold;
-        color: #1f2937;
+        font-weight: 800;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        letter-spacing: -0.02em;
         margin-bottom: 1rem;
+        text-shadow: 0 2px 20px rgba(220, 38, 38, 0.3);
       }
       
       .pwa-divider {
         width: 128px;
         height: 4px;
-        background: #dc2626;
+        background: linear-gradient(90deg, transparent, #dc2626, transparent);
         margin: 0 auto;
+        border-radius: 2px;
+        box-shadow: 0 0 20px rgba(220, 38, 38, 0.5);
+        animation: pulse-glow 2s ease-in-out infinite;
+      }
+      
+      @keyframes pulse-glow {
+        0%, 100% {
+          opacity: 1;
+          box-shadow: 0 0 20px rgba(220, 38, 38, 0.5);
+        }
+        50% {
+          opacity: 0.8;
+          box-shadow: 0 0 30px rgba(220, 38, 38, 0.8);
+        }
       }
       
       .pwa-flag-container {
@@ -114,6 +172,20 @@
         align-items: center;
         justify-content: center;
         padding: 0 1rem;
+        position: relative;
+        z-index: 2;
+        animation: fade-scale-in 1s ease-out 0.3s both;
+      }
+      
+      @keyframes fade-scale-in {
+        0% {
+          opacity: 0;
+          transform: scale(0.9);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
       }
       
       .pwa-flag-image {
@@ -124,26 +196,49 @@
         background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
+        filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.3));
+        transition: transform 0.3s ease;
+      }
+      
+      .pwa-flag-image:hover {
+        transform: scale(1.02);
       }
       
       .pwa-content {
         flex-shrink: 0;
         text-align: center;
         padding: 2rem 1rem;
+        position: relative;
+        z-index: 2;
+        animation: fade-slide-up 0.8s ease-out 0.5s both;
+      }
+      
+      @keyframes fade-slide-up {
+        0% {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
       
       .pwa-tagline-1 {
         font-size: 1.8rem;
-        color: #dc2626;
-        font-weight: 600;
+        color: #ef4444;
+        font-weight: 700;
         margin-bottom: 0.5rem;
+        text-shadow: 0 2px 10px rgba(239, 68, 68, 0.3);
+        letter-spacing: -0.01em;
       }
       
       .pwa-tagline-2 {
         font-size: 1.4rem;
-        color: #ef4444;
-        font-weight: 500;
+        color: #f87171;
+        font-weight: 600;
         margin-bottom: 2rem;
+        text-shadow: 0 2px 10px rgba(248, 113, 113, 0.2);
       }
       
       .pwa-progress-container {
@@ -152,32 +247,50 @@
       
       .pwa-progress-text {
         font-size: 1.1rem;
-        color: #374151;
+        color: #94a3b8;
         margin-bottom: 1rem;
+        font-weight: 500;
       }
       
       .pwa-progress-bar {
         width: 256px;
-        height: 12px;
-        background: #d1d5db;
-        border-radius: 6px;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
         overflow: hidden;
         margin: 0 auto;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
       }
       
       .pwa-progress-fill {
         height: 100%;
-        background: linear-gradient(to right, #ef4444, #dc2626);
-        border-radius: 6px;
+        background: linear-gradient(90deg, #ef4444, #dc2626, #b91c1c);
+        background-size: 200% 100%;
+        border-radius: 4px;
         width: 0%;
-        animation: pwa-progress 1s ease-out forwards;
+        animation: pwa-progress 1.2s ease-out forwards, gradient-shift 2s ease-in-out infinite;
+        box-shadow: 0 0 20px rgba(220, 38, 38, 0.5);
+      }
+      
+      @keyframes gradient-shift {
+        0%, 100% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
       }
       
       .pwa-footer {
         flex-shrink: 0;
-        background: #1f2937;
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(10px);
         color: white;
         padding: 1.5rem 1rem;
+        border-top: 1px solid rgba(220, 38, 38, 0.2);
+        position: relative;
+        z-index: 2;
       }
       
       .pwa-footer-content {
@@ -198,55 +311,61 @@
       .pwa-footer-icon {
         width: 32px;
         height: 32px;
-        background: #dc2626;
-        border-radius: 4px;
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        border-radius: 6px;
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
         font-size: 16px;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
       }
       
       .pwa-footer-title {
-        font-weight: 600;
+        font-weight: 700;
         font-size: 1rem;
+        letter-spacing: -0.01em;
       }
       
       .pwa-footer-copy {
-        color: #9ca3af;
+        color: #94a3b8;
         font-size: 0.875rem;
+        font-weight: 500;
       }
       
       .pwa-footer-warning {
-        background: rgba(185, 28, 28, 0.3);
-        border: 1px solid #dc2626;
+        background: rgba(220, 38, 38, 0.15);
+        border: 1px solid rgba(220, 38, 38, 0.3);
         border-radius: 8px;
         padding: 0.75rem 1rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;
         font-size: 0.875rem;
+        backdrop-filter: blur(10px);
       }
       
       .pwa-footer-lock {
-        width: 16px;
-        height: 16px;
-        background: #eab308;
+        width: 18px;
+        height: 18px;
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 10px;
+        font-size: 11px;
         color: black;
+        box-shadow: 0 2px 8px rgba(251, 191, 36, 0.4);
       }
       
       .pwa-footer-warning-title {
-        font-weight: 600;
+        font-weight: 700;
         color: #fde047;
+        text-shadow: 0 2px 8px rgba(253, 224, 71, 0.3);
       }
       
       .pwa-footer-warning-text {
-        color: #d1d5db;
+        color: #cbd5e1;
         font-size: 0.75rem;
         margin-top: 0.25rem;
       }
@@ -256,15 +375,19 @@
         100% { width: 100%; }
       }
       
+      /* Mobile responsive enhancements */
       @media (max-width: 768px) {
+        .pwa-header {
+          padding: 1.5rem 1rem;
+        }
         .pwa-title {
-          font-size: 1.8rem;
+          font-size: 2rem;
         }
         .pwa-tagline-1 {
-          font-size: 1.4rem;
+          font-size: 1.5rem;
         }
         .pwa-tagline-2 {
-          font-size: 1.1rem;
+          font-size: 1.2rem;
         }
         .pwa-progress-bar {
           width: 200px;
@@ -275,6 +398,55 @@
         .pwa-footer-warning {
           flex-direction: column;
           text-align: center;
+        }
+        .pwa-flag-container {
+          padding: 0 0.5rem;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .pwa-title {
+          font-size: 1.75rem;
+        }
+        .pwa-tagline-1 {
+          font-size: 1.25rem;
+        }
+        .pwa-tagline-2 {
+          font-size: 1rem;
+        }
+        .pwa-progress-text {
+          font-size: 1rem;
+        }
+        .pwa-progress-bar {
+          width: 180px;
+          height: 6px;
+        }
+      }
+      
+      /* Landscape orientation optimization */
+      @media (max-height: 600px) and (orientation: landscape) {
+        .pwa-header {
+          padding: 1rem;
+        }
+        .pwa-content {
+          padding: 1rem;
+        }
+        .pwa-footer {
+          padding: 1rem;
+        }
+        .pwa-title {
+          font-size: 1.5rem;
+          margin-bottom: 0.5rem;
+        }
+        .pwa-tagline-1 {
+          font-size: 1.1rem;
+        }
+        .pwa-tagline-2 {
+          font-size: 0.95rem;
+          margin-bottom: 1rem;
+        }
+        .pwa-progress-container {
+          margin-bottom: 1rem;
         }
       }
     </style>

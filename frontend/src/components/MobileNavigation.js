@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Menu, X, Sun, Moon, Package, History, Settings, MapPin } from 'lucide-react';
+import { Menu, X, Sun, Moon, Package, History, Settings, MapPin, Camera } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
-const MobileNavigation = ({ activeView, setActiveView, isManageUnlocked, onManageClick }) => {
+const MobileNavigation = ({ activeView, setActiveView, isManageUnlocked, onManageClick, onCameraClick }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
 
@@ -87,6 +87,19 @@ const MobileNavigation = ({ activeView, setActiveView, isManageUnlocked, onManag
 
               {/* Manage Section */}
               <div className="border-t border-gray-200 dark:border-gray-600 pt-4 mt-4">
+                {/* Camera Button */}
+                <button
+                  onClick={() => {
+                    onCameraClick();
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center space-x-3 p-3 rounded-lg text-left transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 mb-2"
+                >
+                  <Camera className="w-5 h-5" />
+                  <span className="font-medium">Security Cameras</span>
+                </button>
+
+                {/* Manage Button */}
                 <button
                   onClick={() => handleNavClick('manage')}
                   className={`
