@@ -1,8 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import App from './App';
+import { partMatchesQuery } from './utils/partSearch';
 
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+test('part search helper is available to the inventory screens', () => {
+  expect(partMatchesQuery({ partNumber: '3162993', description: 'seal tool' }, '3162993')).toBe(true);
 });

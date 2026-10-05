@@ -101,12 +101,12 @@ const EnhancedSearchBar = ({
         
         <input
           type="text"
-          placeholder="Search parts by number, description, or category... (or use voice search)"
+          placeholder="P#, alias, description, or engine"
           value={searchTerm}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           onKeyDown={handleKeyDown}
-          className="w-full pl-10 pr-20 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors"
+          className="w-full min-h-[56px] pl-10 pr-24 text-lg border-2 border-gray-400 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-red-600"
         />
         
         <div className="absolute inset-y-0 right-0 flex items-center space-x-1 pr-3">
@@ -123,10 +123,10 @@ const EnhancedSearchBar = ({
           {isVoiceSupported && (
             <button
               onClick={handleVoiceToggle}
-              className={`p-1.5 rounded transition-colors ${
+              className={`min-h-[48px] min-w-[48px] flex items-center justify-center rounded transition-colors ${
                 isVoiceSearchActive
-                  ? 'text-red-600 bg-red-100 dark:bg-red-900/20'
-                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                  ? 'text-red-700 bg-red-100 dark:bg-red-900/20'
+                  : 'text-gray-700 hover:text-gray-900 dark:text-gray-200'
               }`}
               title={isVoiceSearchActive ? 'Stop voice search' : 'Start voice search'}
             >

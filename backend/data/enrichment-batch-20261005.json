@@ -1,0 +1,1064 @@
+[
+  {
+    "partNumber": "1696707",
+    "description": "Cylinder Liner Remover/Installer & Hold-Down",
+    "manufacturer": "Paccar",
+    "engineFamily": "MX-13",
+    "notes": "Often 1696707PE; remove/install/seat liner",
+    "sourceUrl": "https://www.freedomracing.com/1696707-cylinder-pack-liner-puller-remover-tool.html",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "1742628",
+    "description": "Oil Cooler Leak Test Adapter Plate",
+    "manufacturer": "Paccar",
+    "engineFamily": "MX-13",
+    "notes": "1742628PE ADAPTER PLATE-OIL COOLER, FOR LEAK TEST",
+    "sourceUrl": "https://buyparts.online/products/1742628pe",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "17592R",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "1809912",
+    "description": "Carbon Scraper Ring / Piston Install Adapter",
+    "manufacturer": "Paccar / DAF",
+    "engineFamily": "MX-13",
+    "notes": "Install pistons past carbon scraper ring with ring compressor; shop: Fire Ring Adaptor",
+    "sourceUrl": "https://www.apexinds.com/tools/ATC1809912.html",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "2203504",
+    "description": "MX Engine Compression / Pressure Test Kit",
+    "manufacturer": "Paccar",
+    "engineFamily": "MX-11 (shop) / MX engines",
+    "notes": "2203504PE MX Engine Compression Test Tool Kit",
+    "sourceUrl": "https://bigrigworld.com/mx-engine-compression-test-tool-kit-2203504pe.html",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "230XD",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "2892280",
+    "description": "Air Compressor Cleaner",
+    "manufacturer": "Cummins",
+    "engineFamily": null,
+    "notes": "Dealer: Cummins OEM Air Compressor Cleaner",
+    "sourceUrl": "https://shop.moderngroup.com/2892280-cleaner-air-compressor/",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "3162993",
+    "description": "Front Crankshaft Seal Remove/Install Tool",
+    "manufacturer": "Cummins",
+    "engineFamily": "ISX family",
+    "notes": "Dealer catalogs: TOOL,FRONT CRS SEAL R&I",
+    "sourceUrl": "https://bigrigworld.com/front-crankshaft-seal-r-and-i-tool-3162993.html",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "3163151",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "3164225",
+    "description": "Exhaust Cooler Leak Test Kit",
+    "manufacturer": "Cummins",
+    "engineFamily": null,
+    "notes": "OEM: EXHAUST COOLER LEAK TEST KIT (EGR cooler pressure test per shop use)",
+    "sourceUrl": "https://www.dieselengines.parts/cummins-3164225-kit-exh-cooler-leak-test-original-oem-part/",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "3684275",
+    "description": "Engine Control Module (Test ECM)",
+    "manufacturer": "Cummins",
+    "engineFamily": "ISX CM871",
+    "notes": "ECM PN used as shop test ECM for ISX CM871",
+    "sourceUrl": "https://goecm.com/products/cummins-isx-ecm-3684275",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "3822959",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "3824499",
+    "description": "Installer, Front Cover Oil Seal",
+    "manufacturer": "Cummins",
+    "engineFamily": "C Series / ISC / ISL",
+    "notes": "OEM shop.cummins.com: Installer, Fr Cv Oil Seal",
+    "sourceUrl": "https://shop.cummins.com/SC/product/cummins-installer-fr-cv-oil-seal-3824499/01t4N0000048dYpQAI",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "3824500",
+    "description": "Front Crankshaft Wear Sleeve Installer",
+    "manufacturer": "Cummins",
+    "engineFamily": "B Series / ISB / QSB 3.9L\u20136.7L; Paccar PX-6",
+    "notes": "Installs wear sleeve; used with seal installer for seal+sleeve kits",
+    "sourceUrl": "https://www.thoroughbreddiesel.com/3824500/",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "3824937",
+    "description": "Inline Datalink and Adapter Kit",
+    "manufacturer": "Cummins",
+    "engineFamily": null,
+    "notes": "Listed as Inline Datalink/Adapter Kit (J1708)",
+    "sourceUrl": "https://www.yorkcontrols.com/cummins-3824937-refurbished",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "4394639",
+    "description": "Coolant Flow Valve",
+    "manufacturer": "Cummins",
+    "engineFamily": null,
+    "notes": "OEM shop.cummins.com lists Coolant Flow Valve \u2014 NOT a leak-down kit. Shop inventory labeled X15 Cylinder Leak Down Kit. Likely mislabeled PN or wrong packaging; do not invent leak-down kit claim.",
+    "sourceUrl": "https://shop.cummins.com/SC/product/cummins-coolant-flow-valve-4394639/01tKY000001zoFcYAI",
+    "researchStatus": "ambiguous"
+  },
+  {
+    "partNumber": "4918319",
+    "description": "Protective Plug Kit",
+    "manufacturer": "Cummins",
+    "engineFamily": null,
+    "notes": "Service manual SST: plugs oil passages/drillings during repair",
+    "sourceUrl": "https://www.dieselmechanic.info/2883445/2883445-133-022-001_07.html",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "4919273",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "50151",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "5299740",
+    "description": "Turbocharger Leak Test Kit",
+    "manufacturer": "Cummins",
+    "engineFamily": "ISX (shop inventory)",
+    "notes": "OEM: KIT,TUR LEAK TEST",
+    "sourceUrl": "https://sleequipment.com/products/5299740-cummins-2023",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "5394621",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "5394735",
+    "description": "Fuel Injector Sleeve Ring Installer",
+    "manufacturer": "Cummins",
+    "engineFamily": "ISX15 / QSX15 / X15 (CM2250/CM2350)",
+    "notes": "Installs injector sleeve expansion/repair ring",
+    "sourceUrl": "https://www.apexinds.com/atc-5394735-fuel-injuector-sleeve-ring-installer-for-cummins-isx15-osx15-cm2250-cm2350-atc5394735.html",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "5521-10",
+    "description": "Heli-Coil Thread Repair Kit 5/8-11",
+    "manufacturer": "Heli-Coil",
+    "engineFamily": null,
+    "notes": "UNC 5/8-11 kit with inserts, tap, install tool",
+    "sourceUrl": "https://www.toolshackweb.com/helicoil-5521-10-5-8-11-kit-p/hel5521-10.htm",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "5528-78",
+    "description": null,
+    "manufacturer": "Heli-Coil (likely)",
+    "engineFamily": null,
+    "notes": "Shop: HeliCoil Kit 7/16-20; exact 5528-78 listing not confirmed this pass (5521-10 was)",
+    "sourceUrl": null,
+    "researchStatus": "ambiguous"
+  },
+  {
+    "partNumber": "5572664",
+    "description": "Fuel Pump Timing Tool",
+    "manufacturer": "Cummins",
+    "engineFamily": "ISX15 / X15 / QSX15",
+    "notes": "Often paired with bracket 5572562 in OEM-alt listings",
+    "sourceUrl": "https://monacotool.com/products/fuel-pump-timing-tool-cummins-isx15-x15-qsx15-5572562-5572664",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "5572816",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "557338/5573380",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "6061-T6",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "6581095",
+    "description": "Oil Cooler Leak Test Kit",
+    "manufacturer": "Cummins",
+    "engineFamily": "B6.7 (shop: B6.7O)",
+    "notes": "FinditParts: KIT OIL COOLER LEAK TEST",
+    "sourceUrl": "https://www.finditparts.com/products/25516442/cummins-6581095",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "6616001",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "8-10",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "9340851-RX",
+    "description": null,
+    "manufacturer": "Cummins (likely)",
+    "engineFamily": "ISX CM570",
+    "notes": "Shop: Test ECM ISX CM570 (RX suffix suggests reman/test); OEM listing not confirmed this pass",
+    "sourceUrl": null,
+    "researchStatus": "ambiguous"
+  },
+  {
+    "partNumber": "943134-RX",
+    "description": null,
+    "manufacturer": "Cummins (likely)",
+    "engineFamily": "ISC",
+    "notes": "Shop: Test ECM ISC (RX suffix); OEM listing not confirmed this pass",
+    "sourceUrl": null,
+    "researchStatus": "ambiguous"
+  },
+  {
+    "partNumber": "9700-200",
+    "description": null,
+    "manufacturer": "BG Products (possible)",
+    "engineFamily": null,
+    "notes": "BG Diesel VIA uses 9700 family; exact 9700-200 kit PN not cleanly confirmed on mfr page",
+    "sourceUrl": "https://www.bgprod.com/reference/diesel-via-9700/",
+    "researchStatus": "ambiguous"
+  },
+  {
+    "partNumber": "J-35652",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": "Shop: Injector Depth Gauges; no reliable OEM hit (nearby gauges J-35637-A etc.)",
+    "sourceUrl": null,
+    "researchStatus": "ambiguous"
+  },
+  {
+    "partNumber": "KL50015",
+    "description": "Counter Bore Adapter \u2013 Cummins ISC",
+    "manufacturer": "K-Line",
+    "engineFamily": "Cummins ISC",
+    "notes": "Adapter for KL50000 kit",
+    "sourceUrl": "https://www.klineind.com/oem-service-tools/kl50000.html",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "MV7300",
+    "description": "PneumatiVac Air-Operated Fluid Evacuator",
+    "manufacturer": "Mityvac (SKF)",
+    "engineFamily": null,
+    "notes": "Air venturi evacuator ~2.3 gal; drains oil/trans/coolant/brake fluid",
+    "sourceUrl": "https://www.skf.com/mityvac/products/fluid-evacuation-and-dispensing-equipment-and-accessories/fluid-evacuators/mv7300",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "P27-6200-35313",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "PT-2000-101",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "T-560",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "0083-47-1847",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "1809995",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "1809996",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "1903062",
+    "description": "Cylinder Liner Assembly/Disassembly Tool",
+    "manufacturer": "Paccar",
+    "engineFamily": "MX-11 (shop)",
+    "notes": "1903062PE TOOL-CYLINDER LINER ASSY/DISASSY",
+    "sourceUrl": "https://buyparts.online/products/1903062pe",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "2124342",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "2154147",
+    "description": "Valve Spring Compressor",
+    "manufacturer": "Paccar",
+    "engineFamily": "MX-11 / MX-13 (shop)",
+    "notes": "2154147PE TOOL-VALVE SPRING COMPRESSOR",
+    "sourceUrl": "https://buyparts.online/products/2154147pe",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "2163944PE",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "2463031",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "3162991",
+    "description": null,
+    "manufacturer": "Cummins (likely)",
+    "engineFamily": null,
+    "notes": "Shop: Cummins Mini Bob; web SST lists sometimes mention breakout cable but weak confirmation",
+    "sourceUrl": null,
+    "researchStatus": "ambiguous"
+  },
+  {
+    "partNumber": "3163069",
+    "description": "Cam Gear Puller (Injector/Valve Cam)",
+    "manufacturer": "Cummins",
+    "engineFamily": "ISX / X15",
+    "notes": "OEM-alt listings for ISX ~2007+ and X15",
+    "sourceUrl": "https://monacotool.com/products/cam-gear-puller-cummins-isx-3163069",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "3823745",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "3824942",
+    "description": "Universal Injector Timing Fixture",
+    "manufacturer": "Cummins",
+    "engineFamily": "J, K, N, NH, V12, N14, L10",
+    "notes": "OEM: Fixture, Univ INJ Timing; measures injector pushrod vs piston travel",
+    "sourceUrl": "https://www.dieselpartsdirect.com/3824942",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "4326369",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "4918200",
+    "description": "Oil Cooler Leak Test Kit",
+    "manufacturer": "Cummins",
+    "engineFamily": "X15 / ISX family (shop inventory)",
+    "notes": "OEM dealer: KIT, OIL COOLER LEAK TEST",
+    "sourceUrl": "https://shop.moderngroup.com/4918200-kit-oil-cooler-leak-test/",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "4918222",
+    "description": "Filter Head Adapter Replacer",
+    "manufacturer": "Cummins",
+    "engineFamily": "ISX (shop: oil filter head sockets)",
+    "notes": "Cummins catalog title: Filter Head Adapter Replacer",
+    "sourceUrl": "https://777parts.com/cummins/4918222-filter-head-adapter-replacer/p715723.html",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "5298821",
+    "description": "NOx Sensor Module Diagnostic Kit",
+    "manufacturer": "Cummins",
+    "engineFamily": null,
+    "notes": "OEM: isolates NOx sensor from engine wiring harness for testing",
+    "sourceUrl": "https://shop.cummins.com/SC/product/cummins-nox-sensor-module-diagnostic-kit-5298821/01t4N0000048i42QAA",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "5394335",
+    "description": "Engine Diagnostic Tool Kit",
+    "manufacturer": "Cummins",
+    "engineFamily": null,
+    "notes": "OEM shop.cummins.com Engine Diagnostic Tool Kit",
+    "sourceUrl": "https://shop.cummins.com/SC/product/cummins-engine-diagnostic-tool-kit-5394335/01t4N0000048iUaQAI",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "5572725",
+    "description": "Engine Timing Kit",
+    "manufacturer": "Cummins",
+    "engineFamily": "ISX (shop: timing wedges & pins)",
+    "notes": "OEM dealer: ENGINE TIMING KIT",
+    "sourceUrl": "https://www.smallenginesprodealer.com/part-onan-5572725/",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "5572854",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "5DV 008 290-00",
+    "description": "Xenon HID Headlight Ballast / Control Module",
+    "manufacturer": "Hella",
+    "engineFamily": null,
+    "notes": "Hella 5DV 008 290-00 35W xenon ballast (D2S/D2R); also written 5DV008290-00",
+    "sourceUrl": "https://www.pro-vision-lighting.com/5DV008290-00",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "BB86",
+    "description": "BB-86 Diesel Counterbore Tool",
+    "manufacturer": "MIRA",
+    "engineFamily": "Multi incl. Paccar MX11/MX13",
+    "notes": "Same MIRA BB-86 family; fill-gaps PN without hyphen",
+    "sourceUrl": "https://theultimatetooling.com/en/product/mira-bb-86-counterbore-tool/",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "C-E-208",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "EEPD500",
+    "description": "Diesel Compression Gauge (0\u2013800 PSI)",
+    "manufacturer": "Snap-on",
+    "engineFamily": "Diesel (adapter-dependent)",
+    "notes": "18 in hose with push-button release; adapters sold separately",
+    "sourceUrl": "https://b2b.snapon.com/productDetails/EEPD500/2",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "J-35596",
+    "description": "Idler Gear Lash Adjuster",
+    "manufacturer": "Kent-Moore",
+    "engineFamily": "Detroit Diesel Series 50/60",
+    "notes": "J35596 / J-35596-A idler gear lash adjuster listings",
+    "sourceUrl": "https://dpequip.net/shop/hand-tools/kent-moore-j35596-j35596a-detroit-diesel-idler-gear-lash-adjuster-j-35596-a-5120-01-322-8885/",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "J-35596-15",
+    "description": null,
+    "manufacturer": "Kent-Moore (likely)",
+    "engineFamily": "Detroit Diesel",
+    "notes": "Appears related to J-35596 family; -15 suffix not independently verified this pass",
+    "sourceUrl": null,
+    "researchStatus": "ambiguous"
+  },
+  {
+    "partNumber": "J-42665",
+    "description": "Injector Height/Timing Gauge 80.3 mm",
+    "manufacturer": "Kent-Moore / SPX",
+    "engineFamily": "Detroit Diesel Series 50/60",
+    "notes": "Injector timing gauge ~80.3 mm",
+    "sourceUrl": "https://www.ebay.com/itm/262704503546",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "J-42749",
+    "description": "Injector Height/Timing Gauge 81.0 mm",
+    "manufacturer": "Kent-Moore / SPX",
+    "engineFamily": "Detroit Diesel Series 50/60",
+    "notes": "Injector height setting gauge ~81.0 mm",
+    "sourceUrl": "https://dieselpro.com/detroit-diesel-j42749-injector-timing-tool-series-60.html",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "J-45002",
+    "description": "Injector Height Gauge 82.1 mm",
+    "manufacturer": "Kent-Moore / SPX",
+    "engineFamily": "Detroit Diesel Series 60",
+    "notes": "Injector height gauge ~82.1 mm",
+    "sourceUrl": "https://onitools.com/products/oni653t",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "J-45389",
+    "description": null,
+    "manufacturer": "Kent-Moore (likely)",
+    "engineFamily": "Detroit Diesel",
+    "notes": "Shop inventory: Socket; companion to J-45390 not independently verified",
+    "sourceUrl": null,
+    "researchStatus": "ambiguous"
+  },
+  {
+    "partNumber": "J-45390",
+    "description": "19 mm Cylinder Head Bolt Socket",
+    "manufacturer": "Kent-Moore",
+    "engineFamily": "Detroit Diesel (MBE 4000 / Series 60 listings)",
+    "notes": "Kent-Moore 19mm cylinder head bolt socket",
+    "sourceUrl": "https://tillmantools.com/products/kent-moore-j-45390-detroit-diesel-19mm-cylinder-head-bolt-socket",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "J33880",
+    "description": "Injector Tube/Sleeve Reconditioning Set",
+    "manufacturer": "Kent-Moore / SPX",
+    "engineFamily": "Detroit Diesel Series 50/60",
+    "notes": "Brass injector sleeve/cup/tube remover & installer set",
+    "sourceUrl": "https://www.autotoolworld.com/Kent-Moore-Tools-J-33880-Detroit-Diesel-Fuel-Injector-SleeveCupTube-Remover-Installer-Tool-Set_p_211365.html",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "K056040",
+    "description": "ABS Modulator Valve M-40HF",
+    "manufacturer": "Bendix",
+    "engineFamily": "Heavy-duty air brake ABS",
+    "notes": "Genuine Bendix M-40HF high-flow ABS modulator; shop labeled ABS Test Valves",
+    "sourceUrl": "https://forcetruckparts.com/products/k056040-genuine-bendix%C2%AE-abs-modulator-valve-m-40hf",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "KL50000",
+    "description": "Counter Bore Re-Conditioning Tool Kit",
+    "manufacturer": "K-Line",
+    "engineFamily": "Multi-engine (adapter-dependent)",
+    "notes": "Resurfaces liner counterbore for shim inlay; adapters KL50015\u2013KL50023 etc.",
+    "sourceUrl": "https://www.klineind.com/oem-service-tools/kl50000.html",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "PT-8065",
+    "description": "Standard Top Deck Repair Bushing",
+    "manufacturer": "Detroit Diesel / Kent-Moore",
+    "engineFamily": "Series 60",
+    "notes": "Top-deck / liner-support counterbore repair bushing",
+    "sourceUrl": "https://www.apexinds.com/atc-8065-pt-8065-standard-top-deck-repair-bushing-detroit-diesel-60-series-ls-8065.html",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "1329412",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "1903066",
+    "description": "Liner Height Measurement Tool",
+    "manufacturer": "Paccar",
+    "engineFamily": "MX-11 (shop)",
+    "notes": "FinditParts: TOOL LINERHEIGHT MEASURE",
+    "sourceUrl": "https://www.finditparts.com/products/25990463/paccar-1903066",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "20142",
+    "description": "Cylinder Liner Press",
+    "manufacturer": "Monaco Tool (Cummins SST alt)",
+    "engineFamily": "L10 / M11 / ISM / ISL / C Series",
+    "notes": "Monaco 20142 Liner Press for Cummins L-10, M11, ISL & C Series",
+    "sourceUrl": "https://monacotool.com/products/liner-press-cummins-l-10-m11-c-series",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "2124314PE",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "2163519",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "2203481",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "2306436",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "2892427",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "28992210",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "3096662",
+    "description": "CELECT Plus ECM (Test ECM)",
+    "manufacturer": "Cummins",
+    "engineFamily": "CELECT Plus / N14 family (shop)",
+    "notes": "Listed as CELECT PLUS ECM; shop uses as test ECM",
+    "sourceUrl": "https://wellertruck.com/inventory/parts/electronic-control-modules/p164252986/3096662/cummins/celect-plus-ecm-cummins",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "3163054",
+    "description": "Cam Gear Remover/Installer Tool",
+    "manufacturer": "Cummins",
+    "engineFamily": "B & C Series ISB/ISC/ISL/QSC/QSL; Paccar PX8/PX9",
+    "notes": "Camshaft must be partially removed; may need additional tappet tooling",
+    "sourceUrl": "https://www.freedomracing.com/3163054-cam-gear-remover-installer-tool-cummins-b-c-series.html",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "3164659",
+    "description": "Front Crankshaft Seal Remover/Installer Kit",
+    "manufacturer": "Cummins",
+    "engineFamily": "ISB / QSB; Paccar PX-6",
+    "notes": "Typical kit pieces: 3164667, 3164661, 3164218 drill bit, screws",
+    "sourceUrl": "https://monacotool.com/products/front-crankshaft-seal-remover-installer-kit-cummins-isb-3164659",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "3164707",
+    "description": "Gear Replacer",
+    "manufacturer": "Cummins",
+    "engineFamily": "ISB fuel pump gear (shop context)",
+    "notes": "OEM shop.cummins.com: Gear Replacer",
+    "sourceUrl": "https://shop.cummins.com/SC/product/cummins-gear-replacer-3164707/01t4N0000048blkQAA",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "316508800",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "3165111",
+    "description": "Plate, Installation",
+    "manufacturer": "Cummins",
+    "engineFamily": "ISC/ISL wear sleeve installer (shop)",
+    "notes": "777parts: Plate,installation; shop kit context ISC/ISL Wear Sleeve Installer",
+    "sourceUrl": "https://777parts.com/cummins/3165111-plate-installation/p198364.html",
+    "researchStatus": "ambiguous"
+  },
+  {
+    "partNumber": "3375270",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "3376486",
+    "description": "Driver, Regulator Valve Seat",
+    "manufacturer": "Cummins",
+    "engineFamily": null,
+    "notes": "Dealer: DRIVER - REG VALVE SEAT (shop: Valve Seat Driver)",
+    "sourceUrl": "https://gkenginespares.com/product/cummins-3376486-driver-reg-valve-seat/",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "3402691",
+    "description": null,
+    "manufacturer": "Cummins (likely)",
+    "engineFamily": "CELECT Plus",
+    "notes": "Shop: Test ECM CELECT Plus; specific PN not strongly confirmed beyond inventory context",
+    "sourceUrl": null,
+    "researchStatus": "ambiguous"
+  },
+  {
+    "partNumber": "3408300",
+    "description": "CELECT Plus ECM (Test ECM)",
+    "manufacturer": "Cummins",
+    "engineFamily": "CELECT Plus / M11 (shop)",
+    "notes": "Interchanges with related CELECT Plus ECM PNs; shop test ECM",
+    "sourceUrl": "https://www.thetruckersreport.com/truckingindustryforum/threads/cummins-n14-ecm-3408300.2048049/",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "3619037",
+    "description": null,
+    "manufacturer": "Cummins (likely)",
+    "engineFamily": "CELECT Plus",
+    "notes": "Shop: Test ECM CELECT Plus; specific PN not strongly confirmed beyond inventory context",
+    "sourceUrl": null,
+    "researchStatus": "ambiguous"
+  },
+  {
+    "partNumber": "3822503",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "3823024",
+    "description": "Injector Puller",
+    "manufacturer": "Cummins",
+    "engineFamily": "L10 (shop inventory); multiple Cummins applications listed by dealers",
+    "notes": "Dealer/marketplace listings: Injector Puller 3823024",
+    "sourceUrl": "https://www.made-in-china.com/video-channel/chengduraptors_RZgGdzMAYUWT_Cummins-Injector-Puller-3823024-for-Various-Cummins-Engine.html",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "4918709",
+    "description": "Engine Crankshaft Seal Tool / Exhaust Manifold Seal Driver context",
+    "manufacturer": "Cummins",
+    "engineFamily": "ISX (shop inventory: Exhaust Manifold Seal Driver)",
+    "notes": "Dealer: Genuine Cummins Engine Crankshaft Seal Tool; shop label differs (exhaust manifold seal driver) \u2014 verify on shelf",
+    "sourceUrl": "https://firsttruckparts.com/products/4918709-genuine-cummins%C2%AE-engine-crankshaft-seal-tool",
+    "researchStatus": "ambiguous"
+  },
+  {
+    "partNumber": "4918798",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "4918989",
+    "description": "Replacer Plate",
+    "manufacturer": "Cummins",
+    "engineFamily": "ISX front crankshaft seal R&I (shop inventory)",
+    "notes": "OEM dealer: Replacer Plate",
+    "sourceUrl": "https://shop.moderngroup.com/4918989-plate-replacer/",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "4919073",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "4919588",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "5298810",
+    "description": "Exhaust Cooler Leak Test Kit",
+    "manufacturer": "Cummins",
+    "engineFamily": null,
+    "notes": "OEM: KIT, EXH COOLER LEAK TEST",
+    "sourceUrl": "https://www.dieselengines.parts/cummins-5298810-kit-exh-cooler-leak-test-original-oem-part/",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "5298903",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "5394204",
+    "description": "Diagnostic Kit",
+    "manufacturer": "Cummins",
+    "engineFamily": "X15 fuel pump test (shop inventory)",
+    "notes": "Dealer title Kit, Diagnostic; shop describes X15 Fuel Pump Test Kit",
+    "sourceUrl": "https://shop.moderngroup.com/5394204-kit-diagnostic/",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "5395203",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "5395259",
+    "description": "Rear Crankshaft Seal / Wear Sleeve Installer (spacer/component)",
+    "manufacturer": "Cummins",
+    "engineFamily": "ISB/QSB/ISL/QSC/C8.3; Paccar PX-6/PX-8",
+    "notes": "Widely listed with 3824078 / 2063800090 as rear CRS seal & wear sleeve installer set",
+    "sourceUrl": "https://www.apexinds.com/tools/M20198.html",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "5395330",
+    "description": "Crankshaft Seal Remover",
+    "manufacturer": "Cummins",
+    "engineFamily": "ISB rear (shop kit context)",
+    "notes": "OEM shop.cummins.com: Crankshaft Seal Remover",
+    "sourceUrl": "https://shop.cummins.com/SC/product/cummins-crankshaft-seal-remover-5395330/01t4N0000048iWEQAY",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "5633368",
+    "description": "Fuel Transfer / Fuel Pump Test Kit",
+    "manufacturer": "Cummins",
+    "engineFamily": null,
+    "notes": "FleetPride lists CUMMINS-FUEL TRANSFER KIT 5633368; shop inventory: Fuel Pump Test Kit",
+    "sourceUrl": "https://www.fleetpride.com/parts/cummins-fuel-transfer-tank-5633368",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "5DV008290-00",
+    "description": "Xenon HID Headlight Ballast / Control Module",
+    "manufacturer": "Hella",
+    "engineFamily": null,
+    "notes": "Same Hella ballast as 5DV 008 290-00; JB compact spelling",
+    "sourceUrl": "https://www.pro-vision-lighting.com/5DV008290-00",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "61463685970",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "6430972",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "A1-921",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "BB-86",
+    "description": "BB-86 Diesel Counterbore Tool",
+    "manufacturer": "MIRA",
+    "engineFamily": "Multi incl. Paccar MX11/MX13",
+    "notes": "Portable wet-liner counterbore reseating tool",
+    "sourceUrl": "https://www.miratool.ch/MIRA-BB-86-Counterbore-Units-for-recutting-diesel-sleeve-counterbores.php",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "EDP-16469",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "EEP D500",
+    "description": "Diesel Compression Gauge (0\u2013800 PSI)",
+    "manufacturer": "Snap-on",
+    "engineFamily": "Diesel (adapter-dependent)",
+    "notes": "Same as EEPD500; JB spacing variant",
+    "sourceUrl": "https://b2b.snapon.com/productDetails/EEPD500/2",
+    "researchStatus": "found"
+  },
+  {
+    "partNumber": "J35596",
+    "description": "Idler Gear Lash Adjuster (OEM) vs Liner Protrusion Tool (JB label)",
+    "manufacturer": "Kent-Moore",
+    "engineFamily": "Detroit Diesel Series 50/60",
+    "notes": "OEM listings emphasize idler gear lash adjuster; JB inventory says Liner Protrusion Tool",
+    "sourceUrl": "https://dpequip.net/shop/hand-tools/kent-moore-j35596-j35596a-detroit-diesel-idler-gear-lash-adjuster-j-35596-a-5120-01-322-8885/",
+    "researchStatus": "ambiguous"
+  },
+  {
+    "partNumber": "J49873PE",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  },
+  {
+    "partNumber": "SP504",
+    "description": null,
+    "manufacturer": null,
+    "engineFamily": null,
+    "notes": null,
+    "sourceUrl": null,
+    "researchStatus": "unfound"
+  }
+]

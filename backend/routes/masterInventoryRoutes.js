@@ -206,7 +206,7 @@ function registerMasterInventoryRoutes(app, deps) {
         liveCountAfter: result.liveCountAfter,
         applied: result.applied,
         skippedLocationConflict: result.plan.actions.skippedLocationConflict,
-        message: 'Fill-gaps apply complete. No live parts were deleted.',
+        message: 'Fill-gaps apply complete. TBD shelves and missing P#s were written. Location and field differences stay in JB Staging until Accept JB. No live parts were deleted.',
       });
     } catch (error) {
       res.status(500).json({ error: 'Fill-gaps apply failed', details: error.message });

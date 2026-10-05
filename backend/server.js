@@ -7,6 +7,9 @@ const path = require('path');
 const multer = require('multer');
 const DatabaseService = require('./services/DatabaseService');
 const registerMasterInventoryRoutes = require('./routes/masterInventoryRoutes');
+const registerPartEnrichmentRoutes = require('./routes/partEnrichmentRoutes');
+const registerAuditRoutes = require('./routes/auditRoutes');
+const { toPublicTransaction } = require('./services/publicTransaction');
 require('dotenv').config();
 
 // Create instance of DatabaseService
@@ -39,7 +42,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 
 // Configure multer for file uploads
 const upload = multer({
@@ -130,6 +133,15 @@ app.get('/api/parts', async (req, res) => {
   }
 });
 
+registerPartEnrichmentRoutes(app, { readParts, dbService });
+
+function cleanShopCode(value, max = 24) {
+  if (value == null) return null;
+  const text = String(value).trim().slice(0, max);
+  if (!text || !/^[A-Za-z0-9-]+$/.test(text)) return null;
+  return text;
+}
+
 // Get specific part by ID
 app.get('/api/parts/:id', async (req, res) => {
   try {
@@ -151,12 +163,29 @@ app.get('/api/parts/search/:query', async (req, res) => {
   try {
     const parts = await readParts();
     const query = req.params.query.toLowerCase();
+    const queryNorm = query.replace(/[^a-z0-9]/g, '');
     
-    const filteredParts = parts.filter(part => 
-      part.partNumber.toLowerCase().includes(query) ||
-      part.description.toLowerCase().includes(query) ||
-      part.category.toLowerCase().includes(query)
-    );
+    const filteredParts = parts.filter(part => {
+      const blob = [
+        part.partNumber,
+        part.description,
+        part.polishedDescription,
+        part.category,
+        part.shelf,
+        part.manufacturer,
+        part.vendor,
+        part.engineFamily,
+        part.notes,
+        part.specs,
+        ...(part.aliases || []),
+      ].filter(Boolean).join(' ').toLowerCase();
+      const pnNorm = String(part.partNumber || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const aliasHit = (part.aliases || []).some((alias) => {
+        const text = String(alias).toLowerCase();
+        return text.includes(query) || (queryNorm && text.replace(/[^a-z0-9]/g, '').includes(queryNorm));
+      });
+      return blob.includes(query) || aliasHit || (queryNorm && pnNorm.includes(queryNorm));
+    });
     
     res.json(filteredParts);
   } catch (error) {
@@ -167,7 +196,7 @@ app.get('/api/parts/search/:query', async (req, res) => {
 // Check out a part
 app.post('/api/parts/:id/checkout', async (req, res) => {
   try {
-    const { user, notes } = req.body;
+    const { user, notes, roNumber, unitNumber } = req.body;
     const partId = parseInt(req.params.id);
     
     if (!user) {
@@ -213,6 +242,8 @@ app.post('/api/parts/:id/checkout', async (req, res) => {
       user: user,
       timestamp: new Date().toISOString(),
       notes: notes || '',
+      roNumber: cleanShopCode(roNumber),
+      unitNumber: cleanShopCode(unitNumber),
       quantityBefore: part.quantity,
       quantityAfter: part.quantity - 1
     };
@@ -223,7 +254,7 @@ app.post('/api/parts/:id/checkout', async (req, res) => {
     res.json({ 
       success: true, 
       part: parts[partIndex], 
-      transaction: newTransaction 
+      transaction: toPublicTransaction(newTransaction) 
     });
     
   } catch (error) {
@@ -300,7 +331,10 @@ app.post('/api/parts/:id/checkin', async (req, res) => {
 app.get('/api/transactions', async (req, res) => {
   try {
     const transactions = await readTransactions();
-    res.json(transactions);
+    const publicRows = transactions
+      .map(toPublicTransaction)
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    res.json(publicRows);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch transactions' });
   }
@@ -311,7 +345,9 @@ app.get('/api/parts/:id/transactions', async (req, res) => {
   try {
     const partId = parseInt(req.params.id);
     const transactions = await readTransactions();
-    const partTransactions = transactions.filter(t => t.partId === partId);
+    const partTransactions = transactions
+      .filter(t => t.partId === partId)
+      .map(toPublicTransaction);
     res.json(partTransactions);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch part transactions' });
@@ -1116,6 +1152,8 @@ app.post('/api/import/excel', upload.single('excelFile'), async (req, res) => {
     });
   }
 });
+
+registerAuditRoutes(app, { readParts, readTransactions, dbService });
 
 registerMasterInventoryRoutes(app, {
   dbService,

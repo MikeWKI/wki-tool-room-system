@@ -1,7 +1,7 @@
 ﻿const mongoose = require('mongoose');
 const fs = require('fs').promises;
 const path = require('path');
-const { Part, Shelf, Transaction } = require('../models');
+const { Part, Shelf, Transaction, AuditBatch } = require('../models');
 
 class DatabaseService {
   constructor() {
@@ -13,6 +13,7 @@ class DatabaseService {
     this.PARTS_FILE = path.join(this.DB_DIR, 'parts.json');
     this.TRANSACTIONS_FILE = path.join(this.DB_DIR, 'transactions.json');
     this.SHELVES_FILE = path.join(this.DB_DIR, 'shelves.json');
+    this.AUDIT_BATCH_FILE = path.join(this.DB_DIR, 'audit-batches.json');
   }
   
   async initialize() {
@@ -376,6 +377,79 @@ class DatabaseService {
       console.error('Error saving shelves file:', error);
       return false;
     }
+  }
+
+  async patchPartsById(patches) {
+    if (!patches || patches.length === 0) return 0;
+    if (this.useMongoDb) {
+      const ops = patches.map((row) => ({
+        updateOne: {
+          filter: { id: row.id },
+          update: { $set: row.patch },
+        },
+      }));
+      await Part.bulkWrite(ops, { ordered: false });
+      return patches.length;
+    }
+    const parts = await this.readPartsFromFile();
+    const byId = new Map(parts.map((part) => [part.id, part]));
+    for (const row of patches) {
+      const part = byId.get(row.id);
+      if (part) Object.assign(part, row.patch);
+    }
+    await this.savePartsToFile(parts);
+    return patches.length;
+  }
+
+  async replaceBatchTransactions(batchKey, batchTransactions) {
+    if (this.useMongoDb) {
+      await Transaction.deleteMany({ batchKey });
+      if (batchTransactions.length > 0) {
+        await Transaction.insertMany(batchTransactions);
+      }
+      return batchTransactions.length;
+    }
+    const existing = await this.getTransactions();
+    const kept = existing.filter((row) => row.batchKey !== batchKey);
+    await this.saveTransactionsToFile([...batchTransactions, ...kept]);
+    return batchTransactions.length;
+  }
+
+  async getAuditBatch(batchKey) {
+    if (this.useMongoDb) {
+      const doc = await AuditBatch.findOne({ batchKey }).lean();
+      return doc || null;
+    }
+    try {
+      const raw = await fs.readFile(this.AUDIT_BATCH_FILE, 'utf8');
+      const rows = JSON.parse(raw);
+      return rows.find((row) => row.batchKey === batchKey) || null;
+    } catch (error) {
+      if (error.code === 'ENOENT') return null;
+      throw error;
+    }
+  }
+
+  async saveAuditBatch(batch) {
+    if (this.useMongoDb) {
+      await AuditBatch.findOneAndUpdate({ batchKey: batch.batchKey }, batch, {
+        upsert: true,
+        new: true,
+      });
+      return batch;
+    }
+    let rows = [];
+    try {
+      rows = JSON.parse(await fs.readFile(this.AUDIT_BATCH_FILE, 'utf8'));
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+    const index = rows.findIndex((row) => row.batchKey === batch.batchKey);
+    if (index >= 0) rows[index] = batch;
+    else rows.push(batch);
+    await fs.mkdir(this.DB_DIR, { recursive: true });
+    await fs.writeFile(this.AUDIT_BATCH_FILE, JSON.stringify(rows, null, 2));
+    return batch;
   }
 
   getDefaultShelves() {
