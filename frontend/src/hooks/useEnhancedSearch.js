@@ -243,27 +243,20 @@ export const useEnhancedSearch = (items, searchFields, initialSearchTerm = '', d
       let matchedFields = [];
 
       searchFields.forEach(field => {
-        const fieldValue = getNestedValue(item, field)?.toString().toLowerCase() || '';
-        
-        searchWords.forEach(word => {
-          if (fieldValue.includes(word)) {
-            // Exact match bonus
-            if (fieldValue === word) {
-              score += 100;
-            }
-            // Starts with bonus
-            else if (fieldValue.startsWith(word)) {
-              score += 50;
-            }
-            // Contains bonus
-            else {
-              score += 10;
-            }
-            
-            if (!matchedFields.includes(field)) {
-              matchedFields.push(field);
-            }
-          }
+        const raw = getNestedValue(item, field);
+        const values = Array.isArray(raw) ? raw : [raw];
+        values.forEach((value) => {
+          const fieldValue = value?.toString().toLowerCase() || '';
+          const normField = fieldValue.replace(/[^a-z0-9]/g, '');
+          searchWords.forEach(word => {
+            const normWord = word.replace(/[^a-z0-9]/g, '');
+            const hit = fieldValue.includes(word) || (normWord.length >= 2 && normField.includes(normWord));
+            if (!hit) return;
+            if (fieldValue === word || (normWord && normField === normWord)) score += 100;
+            else if (fieldValue.startsWith(word) || normField.startsWith(normWord)) score += 50;
+            else score += 10;
+            if (!matchedFields.includes(field)) matchedFields.push(field);
+          });
         });
       });
 

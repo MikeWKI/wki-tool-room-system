@@ -15,7 +15,26 @@ const partSchema = new mongoose.Schema({
   lastLocationChange: { type: Date, default: null },
   previousLocation: { type: String, default: null },
   lastModified: { type: Date, default: Date.now },
-  modifiedBy: { type: String, default: 'System' }
+  modifiedBy: { type: String, default: 'System' },
+  // Enrichment (additive). Unknown stays null — never invent specs.
+  polishedDescription: { type: String, default: null },
+  manufacturer: { type: String, default: null },
+  vendor: { type: String, default: null },
+  engineFamily: { type: String, default: null },
+  notes: { type: String, default: null },
+  specs: { type: String, default: null },
+  sourceUrl: { type: String, default: null },
+  lastEnrichedAt: { type: Date, default: null },
+  aliases: { type: [String], default: [] },
+  parentId: { type: Number, default: null },
+  kitComponents: {
+    type: [{
+      partNumber: { type: String, default: '' },
+      description: { type: String, default: '' },
+      qty: { type: Number, default: 1 },
+    }],
+    default: [],
+  },
 }, {
   timestamps: true,
   collection: 'parts'
@@ -75,7 +94,12 @@ const transactionSchema = new mongoose.Schema({
   toLocation: { type: String, default: null },
   fromQuantity: { type: Number, default: null },
   toQuantity: { type: Number, default: null },
-  notes: { type: String, default: '' }
+  notes: { type: String, default: '' },
+  roNumber: { type: String, default: null },
+  unitNumber: { type: String, default: null },
+  checkoutId: { type: Number, default: null },
+  // Internal batch marker for idempotent history loads. Stripped from public API responses.
+  batchKey: { type: String, default: null },
 }, {
   timestamps: true,
   collection: 'transactions'
@@ -96,14 +120,31 @@ transactionSchema.index({ timestamp: -1 });
 
 reconcileStagingSchema.index({ normalizedPartNumber: 1 }, { unique: true });
 
+partSchema.index({ engineFamily: 1 });
+transactionSchema.index({ batchKey: 1 });
+
+const auditBatchSchema = new mongoose.Schema({
+  batchKey: { type: String, required: true, unique: true },
+  transactionCount: { type: Number, default: 0 },
+  partSnapshots: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  rangeStart: { type: Date, default: null },
+  rangeEnd: { type: Date, default: null },
+  appliedAt: { type: Date, default: Date.now },
+}, {
+  timestamps: true,
+  collection: 'audit_batches',
+});
+
 const Part = mongoose.model('Part', partSchema);
 const Shelf = mongoose.model('Shelf', shelfSchema);
 const Transaction = mongoose.model('Transaction', transactionSchema);
 const ReconcileStaging = mongoose.model('ReconcileStaging', reconcileStagingSchema);
+const AuditBatch = mongoose.model('AuditBatch', auditBatchSchema);
 
 module.exports = {
   Part,
   Shelf,
   Transaction,
   ReconcileStaging,
+  AuditBatch,
 };

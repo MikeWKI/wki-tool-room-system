@@ -9,7 +9,7 @@ const MobileNavigation = ({ activeView, setActiveView, isManageUnlocked, onManag
   const navigationItems = [
     { id: 'inventory', label: 'Inventory', icon: Package },
     { id: 'master', label: 'Master', icon: Layers },
-    { id: 'history', label: 'History', icon: History },
+    { id: 'history', label: 'Audit', icon: History },
     { id: 'layout', label: 'Layout', icon: MapPin },
   ];
 
@@ -73,7 +73,7 @@ const MobileNavigation = ({ activeView, setActiveView, isManageUnlocked, onManag
                     key={item.id}
                     onClick={() => handleNavClick(item.id)}
                     className={`
-                      w-full flex items-center space-x-3 p-3 rounded-lg text-left transition-colors
+                      w-full min-h-[56px] flex items-center space-x-3 px-3 rounded-lg text-left transition-colors text-base
                       ${isActive 
                         ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' 
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -138,6 +138,36 @@ const MobileNavigation = ({ activeView, setActiveView, isManageUnlocked, onManag
           </div>
         </div>
       )}
+
+      <nav className="fixed bottom-0 inset-x-0 z-40 bg-white dark:bg-gray-900 border-t-4 border-red-700 grid grid-cols-5" aria-label="Shop floor">
+        {navigationItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeView === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => handleNavClick(item.id)}
+              className={`min-h-[64px] flex flex-col items-center justify-center text-xs font-bold ${
+                isActive ? 'text-red-700 dark:text-red-300' : 'text-gray-800 dark:text-gray-100'
+              }`}
+            >
+              <Icon className="w-6 h-6" />
+              {item.label}
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => handleNavClick('manage')}
+          className={`min-h-[64px] flex flex-col items-center justify-center text-xs font-bold ${
+            activeView === 'manage' ? 'text-red-700 dark:text-red-300' : 'text-gray-800 dark:text-gray-100'
+          }`}
+        >
+          <Settings className="w-6 h-6" />
+          Manage
+        </button>
+      </nav>
     </>
   );
 };

@@ -48,6 +48,76 @@ REACT_APP_API_URL=http://localhost:3001/api
 
 ## Deployment
 
-This application is deployed on Render:
-- Backend: [Your backend URL]
-- Frontend: [Your frontend URL]
+Render runs two services:
+
+- Frontend static site: `https://wki-tool-room-system.onrender.com`
+- API web service: `https://wki-tool-room-system-1.onrender.com` (`PORT` from the platform, bind `0.0.0.0`)
+
+Set `MANAGE_PIN` and `CAMERA_ACCESS_PASSWORD` on the API only. Do not put them in the frontend bundle. Leave `RECONCILE_APPLY_TO_LIVE=false` unless someone explicitly enables fill-gaps apply on the API. Enrichment fields are additive; existing parts stay, and unknown values stay null.
+
+## Part enrichment JSON
+
+`POST /api/parts/enrich-batch` or:
+
+```bash
+cd backend
+node scripts/load-enrichment.js ./data/enrichment.example.json
+node scripts/load-enrichment.js ./data/enrichment.json --apply
+```
+
+Shape (`items` or `parts` array). Omit a key to leave it unchanged. Use null when unknown. Do not invent specs.
+
+```json
+{
+  "items": [
+    {
+      "partNumber": "2892427",
+      "id": 123,
+      "polishedDescription": null,
+      "manufacturer": null,
+      "vendor": null,
+      "engineFamily": "Cummins",
+      "notes": null,
+      "specs": null,
+      "sourceUrl": null,
+      "aliases": ["ISX timing"],
+      "parentId": null,
+      "kitComponents": [{ "partNumber": "3164736", "description": null, "qty": 4 }]
+    }
+  ]
+}
+```
+
+`engineFamily` is one of MX, Cummins, CAT, Detroit, Allison, Paccar, General, or null. Matching is by `id` when that id exists, otherwise by part number (duplicates all update). Quantity, shelf, status, and the inventory description are ignored. Parts are never created or deleted.
+
+Coverage: `GET /api/parts/enrichment-coverage`.
+
+## Shop activity history
+
+About 95 weekdays of check-out / check-in history, America/Chicago, using the shop roster. Preview, then write. This does not delete parts. Running it again replaces only the previous activity batch.
+
+Against the Render API after deploy:
+
+```bash
+API=https://wki-tool-room-system-1.onrender.com
+curl -s -X POST "$API/api/audit/load-activity" \
+  -H 'Content-Type: application/json' \
+  -d '{"pin":"'"$MANAGE_PIN"'","confirm":false}'
+curl -s -X POST "$API/api/audit/load-activity" \
+  -H 'Content-Type: application/json' \
+  -d '{"pin":"'"$MANAGE_PIN"'","confirm":true}'
+```
+
+Or on a machine that has `MONGODB_URI`:
+
+```bash
+cd backend
+node scripts/seed-shop-activity.js
+node scripts/seed-shop-activity.js --apply
+```
+
+The Audit view filters by tech, date, part, and action. Manage also has Preview / Load history, which sends the PIN to the API.
+
+## Reconcile
+
+See `docs/RECONCILE.md`. Fill-gaps still fills TBD shelves and adds missing P#s when `RECONCILE_APPLY_TO_LIVE=true`. Location and field differences stay in JB Staging until Accept JB.

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings, Upload, Download, Share, BarChart3, Database, Camera, Eye, Shield, ExternalLink, Copy, Server, Globe, Layers, GitCompare } from 'lucide-react';
+import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings, Upload, Download, Share, BarChart3, Database, Camera, Eye, Shield, ExternalLink, Copy, Server, Globe, Layers, GitCompare } from 'lucide-react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import MobileNavigation from './components/MobileNavigation';
 import ThemeToggle from './components/ThemeToggle';
@@ -7,6 +7,12 @@ import ExcelUpload from './components/ExcelUpload';
 import LocationManager from './components/LocationManager';
 import MasterInventory from './components/MasterInventory';
 import ReconcileInventory from './components/ReconcileInventory';
+import AuditLog from './components/AuditLog';
+import EngineFamilyChips from './components/EngineFamilyChips';
+import PartEnrichmentDetails from './components/PartEnrichmentDetails';
+import EnrichmentLoader from './components/EnrichmentLoader';
+import ActivityHistoryPanel from './components/ActivityHistoryPanel';
+import { matchesEngineFamilyChip } from './utils/masterInventoryLocation';
 import AdvancedFilters from './components/AdvancedFilters';
 import InventoryReports from './components/InventoryReports';
 import DataManagement from './components/DataManagement';
@@ -67,7 +73,13 @@ const CameraFeed = ({ camera, onOpenCamera, onCopyUrl }) => {
 
 const InventorySystem = () => {
   const [selectedPart, setSelectedPart] = useState(null);
-  const [currentUser, setCurrentUser] = useState('');
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      return localStorage.getItem('wki-tech-name') || '';
+    } catch (err) {
+      return '';
+    }
+  });
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showCheckinModal, setShowCheckinModal] = useState(false);
   const [activeView, setActiveView] = useState('inventory');
@@ -117,10 +129,20 @@ const InventorySystem = () => {
   // Enhanced Search Implementation (after inventory is declared)
   const enhancedSearch = useEnhancedSearch(
     inventory, 
-    ['partNumber', 'description', 'category', 'shelf'],
+    ['partNumber', 'description', 'polishedDescription', 'category', 'shelf', 'manufacturer', 'vendor', 'engineFamily', 'notes', 'specs', 'aliases'],
     '',
     300
   );
+
+  const rememberTech = (name) => {
+    const trimmed = (name || '').trim();
+    setCurrentUser(trimmed);
+    try {
+      if (trimmed) localStorage.setItem('wki-tech-name', trimmed);
+    } catch (err) {
+      // ignore private-mode storage failures
+    }
+  };
 
   // Easter Egg State
   const [logoClickCount, setLogoClickCount] = useState(0);
@@ -137,6 +159,7 @@ const InventorySystem = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filteredInventory, setFilteredInventory] = useState([]);
   const [activeFilters, setActiveFilters] = useState({});
+  const [engineFamilyChip, setEngineFamilyChip] = useState('All');
 
   // Reports State
   const [showReports, setShowReports] = useState(false);
@@ -718,6 +741,11 @@ const InventorySystem = () => {
     return enhancedSearch.filteredItems;
   }, [enhancedSearch.filteredItems, filteredInventory, activeFilters]);
 
+  const visibleInventory = useMemo(
+    () => displayInventory.filter((part) => matchesEngineFamilyChip(part, engineFamilyChip)),
+    [displayInventory, engineFamilyChip]
+  );
+
   // Handle category selection from category browser
   const handleCategorySelect = useCallback((categoryName) => {
     // Set active filter for the selected category
@@ -799,8 +827,9 @@ const InventorySystem = () => {
     return null;
   };
 
-  const handleCheckout = async (notes = '') => {
+  const handleCheckout = async (details = '') => {
     if (!selectedPart || !currentUser) return;
+    const payload = typeof details === 'string' ? { notes: details } : (details || {});
 
     try {
       setLoading(true);
@@ -808,7 +837,9 @@ const InventorySystem = () => {
         method: 'POST',
         body: JSON.stringify({
           user: currentUser,
-          notes: notes
+          notes: payload.notes || '',
+          roNumber: payload.roNumber || '',
+          unitNumber: payload.unitNumber || '',
         })
       });
 
@@ -1088,6 +1119,8 @@ const InventorySystem = () => {
 
   const CheckoutModal = () => {
     const [notes, setNotes] = useState('');
+    const [roNumber, setRoNumber] = useState('');
+    const [unitNumber, setUnitNumber] = useState('');
     const [userName, setUserName] = useState(currentUser || '');
     
     return (
@@ -1115,9 +1148,25 @@ const InventorySystem = () => {
               type="text"
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full min-h-[56px] p-3 text-lg border-2 border-gray-400 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-600"
               placeholder="Enter your name"
               required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <input
+              type="text"
+              value={roNumber}
+              onChange={(e) => setRoNumber(e.target.value)}
+              className="min-h-[56px] p-3 border-2 border-gray-400 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="RO #"
+            />
+            <input
+              type="text"
+              value={unitNumber}
+              onChange={(e) => setUnitNumber(e.target.value)}
+              className="min-h-[56px] p-3 border-2 border-gray-400 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="Unit #"
             />
           </div>
           <div className="mb-4">
@@ -1127,21 +1176,21 @@ const InventorySystem = () => {
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full p-3 border-2 border-gray-400 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-600"
               rows="3"
-              placeholder="Reason for checkout, truck number, etc."
+              placeholder="Bay, complaint, or truck"
             />
           </div>
           <div className="flex space-x-3">
             <button
               onClick={() => {
                 if (userName.trim()) {
-                  setCurrentUser(userName.trim());
-                  handleCheckout(notes);
+                  rememberTech(userName.trim());
+                  handleCheckout({ notes, roNumber, unitNumber });
                 }
               }}
               disabled={loading || !userName.trim()}
-              className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
+              className="flex-1 min-h-[56px] bg-red-700 text-white px-4 rounded-lg hover:bg-red-800 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center text-lg font-bold"
             >
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Confirm Checkout'}
             </button>
@@ -1208,12 +1257,12 @@ const InventorySystem = () => {
             <button
               onClick={() => {
                 if (userName.trim()) {
-                  setCurrentUser(userName.trim());
+                  rememberTech(userName.trim());
                   handleCheckin(notes);
                 }
               }}
               disabled={loading || !userName.trim()}
-              className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
+              className="flex-1 min-h-[56px] bg-green-700 text-white px-4 rounded-lg hover:bg-green-800 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center text-lg font-bold"
             >
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Confirm Check In'}
             </button>
@@ -2224,71 +2273,18 @@ const InventorySystem = () => {
     );
   };
 
-  const TransactionList = () => (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Recent Transactions</h2>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={fetchTransactions}
-            disabled={loading}
-            className="p-2 text-gray-400 hover:text-gray-600"
-          >
-            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-          <History className="w-6 h-6 text-gray-400" />
-        </div>
-      </div>
-      <div className="space-y-3 max-h-96 overflow-y-auto">
-        {transactionHistory.map((transaction) => (
-          <div key={transaction.id} className="border border-gray-200 rounded-lg p-4">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <div className="flex items-center space-x-2 mb-1">
-                  {transaction.action === 'checkout' ? (
-                    <Minus className="w-4 h-4 text-red-500" />
-                  ) : (
-                    <Plus className="w-4 h-4 text-green-500" />
-                  )}
-                  <span className="font-medium">{transaction.partNumber}</span>
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    transaction.action === 'checkout' 
-                      ? 'bg-red-100 text-red-800' 
-                      : 'bg-green-100 text-green-800'
-                  }`}>
-                    {transaction.action}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600 mb-1">User: {transaction.user}</p>
-                <p className="text-xs text-gray-500">
-                  {new Date(transaction.timestamp).toLocaleString()}
-                </p>
-                {transaction.quantityBefore !== undefined && (
-                  <p className="text-xs text-gray-500">
-                    Quantity: {transaction.quantityBefore} → {transaction.quantityAfter}
-                  </p>
-                )}
-                {transaction.notes && (
-                  <p className="text-sm text-gray-700 mt-2 italic">"{transaction.notes}"</p>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-        {transactionHistory.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>No transactions recorded yet.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
   // Manage Inventory View
   const ManageInventoryView = () => (
     <div className="space-y-6">
       <ReconcileInventory apiCall={apiCall} currentUser={currentUser} />
+      <ActivityHistoryPanel
+        apiCall={apiCall}
+        onLoaded={() => {
+          fetchTransactions();
+          fetchParts();
+        }}
+      />
+      <EnrichmentLoader apiCall={apiCall} onLoaded={fetchParts} />
 
       {/* Add Part Button */}
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -3212,7 +3208,7 @@ const InventorySystem = () => {
               <div className="flex space-x-1 lg:space-x-2">
                 <button
                   onClick={() => setActiveView('inventory')}
-                  className={`px-3 lg:px-4 py-2 rounded-lg transition-colors ${
+                  className={`min-h-[56px] px-3 lg:px-4 py-2 rounded-lg transition-colors ${
                     activeView === 'inventory' 
                       ? 'bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 font-medium' 
                       : 'text-red-100 hover:bg-red-600 hover:text-white'
@@ -3226,7 +3222,7 @@ const InventorySystem = () => {
 
                 <button
                   onClick={() => setActiveView('master')}
-                  className={`px-3 lg:px-4 py-2 rounded-lg transition-colors ${
+                  className={`min-h-[56px] px-3 lg:px-4 py-2 rounded-lg transition-colors ${
                     activeView === 'master'
                       ? 'bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 font-medium'
                       : 'text-red-100 hover:bg-red-600 hover:text-white'
@@ -3240,7 +3236,7 @@ const InventorySystem = () => {
                 
                 <button
                   onClick={() => setActiveView('history')}
-                  className={`px-3 lg:px-4 py-2 rounded-lg transition-colors ${
+                  className={`min-h-[56px] px-3 lg:px-4 py-2 rounded-lg transition-colors ${
                     activeView === 'history' 
                       ? 'bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 font-medium' 
                       : 'text-red-100 hover:bg-red-600 hover:text-white'
@@ -3248,13 +3244,13 @@ const InventorySystem = () => {
                 >
                   <div className="flex items-center space-x-2">
                     <History className="w-4 h-4 lg:w-5 lg:h-5" />
-                    <span className="hidden lg:inline">History</span>
+                    <span className="hidden lg:inline">Audit</span>
                   </div>
                 </button>
                 
                 <button
                   onClick={() => setActiveView('layout')}
-                  className={`px-3 lg:px-4 py-2 rounded-lg transition-colors ${
+                  className={`min-h-[56px] px-3 lg:px-4 py-2 rounded-lg transition-colors ${
                     activeView === 'layout' 
                       ? 'bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 font-medium' 
                       : 'text-red-100 hover:bg-red-600 hover:text-white'
@@ -3268,7 +3264,7 @@ const InventorySystem = () => {
                 
                 <button
                   onClick={handleManageClick}
-                  className={`px-3 lg:px-4 py-2 rounded-lg transition-colors ${
+                  className={`min-h-[56px] px-3 lg:px-4 py-2 rounded-lg transition-colors ${
                     activeView === 'manage' 
                       ? 'bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 font-medium' 
                       : 'text-red-100 hover:bg-red-600 hover:text-white'
@@ -3407,7 +3403,10 @@ const InventorySystem = () => {
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Parts List Panel */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 lg:w-1/2 flex flex-col">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Parts Inventory</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Parts Inventory</h2>
+              <div className="mb-3">
+                <EngineFamilyChips value={engineFamilyChip} onChange={setEngineFamilyChip} />
+              </div>
               
               {/* Loading indicator */}
               {loading && (
@@ -3418,14 +3417,14 @@ const InventorySystem = () => {
               )}
 
               {/* Parts List */}
-              <div className="space-y-3 h-[500px] overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg p-3">
-                {displayInventory.length === 0 && !loading ? (
+              <div className="space-y-3 max-h-[70vh] overflow-y-auto border-2 border-gray-300 dark:border-gray-600 rounded-lg p-3">
+                {visibleInventory.length === 0 && !loading ? (
                   <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                     <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p>No parts found matching your search.</p>
                   </div>
                 ) : (
-                  displayInventory.map((part) => (
+                  visibleInventory.map((part) => (
                     <div
                       key={part.id}
                       className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
@@ -3439,8 +3438,8 @@ const InventorySystem = () => {
                         <div className="flex-1">
                           <div className="flex items-start space-x-3">
                             <div className="flex-1">
-                              <h3 className="font-semibold text-gray-900 dark:text-gray-100">{part.partNumber}</h3>
-                              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">{part.description}</p>
+                              <h3 className="text-lg font-bold text-gray-900 dark:text-white">{part.partNumber}</h3>
+                              <p className="text-gray-800 dark:text-gray-100 text-base mt-1">{part.polishedDescription || part.description}</p>
                               <div className="flex items-center mt-2 text-sm text-gray-500 dark:text-gray-400">
                                 <MapPin className="w-4 h-4 mr-1" />
                                 <span>Shelf: {part.shelf}</span>
@@ -3519,7 +3518,8 @@ const InventorySystem = () => {
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                       {selectedPart.partNumber}
                     </h2>
-                    <p className="text-gray-600 dark:text-gray-300 text-lg">{selectedPart.description}</p>
+                    <p className="text-gray-900 dark:text-gray-100 text-lg">{selectedPart.description}</p>
+                    <PartEnrichmentDetails part={selectedPart} />
                     <div className="flex items-center mt-3 text-red-600 dark:text-red-400">
                       <MapPin className="w-5 h-5 mr-2" />
                       <span className="font-semibold">
@@ -3612,7 +3612,7 @@ const InventorySystem = () => {
                         <button
                           onClick={() => setShowCheckoutModal(true)}
                           disabled={selectedPart.quantity <= 0 || loading}
-                          className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                          className="w-full min-h-[56px] bg-red-700 text-white px-4 rounded-lg hover:bg-red-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-lg font-bold"
                         >
                           {selectedPart.quantity <= 0 ? 'Out of stock' : 'Check Out Part'}
                         </button>
@@ -3620,7 +3620,7 @@ const InventorySystem = () => {
                         <button
                           onClick={() => setShowCheckinModal(true)}
                           disabled={loading}
-                          className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                          className="w-full min-h-[56px] bg-green-700 text-white px-4 rounded-lg hover:bg-green-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-lg font-bold"
                         >
                           Check In Part
                         </button>
@@ -3695,7 +3695,11 @@ const InventorySystem = () => {
             </div>
           </div>
         ) : activeView === 'history' ? (
-          <TransactionList />
+          <AuditLog
+            transactions={transactionHistory}
+            onRefresh={fetchTransactions}
+            loading={loading}
+          />
         ) : activeView === 'layout' ? (
           <LayoutReferenceView />
         ) : activeView === 'manage' && isManageUnlocked ? (
@@ -3858,7 +3862,31 @@ const InventorySystem = () => {
       )}
 
       {/* Footer */}
-      <footer className="bg-gray-800 dark:bg-gray-900 text-white mt-auto">
+      {appInitialized && activeView === 'inventory' && selectedPart && (
+        <div className="md:hidden fixed bottom-16 inset-x-0 z-30 px-3 pb-2">
+          {selectedPart.status === 'available' ? (
+            <button
+              type="button"
+              onClick={() => setShowCheckoutModal(true)}
+              disabled={selectedPart.quantity <= 0 || loading}
+              className="w-full min-h-[56px] rounded-lg bg-red-700 text-white text-lg font-bold shadow-lg disabled:bg-gray-400"
+            >
+              Check out {selectedPart.partNumber}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowCheckinModal(true)}
+              disabled={loading}
+              className="w-full min-h-[56px] rounded-lg bg-green-700 text-white text-lg font-bold shadow-lg"
+            >
+              Check in {selectedPart.partNumber}
+            </button>
+          )}
+        </div>
+      )}
+
+      <footer className="bg-gray-800 dark:bg-gray-900 text-white mt-auto pb-20 md:pb-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between">
             {/* Left side - Company info */}
@@ -3909,7 +3937,7 @@ const InventorySystem = () => {
 
       {/* Mobile Install Prompt */}
       {showInstallPrompt && !isInstalled && (
-        <div className="md:hidden fixed bottom-4 left-4 right-4 z-50 bg-red-600 text-white p-4 rounded-lg shadow-lg">
+        <div className="md:hidden fixed bottom-24 left-4 right-4 z-50 bg-red-700 text-white p-4 rounded-lg shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Download className="w-5 h-5" />

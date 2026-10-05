@@ -47,22 +47,29 @@ export function resolvePartLocationId(shelfValue, category = '', locations = [])
   return null;
 }
 
+export const ENGINE_FAMILIES = ['MX', 'Cummins', 'CAT', 'Detroit', 'Allison', 'Paccar', 'General'];
+
+export const ENGINE_FAMILY_CHIPS = ['All', ...ENGINE_FAMILIES];
+
 export function engineFamilyFromCategory(category) {
-  const c = String(category || '').toLowerCase();
-  if (c.includes('mx') || c.includes('paccar')) return 'MX / Paccar';
-  if (c.includes('cummins')) return 'Cummins';
-  if (c.includes('cat')) return 'CAT';
-  if (c.includes('detroit')) return 'Detroit';
-  if (c.includes('allison') || c.includes('transmission')) return 'Allison / Trans';
-  return 'General';
+  const text = String(category || '').toLowerCase();
+  if (text.includes('mx')) return 'MX';
+  if (text.includes('paccar')) return 'Paccar';
+  if (text.includes('cummins')) return 'Cummins';
+  if (text.includes('detroit')) return 'Detroit';
+  if (text.includes('allison')) return 'Allison';
+  if (/\bcat\b/.test(text) || text.includes('caterpillar')) return 'CAT';
+  return null;
 }
 
-export const ENGINE_FAMILY_CHIPS = [
-  'All',
-  'MX / Paccar',
-  'Cummins',
-  'CAT',
-  'Detroit',
-  'Allison / Trans',
-  'General',
-];
+export function resolveEngineFamily(part) {
+  if (part && ENGINE_FAMILIES.includes(part.engineFamily)) return part.engineFamily;
+  return engineFamilyFromCategory(part?.category) || engineFamilyFromCategory(part?.description);
+}
+
+export function matchesEngineFamilyChip(part, chip) {
+  if (!chip || chip === 'All') return true;
+  const resolved = resolveEngineFamily(part);
+  if (chip === 'General') return resolved === 'General' || resolved == null;
+  return resolved === chip;
+}

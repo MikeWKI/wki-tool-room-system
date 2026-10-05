@@ -1,9 +1,9 @@
 const {
   normalizePartNumber,
-  resolvePartLocationId,
   isSyntheticJbPartNumber,
+  resolvePartLocationId,
 } = require('../data/masterInventoryLayout');
-const { reconcileJbWithLive, loadJbInventory } = require('./inventoryReconcile');
+const { reconcileJbWithLive } = require('./inventoryReconcile');
 
 const IMPORT_STRATEGY = 'fill-gaps';
 
@@ -27,8 +27,70 @@ function stagingDecisionFor(stagingIndex, norm) {
   return stagingIndex.get(norm)?.decision || null;
 }
 
+function textDiff(a, b) {
+  return String(a ?? '').trim() !== String(b ?? '').trim();
+}
+
+/**
+ * Fields that must not be written to live unless staging decision is accept_jb.
+ * TBD / empty / unmapped shelf fills are the fill-gaps exception.
+ */
+function reviewFieldsFor(row, live, jb, { locationConflict, tbd }) {
+  const fields = [];
+  const shelfDiff = jb.shelf && textDiff(jb.shelf, live.shelf);
+  if (locationConflict || (shelfDiff && !tbd)) {
+    fields.push('shelf');
+  }
+  for (const diff of row.diffs || []) {
+    if (diff.field === 'shelf') continue;
+    if (!fields.includes(diff.field)) fields.push(diff.field);
+  }
+  return fields;
+}
+
+function acceptedFieldPatch(jb, live) {
+  const patch = {};
+  if (jb.description && textDiff(jb.description, live.description)) {
+    patch.description = jb.description;
+  }
+  if (jb.category && textDiff(jb.category, live.category)) {
+    patch.category = jb.category;
+  }
+  if (jb.quantity != null && Number(jb.quantity) !== Number(live.quantity)) {
+    patch.quantity = Number(jb.quantity);
+  }
+  return patch;
+}
+
+function pushJbStaging(actions, row, reason, fields) {
+  const location = reason === 'location_conflict';
+  actions.jbStaging.push({
+    partNumber: row.partNumber,
+    liveId: row.live.id,
+    reason,
+    fields,
+    live: {
+      description: row.live.description,
+      shelf: row.live.shelf,
+      category: row.live.category,
+      quantity: row.live.quantity,
+    },
+    jb: {
+      description: row.jb.description,
+      shelf: row.jb.shelf,
+      category: row.jb.category,
+      quantity: row.jb.quantity,
+    },
+    message: location
+      ? 'Location conflict stays in JB Staging until Accept JB. Fill-gaps will not move this shelf.'
+      : 'Field differences stay in JB Staging until Accept JB. Fill-gaps will not overwrite these fields.',
+  });
+}
+
 /**
  * Compute fill-gaps plan (no writes).
+ * Strategy name stays fill-gaps. JB Staging is the existing accept_jb review path,
+ * not a separate import strategy.
  */
 function planFillGapsApply(parts, stagingRecords = []) {
   const report = reconcileJbWithLive(parts);
@@ -41,6 +103,7 @@ function planFillGapsApply(parts, stagingRecords = []) {
     skippedStaging: [],
     skippedDuplicateLive: [],
     unchanged: [],
+    jbStaging: [],
   };
 
   for (const row of report.matched) {
@@ -48,6 +111,7 @@ function planFillGapsApply(parts, stagingRecords = []) {
     const decision = stagingDecisionFor(stagingIndex, norm);
     const live = row.live;
     const jb = row.jb;
+    const acceptedJb = decision === 'accept_jb';
 
     if (decision === 'skip' || decision === 'accept_live') {
       actions.skippedStaging.push({
@@ -57,48 +121,51 @@ function planFillGapsApply(parts, stagingRecords = []) {
       continue;
     }
 
-    const shelfJb = jb.shelf;
     const tbd = isShelfTbdOrMissing(live);
-    const locationConflict =
-      row.locationMismatch && !tbd;
+    const locationConflict = row.locationMismatch && !tbd;
+    const shelfJb = jb.shelf;
+    const shelfDiff = Boolean(shelfJb && textDiff(shelfJb, live.shelf));
+    const fields = reviewFieldsFor(row, live, jb, { locationConflict, tbd });
 
-    if (locationConflict && decision !== 'accept_jb') {
+    if (locationConflict && !acceptedJb) {
       actions.skippedLocationConflict.push({
         partNumber: row.partNumber,
         liveShelf: live.shelf,
         jbShelf: shelfJb,
-        message: 'Non-TBD shelf differs from JB; requires staging accept_jb',
+        message: 'Non-TBD shelf differs from JB; requires JB Staging accept_jb',
       });
+      pushJbStaging(actions, row, 'location_conflict', fields.length ? fields : ['shelf']);
       continue;
     }
 
-    const patch = {};
-    if (tbd || locationConflict) {
-      if (shelfJb && shelfJb !== live.shelf) {
-        patch.shelf = shelfJb;
-      }
+    if (!acceptedJb && fields.length > 0) {
+      pushJbStaging(actions, row, 'field_diff', fields);
     }
 
-    if (decision === 'accept_jb') {
-      if (jb.description && jb.description !== live.description) {
-        patch.description = jb.description;
-      }
-      if (jb.category && jb.category !== live.category) {
-        patch.category = jb.category;
-      }
-      if (
-        jb.quantity != null &&
-        Number(jb.quantity) !== Number(live.quantity)
-      ) {
-        patch.quantity = Number(jb.quantity);
-      }
-      if (shelfJb && shelfJb !== live.shelf && !patch.shelf) {
-        patch.shelf = shelfJb;
-      }
+    const patch = {};
+    if (tbd && shelfDiff && !locationConflict) {
+      patch.shelf = shelfJb;
+    }
+
+    let fieldPatch = {};
+    if (acceptedJb) {
+      fieldPatch = acceptedFieldPatch(jb, live);
+      if (shelfDiff) patch.shelf = shelfJb;
+      Object.assign(patch, fieldPatch);
+    }
+
+    if (!acceptedJb) {
+      delete patch.description;
+      delete patch.category;
+      delete patch.quantity;
+      if (!tbd) delete patch.shelf;
     }
 
     if (Object.keys(patch).length === 0) {
-      actions.unchanged.push({ partNumber: row.partNumber });
+      const held = actions.jbStaging.some(
+        (item) => item.partNumber === row.partNumber && item.liveId === live.id
+      );
+      if (!held) actions.unchanged.push({ partNumber: row.partNumber });
       continue;
     }
 
@@ -108,18 +175,20 @@ function planFillGapsApply(parts, stagingRecords = []) {
         liveId: live.id,
         from: live.shelf,
         to: patch.shelf,
-        autoTbd: tbd,
-        acceptedJb: decision === 'accept_jb',
+        autoTbd: tbd && !locationConflict,
+        acceptedJb,
       });
     }
 
-    const fieldPatch = { ...patch };
-    delete fieldPatch.shelf;
-    if (Object.keys(fieldPatch).length > 0) {
+    const onlyFields = { ...patch };
+    delete onlyFields.shelf;
+    if (Object.keys(onlyFields).length > 0) {
+      if (!acceptedJb) continue;
       actions.updateFieldsFromJb.push({
         partNumber: row.partNumber,
         liveId: live.id,
-        patch: fieldPatch,
+        patch: onlyFields,
+        acceptedJb: true,
       });
     }
   }
@@ -146,6 +215,23 @@ function planFillGapsApply(parts, stagingRecords = []) {
 
   return {
     strategy: IMPORT_STRATEGY,
+    reviewPath: 'jb-staging',
+    policy: {
+      strategy: IMPORT_STRATEGY,
+      autoOnApply: [
+        'Fill TBD, empty, or unmapped shelves from JB',
+        'Add JB part numbers that are missing live (NOPN rows are not added)',
+      ],
+      jbStagingRequired: [
+        'Non-TBD location conflicts',
+        'Description, category, and quantity differences',
+        'Any other non-TBD shelf difference',
+      ],
+      never: [
+        'Delete live parts',
+        'Overwrite conflicting fields without Accept JB in staging',
+      ],
+    },
     meta: report.meta,
     counts: {
       updateShelfFromJb: actions.updateShelfFromJb.length,
@@ -154,6 +240,7 @@ function planFillGapsApply(parts, stagingRecords = []) {
       skippedLocationConflict: actions.skippedLocationConflict.length,
       skippedStaging: actions.skippedStaging.length,
       unchanged: actions.unchanged.length,
+      jbStaging: actions.jbStaging.length,
     },
     actions,
   };
@@ -164,6 +251,7 @@ function applyFillGapsToParts(parts, stagingRecords, appliedBy = 'Reconcile fill
   const partsCopy = parts.map((p) => ({ ...p }));
   const byId = new Map(partsCopy.map((p) => [p.id, p]));
   let nextId = Math.max(0, ...partsCopy.map((p) => p.id || 0)) + 1;
+  const originalIds = new Set(parts.map((p) => p.id));
 
   const applied = {
     shelvesUpdated: 0,
@@ -175,7 +263,6 @@ function applyFillGapsToParts(parts, stagingRecords, appliedBy = 'Reconcile fill
   const applyPatch = (liveId, patch, partNumber) => {
     const part = byId.get(liveId);
     if (!part) return;
-    const before = { ...part };
     let touched = false;
     if (patch.shelf && patch.shelf !== part.shelf) {
       part.previousLocation = part.shelf;
@@ -200,25 +287,26 @@ function applyFillGapsToParts(parts, stagingRecords, appliedBy = 'Reconcile fill
     part.lastModified = new Date().toISOString();
     part.modifiedBy = appliedBy;
     applied.fieldsUpdated += 1;
-    applied.details.push({ partNumber, before, after: { ...part } });
+    applied.details.push({ partNumber, id: liveId });
   };
 
   for (const row of plan.actions.updateShelfFromJb) {
+    if (!row.autoTbd && !row.acceptedJb) continue;
     applyPatch(row.liveId, { shelf: row.to }, row.partNumber);
   }
 
   for (const row of plan.actions.updateFieldsFromJb) {
-    applyPatch(row.liveId, row.patch, row.partNumber);
+    if (!row.acceptedJb) continue;
+    const safe = { ...row.patch };
+    delete safe.shelf;
+    applyPatch(row.liveId, safe, row.partNumber);
   }
 
   for (const row of plan.actions.addFromJb) {
     const exists = partsCopy.some(
-      (p) =>
-        normalizePartNumber(p.partNumber) === normalizePartNumber(row.partNumber)
+      (p) => normalizePartNumber(p.partNumber) === normalizePartNumber(row.partNumber)
     );
-    if (exists) {
-      continue;
-    }
+    if (exists) continue;
     const newPart = {
       id: nextId++,
       partNumber: row.partNumber,
@@ -237,6 +325,15 @@ function applyFillGapsToParts(parts, stagingRecords, appliedBy = 'Reconcile fill
     byId.set(newPart.id, newPart);
     applied.partsAdded += 1;
     applied.details.push({ added: newPart.partNumber, id: newPart.id });
+  }
+
+  for (const id of originalIds) {
+    if (!byId.has(id)) {
+      throw new Error('fill-gaps refused to remove a live part');
+    }
+  }
+  if (partsCopy.length < parts.length) {
+    throw new Error('fill-gaps refused to shrink inventory');
   }
 
   return {

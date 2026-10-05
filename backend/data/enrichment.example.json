@@ -1,0 +1,17 @@
+{
+  "items": [
+    {
+      "partNumber": "EXAMPLE-PNUM",
+      "polishedDescription": null,
+      "manufacturer": null,
+      "vendor": null,
+      "engineFamily": null,
+      "notes": null,
+      "specs": null,
+      "sourceUrl": null,
+      "aliases": [],
+      "parentId": null,
+      "kitComponents": []
+    }
+  ]
+}
