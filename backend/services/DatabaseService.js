@@ -401,17 +401,27 @@ class DatabaseService {
     return patches.length;
   }
 
-  async replaceBatchTransactions(batchKey, batchTransactions) {
+  async replaceBatchTransactions(batchKey, batchTransactions, keptTransactions) {
+    const kept = Array.isArray(keptTransactions) ? keptTransactions : null;
     if (this.useMongoDb) {
       await Transaction.deleteMany({ batchKey });
       if (batchTransactions.length > 0) {
         await Transaction.insertMany(batchTransactions);
       }
+      if (kept && kept.length > 0) {
+        const ops = kept.map((row) => ({
+          updateOne: {
+            filter: { id: row.id },
+            update: { $set: { user: row.user } },
+          },
+        }));
+        await Transaction.bulkWrite(ops, { ordered: false });
+      }
       return batchTransactions.length;
     }
     const existing = await this.getTransactions();
-    const kept = existing.filter((row) => row.batchKey !== batchKey);
-    await this.saveTransactionsToFile([...batchTransactions, ...kept]);
+    const keptRows = kept || existing.filter((row) => row.batchKey !== batchKey);
+    await this.saveTransactionsToFile([...batchTransactions, ...keptRows]);
     return batchTransactions.length;
   }
 

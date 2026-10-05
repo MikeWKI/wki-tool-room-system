@@ -34,8 +34,8 @@ const ActivityHistoryPanel = ({ apiCall, onLoaded }) => {
     <section className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6">
       <h2 className="text-xl font-bold text-gray-900 dark:text-white">Load shop activity</h2>
       <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 max-w-3xl">
-        Builds about 95 days of check-out and check-in history from the current parts list.
-        Live parts are not deleted. Run a preview first. The server checks MANAGE_PIN.
+        Replaces the shop activity batch with about 95 days of check-out and check-in history for the current short roster.
+        Leftover rows and checked-out parts that still name someone else are reassigned. Live parts are not deleted. Run a preview first. The server checks MANAGE_PIN.
       </p>
       <label className="block mt-4 text-sm font-semibold text-gray-900 dark:text-white">
         Manage PIN
