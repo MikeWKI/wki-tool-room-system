@@ -295,10 +295,20 @@ class DatabaseService {
         const shelves = await Shelf.find({}).lean();
         const shelvesObj = {};
         shelves.forEach(shelf => {
+          const { shelfId, name, imageUrl, description, section, area, locationType,
+            shelfNumber, canonicalLabel, aliases, sortOrder, ...rest } = shelf;
           shelvesObj[shelf.shelfId] = {
-            name: shelf.name,
-            imageUrl: shelf.imageUrl,
-            description: shelf.description
+            name,
+            imageUrl,
+            description,
+            section,
+            area,
+            locationType,
+            shelfNumber,
+            canonicalLabel,
+            aliases,
+            sortOrder,
+            ...rest,
           };
         });
         return shelvesObj;
@@ -335,7 +345,14 @@ class DatabaseService {
           shelfId: id,
           name: shelfData.name,
           imageUrl: shelfData.imageUrl,
-          description: shelfData.description
+          description: shelfData.description,
+          section: shelfData.section,
+          area: shelfData.area,
+          locationType: shelfData.locationType,
+          shelfNumber: shelfData.shelfNumber,
+          canonicalLabel: shelfData.canonicalLabel,
+          aliases: shelfData.aliases,
+          sortOrder: shelfData.sortOrder,
         }));
         if (shelfDocs.length > 0) {
           await Shelf.insertMany(shelfDocs);

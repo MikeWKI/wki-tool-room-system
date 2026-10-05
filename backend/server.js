@@ -6,6 +6,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const multer = require('multer');
 const DatabaseService = require('./services/DatabaseService');
+const registerMasterInventoryRoutes = require('./routes/masterInventoryRoutes');
 require('dotenv').config();
 
 // Create instance of DatabaseService
@@ -1114,6 +1115,13 @@ app.post('/api/import/excel', upload.single('excelFile'), async (req, res) => {
       details: error.message 
     });
   }
+});
+
+registerMasterInventoryRoutes(app, {
+  dbService,
+  readParts,
+  readShelves,
+  writeShelves,
 });
 
 // Health check endpoint

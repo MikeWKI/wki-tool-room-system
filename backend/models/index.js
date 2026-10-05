@@ -26,10 +26,37 @@ const shelfSchema = new mongoose.Schema({
   shelfId: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   description: { type: String, default: '' },
-  imageUrl: { type: String, default: null }
+  imageUrl: { type: String, default: null },
+  section: { type: Number, default: null },
+  area: { type: String, default: '' },
+  locationType: { type: String, default: 'shelf' },
+  shelfNumber: { type: Number, default: null },
+  canonicalLabel: { type: String, default: '' },
+  aliases: { type: [String], default: [] },
+  sortOrder: { type: Number, default: 0 },
 }, {
   timestamps: true,
   collection: 'shelves'
+});
+
+// Reconcile staging — draft accept/skip decisions; never mutates live parts directly
+const reconcileStagingSchema = new mongoose.Schema({
+  partNumber: { type: String, required: true },
+  normalizedPartNumber: { type: String, required: true, index: true },
+  decision: {
+    type: String,
+    enum: ['accept_jb', 'accept_live', 'skip'],
+    required: true,
+  },
+  status: { type: String, enum: ['draft'], default: 'draft' },
+  acceptedBy: { type: String, default: 'System' },
+  jbSnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
+  liveSnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
+  proposedChanges: { type: mongoose.Schema.Types.Mixed, default: null },
+  notes: { type: String, default: '' },
+}, {
+  timestamps: true,
+  collection: 'reconcile_staging',
 });
 
 // Transaction Schema
@@ -67,12 +94,16 @@ transactionSchema.index({ partId: 1 });
 transactionSchema.index({ action: 1 });
 transactionSchema.index({ timestamp: -1 });
 
+reconcileStagingSchema.index({ normalizedPartNumber: 1 }, { unique: true });
+
 const Part = mongoose.model('Part', partSchema);
 const Shelf = mongoose.model('Shelf', shelfSchema);
 const Transaction = mongoose.model('Transaction', transactionSchema);
+const ReconcileStaging = mongoose.model('ReconcileStaging', reconcileStagingSchema);
 
 module.exports = {
   Part,
   Shelf,
-  Transaction
+  Transaction,
+  ReconcileStaging,
 };

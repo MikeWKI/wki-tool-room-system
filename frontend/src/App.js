@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings, Upload, Download, Share, BarChart3, Database, Camera, Eye, Shield, ExternalLink, Copy, Server, Globe } from 'lucide-react';
+import { Search, Package, MapPin, Clock, CheckCircle, AlertCircle, History, Plus, Minus, RefreshCw, Wifi, WifiOff, Edit, Trash2, X, Settings, Upload, Download, Share, BarChart3, Database, Camera, Eye, Shield, ExternalLink, Copy, Server, Globe, Layers, GitCompare } from 'lucide-react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import MobileNavigation from './components/MobileNavigation';
 import ThemeToggle from './components/ThemeToggle';
 import ExcelUpload from './components/ExcelUpload';
 import LocationManager from './components/LocationManager';
+import MasterInventory from './components/MasterInventory';
+import ReconcileInventory from './components/ReconcileInventory';
 import AdvancedFilters from './components/AdvancedFilters';
 import InventoryReports from './components/InventoryReports';
 import DataManagement from './components/DataManagement';
@@ -432,19 +434,29 @@ const InventorySystem = () => {
     }
   }, [apiCall]);
 
-  // PIN Protection Functions
-  const handlePinSubmit = (e) => {
+  // PIN Protection Functions (verified server-side; MANAGE_PIN env on API)
+  const handlePinSubmit = async (e) => {
     e.preventDefault();
-    const correctPin = '1971';
-    
-    if (pinInput === correctPin) {
-      setIsManageUnlocked(true);
-      setShowPinModal(false);
-      setPinInput('');
-      setPinError('');
-      setActiveView('manage');
-    } else {
-      setPinError('Incorrect PIN. Please try again.');
+    setPinError('');
+    try {
+      const result = await apiCall('/auth/manage-pin', {
+        method: 'POST',
+        body: JSON.stringify({ pin: pinInput }),
+      });
+      if (result.ok) {
+        setIsManageUnlocked(true);
+        setShowPinModal(false);
+        setPinInput('');
+        setActiveView('manage');
+      } else {
+        setPinError('Incorrect PIN. Please try again.');
+        setPinInput('');
+      }
+    } catch (err) {
+      setPinError(
+        err.message ||
+          'Could not verify PIN. Ensure MANAGE_PIN is configured on the API server.'
+      );
       setPinInput('');
     }
   };
@@ -650,6 +662,25 @@ const InventorySystem = () => {
     };
   }, [fetchParts, fetchTransactions, fetchDashboardStats, fetchShelves]);
 
+  useEffect(() => {
+    if (!inventory.length) return;
+    const raw = (window.location.hash || '').replace(/^#/, '');
+    if (raw.startsWith('master')) {
+      setActiveView('master');
+    }
+    const query = raw.includes('?') ? raw.split('?')[1] : raw;
+    const params = new URLSearchParams(query);
+    const partId = params.get('partId');
+    if (partId) {
+      const part = inventory.find((p) => String(p.id) === String(partId));
+      if (part) {
+        setSelectedPart(part);
+        setActiveView('inventory');
+        enhancedSearch.setSearchTerm(part.partNumber);
+      }
+    }
+  }, [inventory, enhancedSearch]);
+
   // Ensure PWA loader is hidden once app is fully loaded
   useEffect(() => {
     const hideLoader = () => {
@@ -698,6 +729,15 @@ const InventorySystem = () => {
     // Track usage pattern for search analytics
     if (enhancedSearch.searchTerm) {
       enhancedSearch.updateUsagePattern(enhancedSearch.searchTerm, part);
+    }
+  };
+
+  const handleOpenPartFromMaster = (part) => {
+    setSelectedPart(part);
+    enhancedSearch.setSearchTerm(part.partNumber);
+    setActiveView('inventory');
+    if (typeof window !== 'undefined') {
+      window.location.hash = `partId=${part.id}`;
     }
   };
 
@@ -991,19 +1031,29 @@ const InventorySystem = () => {
     }
   };
 
-  const handleCameraPasswordSubmit = (e) => {
+  const handleCameraPasswordSubmit = async (e) => {
     e.preventDefault();
-    if (cameraPassword === 'MERICA!') {
-      setIsCameraAuthenticated(true);
-      setShowCameraPasswordModal(false);
-      setShowCameraFeeds(true);
-      setCameraPassword('');
-      setCameraPasswordError('');
-      // Reset camera status when authenticated
-      setCameraErrors({});
-      setCameraStatus({});
-    } else {
-      setCameraPasswordError('Incorrect password');
+    setCameraPasswordError('');
+    try {
+      const result = await apiCall('/auth/camera-access', {
+        method: 'POST',
+        body: JSON.stringify({ password: cameraPassword }),
+      });
+      if (result.ok) {
+        setIsCameraAuthenticated(true);
+        setShowCameraPasswordModal(false);
+        setShowCameraFeeds(true);
+        setCameraPassword('');
+        setCameraErrors({});
+        setCameraStatus({});
+      } else {
+        setCameraPasswordError('Incorrect password');
+      }
+    } catch (err) {
+      setCameraPasswordError(
+        err.message ||
+          'Camera access unavailable. Set CAMERA_ACCESS_PASSWORD on the API server.'
+      );
     }
   };
 
@@ -1904,7 +1954,7 @@ const InventorySystem = () => {
           <div className="flex space-x-3">
             <button
               type="submit"
-              disabled={pinInput.length !== 4}
+              disabled={!pinInput.trim()}
               className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               Submit
@@ -2238,6 +2288,8 @@ const InventorySystem = () => {
   // Manage Inventory View
   const ManageInventoryView = () => (
     <div className="space-y-6">
+      <ReconcileInventory apiCall={apiCall} currentUser={currentUser} />
+
       {/* Add Part Button */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex justify-between items-center">
@@ -2249,6 +2301,7 @@ const InventorySystem = () => {
             <button
               onClick={() => setShowExcelUpload(true)}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2 transition-colors"
+              title="Blind import can duplicate existing P#s — use JB Reconcile above for the Feb 2026 list"
             >
               <Upload className="w-5 h-5" />
               <span>Import Excel</span>
@@ -3170,6 +3223,20 @@ const InventorySystem = () => {
                     <span className="hidden lg:inline">Inventory</span>
                   </div>
                 </button>
+
+                <button
+                  onClick={() => setActiveView('master')}
+                  className={`px-3 lg:px-4 py-2 rounded-lg transition-colors ${
+                    activeView === 'master'
+                      ? 'bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 font-medium'
+                      : 'text-red-100 hover:bg-red-600 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Layers className="w-4 h-4 lg:w-5 lg:h-5" />
+                    <span className="hidden lg:inline">Master</span>
+                  </div>
+                </button>
                 
                 <button
                   onClick={() => setActiveView('history')}
@@ -3255,7 +3322,7 @@ const InventorySystem = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Search and Controls */}
-        {(activeView === 'inventory' || activeView === 'manage') && (
+        {(activeView === 'inventory' || activeView === 'manage' || activeView === 'master') && (
           <div className="mb-6 space-y-4">
             {/* Enhanced Search Bar - RE-ENABLED with React 18 fix */}
             <EnhancedSearchBar
@@ -3327,7 +3394,16 @@ const InventorySystem = () => {
       )}
 
       <div className="max-w-6xl mx-auto px-4 py-8 flex-grow">
-        {activeView === 'inventory' ? (
+        {activeView === 'master' ? (
+          <MasterInventory
+            inventory={inventory}
+            loading={loading}
+            searchTerm={enhancedSearch.searchTerm}
+            onSearchChange={enhancedSearch.setSearchTerm}
+            onOpenPart={handleOpenPartFromMaster}
+            getShelfImagePath={getShelfImagePath}
+          />
+        ) : activeView === 'inventory' ? (
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Parts List Panel */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 lg:w-1/2 flex flex-col">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, Sun, Moon, Package, History, Settings, MapPin, Camera } from 'lucide-react';
+import { Menu, X, Sun, Moon, Package, History, Settings, MapPin, Camera, Layers } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 const MobileNavigation = ({ activeView, setActiveView, isManageUnlocked, onManageClick, onCameraClick }) => {
@@ -8,6 +8,7 @@ const MobileNavigation = ({ activeView, setActiveView, isManageUnlocked, onManag
 
   const navigationItems = [
     { id: 'inventory', label: 'Inventory', icon: Package },
+    { id: 'master', label: 'Master', icon: Layers },
     { id: 'history', label: 'History', icon: History },
     { id: 'layout', label: 'Layout', icon: MapPin },
   ];
