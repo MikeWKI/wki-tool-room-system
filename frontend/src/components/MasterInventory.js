@@ -191,7 +191,7 @@ const MasterInventory = ({
                   >
                     <p className="text-lg font-bold text-gray-900 dark:text-white">{part.partNumber}</p>
                     <p className="text-base text-gray-800 dark:text-gray-100">{part.polishedDescription || part.description}</p>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                    <p className="text-base text-gray-800 dark:text-gray-100 mt-1">
                       {part.shelf || 'TBD'} · Qty {part.quantity} · {resolveEngineFamily(part) || 'General'} · {part.status === 'available' ? 'Available' : 'Out'}
                     </p>
                   </button>
@@ -218,11 +218,22 @@ const MasterInventory = ({
                 </button>
               </>
             ) : (
-              <p className="text-gray-700 dark:text-gray-300 py-8 text-center">Tap a part to see details.</p>
+              <p className="text-gray-800 dark:text-gray-100 py-8 text-center text-lg">Tap a part to see details.</p>
             )}
           </div>
         </div>
       </div>
+      {activePart && (
+        <div className="lg:hidden fixed bottom-16 inset-x-0 z-30 px-3 pb-2">
+          <button
+            type="button"
+            onClick={() => onOpenPart(activePart)}
+            className="w-full min-h-[56px] rounded-lg bg-red-700 text-white text-lg font-bold shadow-lg"
+          >
+            Open {activePart.partNumber}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

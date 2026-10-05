@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { buildShopActivity, zonedTimeToUtc, chicagoParts, resolveFamily } = require('../services/shopActivitySeed');
+const { TECHS } = require('../data/techRoster');
 const { mergeActivityBatch } = require('../services/shopActivityApply');
 
 const FIXTURE = [
@@ -19,6 +20,23 @@ const FIXTURE = [
 ];
 
 const asOf = zonedTimeToUtc(2026, 10, 5, 16, 42, 11);
+
+test('roster includes every name from the 2026-10-05 shop list', () => {
+  const required = [
+    'Laryssa J.', 'Kyler M.', 'Mario L.', 'Jon B.', 'Will P.', 'Phil C.', 'Dakota B.',
+    'Shawn S.', 'Noah R.', 'Devin S.', 'Remington N.', 'Mark P.', 'Shane D.', 'Trenton W.', 'Tim K.',
+    'Drew P.', 'Steve J.', 'Danny C.',
+    'Gerardo N.', 'Eduardo C.', 'Levi S.', 'Federico L.', 'William C.', 'James D.', 'Tom C.', 'Austin R.',
+    'Austin S.', 'Dena S.', 'Nick W.', 'Mike A.', 'Johny P.',
+    'Luke B.', 'Tyler M.', 'Owen T.',
+    'Devyn T.', 'Kimble (Jon) T.', 'Zavier H.', 'Joseph Perry',
+    'Josh A.', 'Drew S.', 'James S.', 'Austin P.', 'Danny M.', 'Devin K.', 'Chris S.',
+    'Collin S.', 'Braxton B.', 'Bill M.', 'Bayleigh C.', 'Hamilton H.', 'Ricky T.',
+  ];
+  const names = new Set(TECHS.map((tech) => tech.name));
+  for (const name of required) assert.equal(names.has(name), true, name);
+  assert.equal(names.size, required.length);
+});
 
 test('Chicago wall time converts to the matching UTC instant', () => {
   const noon = zonedTimeToUtc(2026, 10, 5, 12, 0, 0);

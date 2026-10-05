@@ -3355,7 +3355,7 @@ const InventorySystem = () => {
                 <div className="flex flex-wrap gap-3 justify-end">
                   <button
                     onClick={() => setShowReports(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                    className="flex items-center gap-2 min-h-[56px] px-4 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors text-base font-semibold"
                   >
                     <BarChart3 className="w-4 h-4" />
                     <span>Reports</span>
@@ -3425,86 +3425,50 @@ const InventorySystem = () => {
                   </div>
                 ) : (
                   visibleInventory.map((part) => (
-                    <div
+                    <button
                       key={part.id}
-                      className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                      type="button"
+                      className={`w-full text-left min-h-[72px] p-4 border-2 rounded-lg transition-all ${
                         selectedPart?.id === part.id
-                          ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                          : 'border-gray-200 dark:border-gray-600 hover:border-red-300 dark:hover:border-red-500'
+                          ? 'border-red-700 bg-red-50 dark:bg-red-950'
+                          : 'border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-800'
                       }`}
                       onClick={() => handlePartSelect(part)}
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-start space-x-3">
-                            <div className="flex-1">
-                              <h3 className="text-lg font-bold text-gray-900 dark:text-white">{part.partNumber}</h3>
-                              <p className="text-gray-800 dark:text-gray-100 text-base mt-1">{part.polishedDescription || part.description}</p>
-                              <div className="flex items-center mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                <MapPin className="w-4 h-4 mr-1" />
-                                <span>Shelf: {part.shelf}</span>
-                                {part.rack && <span className="ml-2">Rack: {part.rack}</span>}
-                                <span className="ml-4">Qty: {part.quantity}</span>
-                                {part.quantity === 0 && (
-                                  <span className="ml-2 text-red-600 font-medium">No Stock!</span>
-                                )}
-                              </div>
-                              {part.status === 'checked_out' && (
-                                <div className="flex items-center mt-1 text-sm text-red-600">
-                                  <AlertCircle className="w-4 h-4 mr-1" />
-                                  <span>Checked out by {part.checkedOutBy}</span>
-                                </div>
-                              )}
-                            </div>
-                            {/* Shelf Image */}
-                            {getShelfImagePath(part.shelf, part.rack) && (
-                              <div className="flex-shrink-0 w-16 h-16">
-                                <div className="w-full h-full bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                                  <img
-                                    src={`/${getShelfImagePath(part.shelf, part.rack)}`}
-                                    alt={`${part.shelf} ${part.rack}`}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      e.target.style.display = 'none';
-                                      e.target.nextSibling.style.display = 'flex';
-                                    }}
-                                  />
-                                  <div className="w-full h-full items-center justify-center bg-gray-100" style={{display: 'none'}}>
-                                    <Package className="w-6 h-6 text-gray-400" />
-                                  </div>
-                                </div>
-                                <p className="text-xs text-gray-400 text-center mt-1">Shelf Location</p>
-                              </div>
+                      <div className="flex justify-between items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-white">{part.partNumber}</h3>
+                          <p className="text-gray-900 dark:text-gray-100 text-base mt-1">{part.polishedDescription || part.description}</p>
+                          <div className="flex flex-wrap items-center mt-2 text-base text-gray-800 dark:text-gray-100">
+                            <MapPin className="w-5 h-5 mr-1 text-red-700" />
+                            <span>Shelf: {part.shelf || 'TBD'}</span>
+                            {part.rack && <span className="ml-2">Rack: {part.rack}</span>}
+                            <span className="ml-4">Qty: {part.quantity}</span>
+                            {part.quantity === 0 && (
+                              <span className="ml-2 text-red-700 font-bold">No Stock</span>
                             )}
                           </div>
+                          {part.status === 'checked_out' && (
+                            <div className="flex items-center mt-1 text-base font-semibold text-red-700">
+                              <AlertCircle className="w-5 h-5 mr-1" />
+                              <span>Out with {part.checkedOutBy}</span>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex flex-col items-end space-y-2">
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            part.status === 'available' 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                        <div className="flex flex-col items-end gap-2">
+                          <span className={`text-sm font-bold px-2 py-1 rounded ${
+                            part.status === 'available'
+                              ? 'bg-green-200 text-green-950'
+                              : 'bg-red-200 text-red-950'
                           }`}>
-                            {part.status === 'available' ? 'Available' : 'Checked Out'}
+                            {part.status === 'available' ? 'Available' : 'Out'}
                           </span>
-                          <span className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 text-xs px-2 py-1 rounded">
+                          <span className="bg-gray-200 text-gray-900 text-sm font-semibold px-2 py-1 rounded">
                             {part.category}
                           </span>
-                          <div className="flex space-x-1 mt-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingPart(part);
-                                setShowEditPartModal(true);
-                              }}
-                              className="p-1 text-gray-400 hover:text-red-600 dark:text-gray-500 dark:hover:text-red-400 rounded"
-                              title="Edit Part"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                          </div>
                         </div>
                       </div>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
@@ -3625,6 +3589,16 @@ const InventorySystem = () => {
                           Check In Part
                         </button>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingPart(selectedPart);
+                          setShowEditPartModal(true);
+                        }}
+                        className="w-full min-h-[56px] border-2 border-gray-500 text-gray-900 dark:text-white px-4 rounded-lg text-lg font-bold"
+                      >
+                        Edit part
+                      </button>
                     </div>
                   </div>
 
