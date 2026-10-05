@@ -1,4 +1,4 @@
-import { normalizePartNumber } from './masterInventoryLocation';
+import { formatShelfLabel, matchesEngineFamilyChip, normalizePartNumber } from './masterInventoryLocation';
 
 export function partMatchesQuery(part, query) {
   const raw = String(query || '').trim().toLowerCase();
@@ -17,6 +17,7 @@ export function partMatchesQuery(part, query) {
     part?.polishedDescription,
     part?.category,
     part?.shelf,
+    formatShelfLabel(part?.shelf),
     part?.manufacturer,
     part?.vendor,
     part?.engineFamily,
@@ -26,5 +27,33 @@ export function partMatchesQuery(part, query) {
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
-  return raw.split(/\s+/).filter(Boolean).every((word) => haystack.includes(word));
+  const words = raw.split(/\s+/).filter((word) => word && !/^[·•/|\-–—]+$/.test(word));
+  if (!words.length) return false;
+  return words.every((word) => haystack.includes(word));
+}
+
+/**
+ * Master tab list. An empty search stays on the selected shelf.
+ * Any search term looks across every shelf and section.
+ * The engine-family chip still applies.
+ */
+export function partsForMasterView({
+  inventory = [],
+  partsByLocation,
+  selectedLocationId,
+  searchTerm,
+  engineFamily,
+}) {
+  const searching = String(searchTerm || '').trim().length > 0;
+  let list = inventory;
+  if (!searching) {
+    if (selectedLocationId === '__unassigned__') {
+      list = partsByLocation?.unassigned || [];
+    } else if (selectedLocationId) {
+      list = partsByLocation?.map?.[selectedLocationId] || [];
+    }
+  }
+  return list.filter(
+    (part) => matchesEngineFamilyChip(part, engineFamily) && partMatchesQuery(part, searchTerm)
+  );
 }

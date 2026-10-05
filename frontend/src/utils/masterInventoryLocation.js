@@ -14,6 +14,86 @@ export function normalizeShelfKey(value) {
   return String(value).trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
+const SHELF_LABEL_SEPARATOR = ' · ';
+
+function titleRack(name) {
+  const lower = String(name || '').toLowerCase();
+  if (!lower) return '';
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+/**
+ * Display-only shelf label. Does not change the string stored on the part.
+ * Live data mixes "Section 1 / Shelf 4", "West Rack - Shelf 11", and "TBD".
+ * Rendered form is "Rack/Section · Shelf N" (area kept when the source has one).
+ */
+export function formatShelfLabel(value) {
+  if (value == null || String(value).trim() === '') return 'TBD';
+  const raw = String(value).trim().replace(/\s+/g, ' ');
+  const key = raw.toLowerCase();
+  if (key === 'tbd' || key === 'unassigned' || key === 'unknown' || key === 'n/a' || key === 'na') {
+    return 'TBD';
+  }
+
+  const rackShelf = raw.match(/^(north|south|east|west)[\s_-]*rack[\s_-]*shelf[\s_-]*(\d+)$/i);
+  if (rackShelf) {
+    return `${titleRack(rackShelf[1])} Rack${SHELF_LABEL_SEPARATOR}Shelf ${parseInt(rackShelf[2], 10)}`;
+  }
+
+  const rackNumber = raw.match(/^(north|south|east|west)[\s_-]*rack[\s_-]*(\d+)$/i);
+  if (rackNumber) {
+    return `${titleRack(rackNumber[1])} Rack${SHELF_LABEL_SEPARATOR}Shelf ${parseInt(rackNumber[2], 10)}`;
+  }
+
+  const sectionShelf = raw.match(/^section\s*(\d+)\s*[/•·|\-–—]\s*shelf\s*(\d+)$/i);
+  if (sectionShelf) {
+    return `Section ${parseInt(sectionShelf[1], 10)}${SHELF_LABEL_SEPARATOR}Shelf ${parseInt(sectionShelf[2], 10)}`;
+  }
+
+  const sectionAreaShelf = raw.match(/^section\s*(\d+)\s*[•·/|\-–—]\s*(.+?)\s*[•·/|\-–—]\s*shelf\s*(\d+)$/i);
+  if (sectionAreaShelf) {
+    return `Section ${parseInt(sectionAreaShelf[1], 10)}${SHELF_LABEL_SEPARATOR}${sectionAreaShelf[2].trim()}${SHELF_LABEL_SEPARATOR}Shelf ${parseInt(sectionAreaShelf[3], 10)}`;
+  }
+
+  const namedShelf = raw.match(/^(.+?)\s*[-–—]\s*shelf\s*(\d+)$/i);
+  if (namedShelf && !/^section\s*\d+$/i.test(namedShelf[1].trim())) {
+    return `${namedShelf[1].trim()}${SHELF_LABEL_SEPARATOR}Shelf ${parseInt(namedShelf[2], 10)}`;
+  }
+
+  const sectionArea = raw.match(/^section\s*(\d+)\s*[•·/|\-–—]\s*(.+)$/i);
+  if (sectionArea) {
+    return `Section ${parseInt(sectionArea[1], 10)}${SHELF_LABEL_SEPARATOR}${sectionArea[2].trim()}`;
+  }
+
+  if (raw.includes('·')) {
+    return raw
+      .split('·')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => part.replace(/^shelf\s+(\d+)$/i, (_, n) => `Shelf ${parseInt(n, 10)}`))
+      .join(SHELF_LABEL_SEPARATOR);
+  }
+
+  return raw;
+}
+
+/** How many other rows share this part number. Display hint only; rows are not merged. */
+export function otherRowsWithSamePartNumber(inventory, part) {
+  const key = normalizePartNumber(part?.partNumber);
+  if (!key || !Array.isArray(inventory)) return 0;
+  let count = 0;
+  for (const row of inventory) {
+    if (normalizePartNumber(row?.partNumber) === key) count += 1;
+  }
+  return Math.max(0, count - 1);
+}
+
+export function samePartNumberHint(otherCount) {
+  const count = Number(otherCount) || 0;
+  if (count < 1) return '';
+  return `same P# as ${count} other ${count === 1 ? 'entry' : 'entries'}`;
+}
+
 export function resolvePartLocationId(shelfValue, category = '', locations = []) {
   if (!shelfValue) return null;
   const key = normalizeShelfKey(shelfValue);
