@@ -65,7 +65,7 @@ node scripts/load-enrichment.js ./data/enrichment.example.json
 node scripts/load-enrichment.js ./data/enrichment-from-jb.json --apply
 ```
 
-`enrichment-from-jb.json` is built from the 2026-02-04 JB file. It sets `engineFamily` only when the JB category is MX, Cummins, Detroit, CAT, or General. Other fields stay null.
+`enrichment-from-jb.json` is built from the 2026-02-04 JB file. It sets `engineFamily` from the category label on real part numbers: 24 MX, 73 Cummins, 12 Detroit. CAT Tools and General Tools in that file are NOPN-only. Other fields stay null.
 
 Against the Render API after deploy, from a clone of this branch:
 
