@@ -13,6 +13,14 @@ const {
   applyFillGapsToParts,
   IMPORT_STRATEGY,
 } = require('../services/fillGapsApply');
+const {
+  authLimiter,
+  timingSafeStringEqual,
+  issueManageSession,
+  requireManageSession,
+  resolveAppliedBy,
+  cameraFeedList,
+} = require('../middleware/manageAuth');
 
 const APPLY_TO_LIVE_ENABLED = process.env.RECONCILE_APPLY_TO_LIVE === 'true';
 
@@ -93,7 +101,7 @@ function registerMasterInventoryRoutes(app, deps) {
     }
   });
 
-  app.post('/api/reconcile/staging/accept', async (req, res) => {
+  app.post('/api/reconcile/staging/accept', requireManageSession, async (req, res) => {
     try {
       const { partNumber, decision, acceptedBy, jbSnapshot, liveSnapshot, proposedChanges, notes } =
         req.body || {};
@@ -126,7 +134,7 @@ function registerMasterInventoryRoutes(app, deps) {
     }
   });
 
-  app.post('/api/reconcile/staging/clear', async (req, res) => {
+  app.post('/api/reconcile/staging/clear', requireManageSession, async (req, res) => {
     try {
       await stagingService.clearAll();
       res.json({ success: true, message: 'Staging decisions cleared (draft only).' });
@@ -135,10 +143,10 @@ function registerMasterInventoryRoutes(app, deps) {
     }
   });
 
-  app.post('/api/reconcile/apply', async (req, res) => {
+  app.post('/api/reconcile/apply', requireManageSession, async (req, res) => {
     try {
       const dryRun = req.query.dryRun === 'true' || req.body?.dryRun === true;
-      const appliedBy = req.body?.appliedBy || 'Reconcile fill-gaps';
+      const appliedBy = resolveAppliedBy(req);
 
       const parts = await readParts();
       const staging = await stagingService.readAll();
@@ -157,6 +165,7 @@ function registerMasterInventoryRoutes(app, deps) {
         }
         return res.json({
           dryRun: true,
+          appliedBy,
           applyToLiveEnabled: APPLY_TO_LIVE_ENABLED,
           importStrategy: IMPORT_STRATEGY,
           liveCountBefore: parts.length,
@@ -200,6 +209,7 @@ function registerMasterInventoryRoutes(app, deps) {
 
       res.json({
         success: true,
+        appliedBy,
         applyToLiveEnabled: true,
         importStrategy: IMPORT_STRATEGY,
         liveCountBefore: result.liveCountBefore,
@@ -213,7 +223,7 @@ function registerMasterInventoryRoutes(app, deps) {
     }
   });
 
-  app.post('/api/shelves/seed-jb-layout', async (req, res) => {
+  app.post('/api/shelves/seed-jb-layout', requireManageSession, async (req, res) => {
     try {
       const dryRun = req.query.dryRun === 'true' || req.body?.dryRun === true;
       const records = shelfRecordsForSeed();
@@ -253,7 +263,7 @@ function registerMasterInventoryRoutes(app, deps) {
     }
   });
 
-  app.post('/api/auth/manage-pin', (req, res) => {
+  app.post('/api/auth/manage-pin', authLimiter, (req, res) => {
     const expected = process.env.MANAGE_PIN;
     if (!expected) {
       return res.status(503).json({
@@ -261,11 +271,21 @@ function registerMasterInventoryRoutes(app, deps) {
         error: 'Manage PIN is not configured on the server (set MANAGE_PIN).',
       });
     }
-    const { pin } = req.body || {};
-    res.json({ ok: String(pin) === String(expected) });
+    const { pin, actor, name } = req.body || {};
+    if (!timingSafeStringEqual(pin, expected)) {
+      return res.json({ ok: false });
+    }
+    const session = issueManageSession(actor || name);
+    res.locals.authSucceeded = true;
+    return res.json({
+      ok: true,
+      token: session.token,
+      expiresAt: session.expiresAt,
+      tokenType: session.tokenType,
+    });
   });
 
-  app.post('/api/auth/camera-access', (req, res) => {
+  app.post('/api/auth/camera-access', authLimiter, (req, res) => {
     const expected = process.env.CAMERA_ACCESS_PASSWORD;
     if (!expected) {
       return res.status(503).json({
@@ -274,7 +294,11 @@ function registerMasterInventoryRoutes(app, deps) {
       });
     }
     const { password } = req.body || {};
-    res.json({ ok: String(password) === String(expected) });
+    if (!timingSafeStringEqual(password, expected)) {
+      return res.json({ ok: false });
+    }
+    res.locals.authSucceeded = true;
+    return res.json({ ok: true, cameras: cameraFeedList() });
   });
 
   app.get('/api/inventory/master-summary', async (req, res) => {

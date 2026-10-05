@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { clearManageSession, manageAuthHeader } from '../utils/manageSession';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 
   (process.env.NODE_ENV === 'production' 
@@ -87,18 +88,28 @@ export const useApi = () => {
       setLoading(true);
       setError(null);
 
+      const { headers: optionHeaders, ...restFetch } = fetchOptions;
+      const isWrite = method !== 'GET' && method !== 'HEAD';
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...restFetch,
         method,
         headers: {
           'Content-Type': 'application/json',
-          ...fetchOptions.headers,
+          ...optionHeaders,
+          ...(isWrite ? manageAuthHeader() : {}),
         },
         signal: abortControllerRef.current.signal,
-        ...fetchOptions,
       });
 
+      if (response.status === 401) {
+        clearManageSession();
+      }
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const failure = await response.json().catch(() => ({}));
+        const err = new Error(failure.error || `HTTP error! status: ${response.status}`);
+        err.status = response.status;
+        throw err;
       }
 
       const data = await response.json();

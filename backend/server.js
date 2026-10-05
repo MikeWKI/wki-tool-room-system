@@ -10,6 +10,8 @@ const registerMasterInventoryRoutes = require('./routes/masterInventoryRoutes');
 const registerPartEnrichmentRoutes = require('./routes/partEnrichmentRoutes');
 const registerAuditRoutes = require('./routes/auditRoutes');
 const { toPublicTransaction } = require('./services/publicTransaction');
+const { requireManageSession } = require('./middleware/manageAuth');
+const { allowedOrigins, corsOptions } = require('./middleware/corsPolicy');
 require('dotenv').config();
 
 // Create instance of DatabaseService
@@ -30,18 +32,7 @@ const limiter = rateLimit({
 // Middleware
 app.use(helmet());
 app.use(limiter);
-app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    process.env.CORS_ORIGIN || 'https://wki-tool-room-system.onrender.com',
-    'https://wki-tool-room-system-1.onrender.com',
-    /https:\/\/.*\.onrender\.com$/, // Allow any Render subdomain
-    /https:\/\/wki-tool-room.*\.onrender\.com$/ // Allow any WKI tool room variants
-  ].filter(Boolean),
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '2mb' }));
 
 // Configure multer for file uploads
@@ -193,7 +184,8 @@ app.get('/api/parts/search/:query', async (req, res) => {
   }
 });
 
-// Check out a part
+// Shop-floor check-out is not a manage action. A tech name in `user` is the
+// authorization recorded on the part and the transaction. No manage session.
 app.post('/api/parts/:id/checkout', async (req, res) => {
   try {
     const { user, notes, roNumber, unitNumber } = req.body;
@@ -263,7 +255,7 @@ app.post('/api/parts/:id/checkout', async (req, res) => {
   }
 });
 
-// Check in a part
+// Shop-floor check-in matches check-out: tech name only, no manage session.
 app.post('/api/parts/:id/checkin', async (req, res) => {
   try {
     const { user, notes } = req.body;
@@ -381,7 +373,7 @@ app.get('/api/shelves/:shelfId', async (req, res) => {
 });
 
 // Add new part
-app.post('/api/parts', async (req, res) => {
+app.post('/api/parts', requireManageSession, async (req, res) => {
   try {
     const { partNumber, description, shelf, category, quantity, minQuantity } = req.body;
     
@@ -420,7 +412,7 @@ app.post('/api/parts', async (req, res) => {
 });
 
 // Update part
-app.put('/api/parts/:id', async (req, res) => {
+app.put('/api/parts/:id', requireManageSession, async (req, res) => {
   try {
     const partId = parseInt(req.params.id);
     const updates = req.body;
@@ -477,7 +469,7 @@ app.put('/api/parts/:id', async (req, res) => {
 });
 
 // Delete part
-app.delete('/api/parts/:id', async (req, res) => {
+app.delete('/api/parts/:id', requireManageSession, async (req, res) => {
   try {
     const partId = parseInt(req.params.id);
     
@@ -498,7 +490,7 @@ app.delete('/api/parts/:id', async (req, res) => {
 });
 
 // Bulk update parts locations
-app.put('/api/parts/bulk/locations', async (req, res) => {
+app.put('/api/parts/bulk/locations', requireManageSession, async (req, res) => {
   try {
     const { updates, modifiedBy = 'System' } = req.body;
     // updates should be an array of { id, shelf }
@@ -562,7 +554,7 @@ app.put('/api/parts/bulk/locations', async (req, res) => {
 });
 
 // Bulk update part quantities
-app.put('/api/parts/bulk/quantities', async (req, res) => {
+app.put('/api/parts/bulk/quantities', requireManageSession, async (req, res) => {
   try {
     const { updates, modifiedBy = 'System' } = req.body;
     // updates should be an array of { id, quantity, adjustment }
@@ -781,7 +773,7 @@ app.get('/api/backup/validate', async (req, res) => {
 });
 
 // Restore from backup (POST with backup data)
-app.post('/api/backup/restore', async (req, res) => {
+app.post('/api/backup/restore', requireManageSession, async (req, res) => {
   try {
     const { data, confirm } = req.body;
     
@@ -822,7 +814,7 @@ app.post('/api/backup/restore', async (req, res) => {
 });
 
 // Auto-backup creation endpoint (can be called by cron job)
-app.post('/api/backup/auto-create', async (req, res) => {
+app.post('/api/backup/auto-create', requireManageSession, async (req, res) => {
   try {
     const parts = await readParts();
     const shelves = await readShelves();
@@ -922,7 +914,7 @@ app.get('/api/shelves/:id', async (req, res) => {
 });
 
 // Create new shelf
-app.post('/api/shelves', async (req, res) => {
+app.post('/api/shelves', requireManageSession, async (req, res) => {
   try {
     const { name, location, description, image } = req.body;
     
@@ -962,7 +954,7 @@ app.post('/api/shelves', async (req, res) => {
 });
 
 // Update shelf
-app.put('/api/shelves/:id', async (req, res) => {
+app.put('/api/shelves/:id', requireManageSession, async (req, res) => {
   try {
     const { name, location, description } = req.body;
     const shelfId = req.params.id;
@@ -1019,7 +1011,7 @@ app.put('/api/shelves/:id', async (req, res) => {
 });
 
 // Delete shelf
-app.delete('/api/shelves/:id', async (req, res) => {
+app.delete('/api/shelves/:id', requireManageSession, async (req, res) => {
   try {
     const shelfId = req.params.id;
     const shelves = await readShelves();
@@ -1052,7 +1044,7 @@ app.delete('/api/shelves/:id', async (req, res) => {
 });
 
 // Excel Import endpoint
-app.post('/api/import/excel', upload.single('excelFile'), async (req, res) => {
+app.post('/api/import/excel', requireManageSession, upload.single('excelFile'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No Excel file provided' });
@@ -1172,16 +1164,12 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
-    cors_origins: [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      process.env.CORS_ORIGIN || 'https://wki-tool-room-system.onrender.com',
-      'https://wki-tool-room-system-1.onrender.com'
-    ]
+    cors_origins: [...allowedOrigins()]
   });
 });
 
-// CORS preflight handler
-app.options('*', cors());
+// CORS preflight handler (same allowlist as the main middleware)
+app.options('*', cors(corsOptions));
 
 // Global error handler
 app.use((error, req, res, next) => {
@@ -1193,8 +1181,11 @@ app.use((error, req, res, next) => {
   });
 });
 
-// Debug endpoint to check database status
+// Debug endpoint to check database status. Off in production.
 app.get('/api/debug/database', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Route not found' });
+  }
   try {
     const parts = await readParts();
     const transactions = await readTransactions();
@@ -1248,7 +1239,7 @@ async function startServer() {
       ? `https://wki-tool-room-system-1.onrender.com` 
       : `http://localhost:${PORT}`;
 
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`WKI Tool Room API Server running on port ${PORT}`);
       console.log(`Health check: ${baseUrl}/api/health`);
       console.log(`API endpoints available at: ${baseUrl}/api/`);
@@ -1265,6 +1256,11 @@ async function startServer() {
   }
 }
 
-startServer().catch(console.error);
+if (require.main === module) {
+  startServer().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
 
 module.exports = app;

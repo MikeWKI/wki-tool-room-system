@@ -1,29 +1,12 @@
 const { buildShopActivity } = require('../services/shopActivitySeed');
 const { mergeActivityBatch, checkoutFieldPatches } = require('../services/shopActivityApply');
-
-function pinRejected(req, res) {
-  const expected = process.env.MANAGE_PIN;
-  if (!expected) {
-    res.status(503).json({
-      ok: false,
-      error: 'Manage PIN is not configured on the server (set MANAGE_PIN).',
-    });
-    return true;
-  }
-  const pin = req.body?.pin || req.get('x-manage-pin');
-  if (String(pin) !== String(expected)) {
-    res.status(401).json({ ok: false, error: 'Manage PIN rejected' });
-    return true;
-  }
-  return false;
-}
+const { requireManageSessionOrBodyPin } = require('../middleware/manageAuth');
 
 function registerAuditRoutes(app, deps) {
   const { readParts, readTransactions, dbService } = deps;
 
-  app.post('/api/audit/load-activity', async (req, res) => {
+  app.post('/api/audit/load-activity', requireManageSessionOrBodyPin, async (req, res) => {
     try {
-      if (pinRejected(req, res)) return;
       const confirm = req.body?.confirm === true;
       const asOf = req.body?.asOf ? new Date(req.body.asOf) : new Date();
       if (Number.isNaN(asOf.getTime())) {
