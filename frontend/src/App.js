@@ -19,6 +19,7 @@ import DataManagement from './components/DataManagement';
 import EnhancedSearchBar from './components/EnhancedSearchBar';
 import { useEnhancedSearch } from './hooks/useEnhancedSearch';
 import pwaManager from './utils/pwa';
+import { clearManageSession, manageAuthHeader, readManageSession, storeManageSession } from './utils/manageSession';
 
 // Camera Feed Component (simplified without hooks)
 const CameraFeed = ({ camera, onOpenCamera, onCopyUrl }) => {
@@ -167,15 +168,27 @@ const InventorySystem = () => {
   // Data Management State
   const [showDataManagement, setShowDataManagement] = useState(false);
 
-  // Camera Security State
+  // Camera Security State. Feed URLs arrive from the API after a correct password.
   const [showCameraPasswordModal, setShowCameraPasswordModal] = useState(false);
   const [showCameraFeeds, setShowCameraFeeds] = useState(false);
   const [cameraPassword, setCameraPassword] = useState('');
   const [cameraPasswordError, setCameraPasswordError] = useState('');
   const [isCameraAuthenticated, setIsCameraAuthenticated] = useState(false);
+  const [cameraFeeds, setCameraFeeds] = useState([]);
   const [cameraErrors, setCameraErrors] = useState({});
   const [cameraStatus, setCameraStatus] = useState({});
   const [allowCameraAttempt, setAllowCameraAttempt] = useState(true);
+
+  useEffect(() => {
+    if (readManageSession()) setIsManageUnlocked(true);
+  }, []);
+
+  const promptForManagePin = useCallback((message) => {
+    clearManageSession();
+    setIsManageUnlocked(false);
+    setPinError(message || 'Session expired or missing. Enter the manage PIN again.');
+    setShowPinModal(true);
+  }, []);
 
   // Global keyboard event handler for closing modals with Escape key
   useEffect(() => {
@@ -253,19 +266,31 @@ const InventorySystem = () => {
   // API helper function
   const apiCall = useCallback(async (endpoint, options = {}) => {
     try {
+      const { headers: optionHeaders, ...rest } = options;
+      const method = String(rest.method || 'GET').toUpperCase();
+      const isWrite = method !== 'GET' && method !== 'HEAD';
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...rest,
         headers: {
           'Content-Type': 'application/json',
-          ...options.headers,
+          ...optionHeaders,
+          ...(isWrite ? manageAuthHeader() : {}),
         },
-        ...options,
       });
 
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      const data = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        promptForManagePin(data.error);
       }
 
-      return await response.json();
+      if (!response.ok) {
+        const err = new Error(data.error || `API Error: ${response.status} ${response.statusText}`);
+        err.status = response.status;
+        throw err;
+      }
+
+      return data;
     } catch (error) {
       console.error(`API call failed for ${endpoint}:`, error);
       
@@ -279,7 +304,7 @@ const InventorySystem = () => {
       
       throw error;
     }
-  }, [API_BASE_URL]);
+  }, [API_BASE_URL, promptForManagePin]);
 
   // Fetch all parts with retry logic
   const fetchParts = useCallback(async (retryCount = 0) => {
@@ -464,13 +489,17 @@ const InventorySystem = () => {
     try {
       const result = await apiCall('/auth/manage-pin', {
         method: 'POST',
-        body: JSON.stringify({ pin: pinInput }),
+        body: JSON.stringify({ pin: pinInput, actor: currentUser || undefined }),
       });
-      if (result.ok) {
+      if (result.ok && result.token) {
+        storeManageSession({ token: result.token, expiresAt: result.expiresAt });
         setIsManageUnlocked(true);
         setShowPinModal(false);
         setPinInput('');
         setActiveView('manage');
+      } else if (result.ok) {
+        setPinError('Server did not issue a manage session.');
+        setPinInput('');
       } else {
         setPinError('Incorrect PIN. Please try again.');
         setPinInput('');
@@ -508,11 +537,17 @@ const InventorySystem = () => {
 
       const response = await fetch(`${API_BASE_URL}/import/excel`, {
         method: 'POST',
+        headers: manageAuthHeader(),
         body: formData,
       });
 
+      if (response.status === 401) {
+        promptForManagePin('Session expired or missing. Enter the manage PIN again.');
+      }
+
       if (!response.ok) {
-        throw new Error(`Import failed: ${response.status} ${response.statusText}`);
+        const failure = await response.json().catch(() => ({}));
+        throw new Error(failure.error || `Import failed: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
@@ -542,7 +577,7 @@ const InventorySystem = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_BASE_URL, fetchParts, fetchTransactions, fetchDashboardStats]);
+  }, [API_BASE_URL, fetchParts, fetchTransactions, fetchDashboardStats, promptForManagePin]);
 
   // Helper function to get shelf image path based on rack and shelf data
   const getShelfImagePath = useCallback((shelf, rack) => {
@@ -1072,6 +1107,7 @@ const InventorySystem = () => {
       });
       if (result.ok) {
         setIsCameraAuthenticated(true);
+        setCameraFeeds(Array.isArray(result.cameras) ? result.cameras : []);
         setShowCameraPasswordModal(false);
         setShowCameraFeeds(true);
         setCameraPassword('');
@@ -2162,19 +2198,7 @@ const InventorySystem = () => {
   );
 
   const CameraFeedsModal = () => {
-    // Camera configuration
-    const cameras = [
-      {
-        id: 'camera1',
-        name: 'Tool Room West',
-        url: 'http://192.168.231.88/cgi-bin/guestimage.html'
-      },
-      {
-        id: 'camera2', 
-        name: 'Tool Room East',
-        url: 'http://192.168.231.87/cgi-bin/guestimage.html'
-      }
-    ];
+    const cameras = cameraFeeds;
 
     const handleClose = () => {
       console.log('❌ Closing camera feeds');
@@ -2236,6 +2260,11 @@ const InventorySystem = () => {
             className="flex-1 flex p-4 space-x-4 overflow-hidden bg-cover bg-center bg-no-repeat"
             style={{ backgroundImage: 'url(/cameras.png)' }}
           >
+            {cameras.length === 0 && (
+              <p className="text-white bg-black bg-opacity-60 rounded-lg p-4">
+                Camera list unavailable. Enter the camera password again.
+              </p>
+            )}
             {cameras.map((camera) => (
               <CameraFeed 
                 key={camera.id} 

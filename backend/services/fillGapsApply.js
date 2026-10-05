@@ -263,30 +263,31 @@ function applyFillGapsToParts(parts, stagingRecords, appliedBy = 'Reconcile fill
   const applyPatch = (liveId, patch, partNumber) => {
     const part = byId.get(liveId);
     if (!part) return;
-    let touched = false;
+    let shelfChanged = false;
+    let fieldChanged = false;
     if (patch.shelf && patch.shelf !== part.shelf) {
       part.previousLocation = part.shelf;
       part.lastLocationChange = new Date().toISOString();
       part.shelf = patch.shelf;
-      applied.shelvesUpdated += 1;
-      touched = true;
+      shelfChanged = true;
     }
     if (patch.description && patch.description !== part.description) {
       part.description = patch.description;
-      touched = true;
+      fieldChanged = true;
     }
     if (patch.category && patch.category !== part.category) {
       part.category = patch.category;
-      touched = true;
+      fieldChanged = true;
     }
     if (patch.quantity != null && Number(patch.quantity) !== Number(part.quantity)) {
       part.quantity = patch.quantity;
-      touched = true;
+      fieldChanged = true;
     }
-    if (!touched) return;
+    if (!shelfChanged && !fieldChanged) return;
     part.lastModified = new Date().toISOString();
     part.modifiedBy = appliedBy;
-    applied.fieldsUpdated += 1;
+    if (shelfChanged) applied.shelvesUpdated += 1;
+    if (fieldChanged) applied.fieldsUpdated += 1;
     applied.details.push({ partNumber, id: liveId });
   };
 

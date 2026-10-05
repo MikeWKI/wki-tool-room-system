@@ -1,4 +1,5 @@
 const { applyEnrichmentBatch, enrichmentCoverage } = require('../services/partEnrichment');
+const { requireManageSession } = require('../middleware/manageAuth');
 
 function registerPartEnrichmentRoutes(app, deps) {
   const { readParts, dbService } = deps;
@@ -12,7 +13,7 @@ function registerPartEnrichmentRoutes(app, deps) {
     }
   });
 
-  app.post('/api/parts/enrich-batch', async (req, res) => {
+  app.post('/api/parts/enrich-batch', requireManageSession, async (req, res) => {
     try {
       const parts = await readParts();
       const result = applyEnrichmentBatch(parts, req.body || {});

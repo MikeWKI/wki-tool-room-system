@@ -77,7 +77,7 @@ const ReconcileInventory = ({ apiCall, currentUser }) => {
       });
       setFillGapsPlan(data.plan || data);
       await loadReport();
-      window.alert(`Fill-gaps finished. Added ${data.applied?.partsAdded ?? 0}. Shelf updates ${data.applied?.shelvesUpdated ?? 0}.`);
+      window.alert(`Fill-gaps finished. Added ${data.applied?.partsAdded ?? 0}. Shelf updates ${data.applied?.shelvesUpdated ?? 0}. Field updates ${data.applied?.fieldsUpdated ?? 0}.`);
     } catch (err) {
       setError(err.message || 'Apply failed');
     } finally {

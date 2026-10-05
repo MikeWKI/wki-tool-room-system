@@ -138,4 +138,28 @@ test('apply never deletes live parts and does not overwrite unstaged fields', ()
   assert.equal(updated.quantity, 4);
   assert.equal(updated.shelf, 'Section 1 / Shelf 9');
   assert.equal(parts.find((part) => part.id === 297).description, 'Keep this description');
+  assert.equal(result.applied.shelvesUpdated >= 1, true);
+  assert.equal(result.applied.fieldsUpdated, 0);
+});
+
+test('accepted field diffs count as fields, not shelves', () => {
+  const parts = [
+    livePart({
+      id: 297,
+      partNumber: '2463031',
+      description: 'Live injector plugs',
+      shelf: 'Section 1 / Shelf 9',
+      category: 'Misc',
+      quantity: 4,
+    }),
+  ];
+  const staging = [
+    { partNumber: '2463031', normalizedPartNumber: '2463031', decision: 'accept_jb' },
+  ];
+  const result = applyFillGapsToParts(parts, staging);
+  const updated = result.parts.find((part) => part.id === 297);
+  assert.equal(updated.description, 'Injector Bore Plugs x5 Bags');
+  assert.equal(updated.shelf, 'Section 1 / Shelf 9');
+  assert.equal(result.applied.fieldsUpdated, 1);
+  assert.equal(result.applied.shelvesUpdated, 0);
 });
