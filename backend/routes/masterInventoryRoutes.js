@@ -8,11 +8,24 @@ const {
 } = require('../data/masterInventoryLayout');
 const { loadJbInventory, reconcileJbWithLive } = require('../services/inventoryReconcile');
 const ReconcileStagingService = require('../services/reconcileStagingService');
+const {
+  planFillGapsApply,
+  applyFillGapsToParts,
+  IMPORT_STRATEGY,
+} = require('../services/fillGapsApply');
 
 const APPLY_TO_LIVE_ENABLED = process.env.RECONCILE_APPLY_TO_LIVE === 'true';
 
 function registerMasterInventoryRoutes(app, deps) {
-  const { dbService, readParts, readShelves, writeShelves } = deps;
+  const {
+    dbService,
+    readParts,
+    writeParts,
+    readShelves,
+    writeShelves,
+    readTransactions,
+    writeTransactions,
+  } = deps;
   const stagingService = new ReconcileStagingService(dbService);
 
   app.get('/api/inventory/layout', (req, res) => {
@@ -48,9 +61,26 @@ function registerMasterInventoryRoutes(app, deps) {
           decisions: staging,
         },
         applyToLiveEnabled: APPLY_TO_LIVE_ENABLED,
+        importStrategy: IMPORT_STRATEGY,
       });
     } catch (error) {
       res.status(500).json({ error: 'Reconcile report failed', details: error.message });
+    }
+  });
+
+  app.get('/api/reconcile/fill-gaps-plan', async (req, res) => {
+    try {
+      const parts = await readParts();
+      const staging = await stagingService.readAll();
+      const plan = planFillGapsApply(parts, staging);
+      res.json({
+        dryRun: true,
+        applyToLiveEnabled: APPLY_TO_LIVE_ENABLED,
+        importStrategy: IMPORT_STRATEGY,
+        ...plan,
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Fill-gaps plan failed', details: error.message });
     }
   });
 
@@ -88,9 +118,8 @@ function registerMasterInventoryRoutes(app, deps) {
         success: true,
         staging: saved,
         applyToLiveEnabled: APPLY_TO_LIVE_ENABLED,
-        message: APPLY_TO_LIVE_ENABLED
-          ? 'Draft saved (apply pipeline not implemented in this PR).'
-          : 'Draft saved. Apply-to-live is disabled until Michael selects an import strategy.',
+        message:
+          'Draft saved. Use fill-gaps plan/apply when RECONCILE_APPLY_TO_LIVE=true on the API.',
       });
     } catch (error) {
       res.status(500).json({ error: 'Failed to save staging decision', details: error.message });
@@ -107,12 +136,81 @@ function registerMasterInventoryRoutes(app, deps) {
   });
 
   app.post('/api/reconcile/apply', async (req, res) => {
-    res.status(403).json({
-      error: 'Apply-to-live is disabled',
-      applyToLiveEnabled: APPLY_TO_LIVE_ENABLED,
-      message:
-        'Reconcile apply is gated. Set RECONCILE_APPLY_TO_LIVE=true only after Michael approves an import strategy. This endpoint never runs in the current draft.',
-    });
+    try {
+      const dryRun = req.query.dryRun === 'true' || req.body?.dryRun === true;
+      const appliedBy = req.body?.appliedBy || 'Reconcile fill-gaps';
+
+      const parts = await readParts();
+      const staging = await stagingService.readAll();
+
+      if (dryRun || !APPLY_TO_LIVE_ENABLED) {
+        const plan = planFillGapsApply(parts, staging);
+        if (!APPLY_TO_LIVE_ENABLED && !dryRun) {
+          return res.status(403).json({
+            error: 'Apply-to-live is disabled',
+            applyToLiveEnabled: false,
+            importStrategy: IMPORT_STRATEGY,
+            message:
+              'Set RECONCILE_APPLY_TO_LIVE=true on the API to run fill-gaps apply. Use dryRun:true or GET /api/reconcile/fill-gaps-plan to preview.',
+            plan,
+          });
+        }
+        return res.json({
+          dryRun: true,
+          applyToLiveEnabled: APPLY_TO_LIVE_ENABLED,
+          importStrategy: IMPORT_STRATEGY,
+          liveCountBefore: parts.length,
+          liveCountAfter: parts.length + plan.counts.addFromJb,
+          ...plan,
+        });
+      }
+
+      const confirm = req.body?.confirm === true;
+      if (!confirm) {
+        const plan = planFillGapsApply(parts, staging);
+        return res.status(400).json({
+          error: 'Confirmation required',
+          message: 'POST with { "confirm": true } after reviewing fill-gaps plan.',
+          plan,
+        });
+      }
+
+      const result = applyFillGapsToParts(parts, staging, appliedBy);
+      await writeParts(result.parts);
+
+      const transactions = await readTransactions();
+      const tx = {
+        id: Date.now(),
+        partId: null,
+        partNumber: 'RECONCILE_FILL_GAPS',
+        action: 'import',
+        user: appliedBy,
+        timestamp: new Date().toISOString(),
+        notes: JSON.stringify({
+          strategy: IMPORT_STRATEGY,
+          shelvesUpdated: result.applied.shelvesUpdated,
+          fieldsUpdated: result.applied.fieldsUpdated,
+          partsAdded: result.applied.partsAdded,
+          liveCountBefore: result.liveCountBefore,
+          liveCountAfter: result.liveCountAfter,
+        }),
+      };
+      transactions.unshift(tx);
+      await writeTransactions(transactions);
+
+      res.json({
+        success: true,
+        applyToLiveEnabled: true,
+        importStrategy: IMPORT_STRATEGY,
+        liveCountBefore: result.liveCountBefore,
+        liveCountAfter: result.liveCountAfter,
+        applied: result.applied,
+        skippedLocationConflict: result.plan.actions.skippedLocationConflict,
+        message: 'Fill-gaps apply complete. No live parts were deleted.',
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Fill-gaps apply failed', details: error.message });
+    }
   });
 
   app.post('/api/shelves/seed-jb-layout', async (req, res) => {

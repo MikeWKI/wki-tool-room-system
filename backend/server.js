@@ -1120,8 +1120,11 @@ app.post('/api/import/excel', upload.single('excelFile'), async (req, res) => {
 registerMasterInventoryRoutes(app, {
   dbService,
   readParts,
+  writeParts,
   readShelves,
   writeShelves,
+  readTransactions,
+  writeTransactions,
 });
 
 // Health check endpoint
