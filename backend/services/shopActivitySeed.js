@@ -174,12 +174,12 @@ function noteFor(rng, ro, unit, tech) {
   return `Unit ${unit}`;
 }
 
-function toolCount(rng, tech) {
-  if (tech.group === 'office' || tech.partsCounter) return 1;
+function toolCount(rng) {
   const roll = rng();
-  if (roll < 0.48) return 1;
-  if (roll < 0.82) return 2;
-  return 3;
+  if (roll < 0.12) return 1;
+  if (roll < 0.42) return 2;
+  if (roll < 0.78) return 3;
+  return 4;
 }
 
 function overlaps(reservations, start, end, quantity) {
@@ -249,22 +249,22 @@ function buildShopActivity({ parts, asOf = new Date(), seed = 20261005, techs = 
 
     for (const tech of order) {
       let chance = weekend ? 0.85 : checkoutChance(tech);
-      if (heavy) chance = Math.min(0.95, chance * 1.45);
+      if (heavy) chance = Math.min(1, chance * 1.2);
       if (light) chance *= 0.45;
       if (rng() > chance) continue;
 
-      const tools = weekend ? 1 + (rng() < 0.25 ? 1 : 0) : toolCount(rng, tech);
+      const tools = weekend ? 1 + (rng() < 0.25 ? 1 : 0) : toolCount(rng);
       const ro = makeRo(rng);
       const unit = makeUnit(rng);
       const [windowStart, windowEnd] = weekend
         ? SHIFT_WINDOWS.weekend
         : SHIFT_WINDOWS[tech.group] || SHIFT_WINDOWS['1st'];
-      let minute = windowStart + Math.floor(rng() * Math.max(1, windowEnd - windowStart));
+      let minute = windowStart + Math.floor(rng() * Math.max(30, Math.floor((windowEnd - windowStart) * 0.45)));
 
-      for (let tool = 0; tool < tools; tool += 1) {
-        if (tool > 0) minute += 6 + Math.floor(rng() * 28);
-        const hour = Math.floor(minute / 60);
-        const min = minute % 60;
+      const issueOne = (minuteOfDay, jobRo, jobUnit) => {
+        const hour = Math.floor(minuteOfDay / 60);
+        const min = minuteOfDay % 60;
+        if (hour > 23) return false;
         const second = Math.floor(rng() * 60);
         const start = zonedTimeToUtc(ymd.year, ymd.month, ymd.day, hour, min, second);
         let duration = pickDurationMinutes(rng);
@@ -279,23 +279,23 @@ function buildShopActivity({ parts, asOf = new Date(), seed = 20261005, techs = 
           } else if (ageMin >= 40) {
             const back = 8 + Math.floor(rng() * 25);
             end = new Date(asOfMs - back * 60000);
-            if (end.getTime() - start.getTime() < 35 * 60000) continue;
+            if (end.getTime() - start.getTime() < 35 * 60000) return false;
             duration = Math.round((end.getTime() - start.getTime()) / 60000);
           } else {
-            continue;
+            return false;
           }
         }
 
         const part = pickPart(parts, tech, start.getTime(), end.getTime(), reservations, rng);
-        if (!part) continue;
+        if (!part) return false;
         const qty = runningQty.has(part.id) ? runningQty.get(part.id) : Number(part.quantity) || 0;
-        if (qty <= 0) continue;
+        if (qty <= 0) return false;
 
         const rows = reservations.get(part.id) || [];
         rows.push({ start: start.getTime(), end: end.getTime() });
         reservations.set(part.id, rows);
         const checkoutId = nextId(start.getTime(), usedIds);
-        const note = noteFor(rng, ro, unit, tech);
+        const note = noteFor(rng, jobRo, jobUnit, tech);
         const checkout = {
           id: checkoutId,
           partId: part.id,
@@ -304,8 +304,8 @@ function buildShopActivity({ parts, asOf = new Date(), seed = 20261005, techs = 
           user: tech.name,
           timestamp: start.toISOString(),
           notes: note,
-          roNumber: ro,
-          unitNumber: unit,
+          roNumber: jobRo,
+          unitNumber: jobUnit,
           fromQuantity: qty,
           toQuantity: qty - 1,
           batchKey: BATCH_KEY,
@@ -319,11 +319,11 @@ function buildShopActivity({ parts, asOf = new Date(), seed = 20261005, techs = 
             user: tech.name,
             checkedOutDate: start.toISOString(),
           });
-          continue;
+          return true;
         }
 
         const checkinId = nextId(end.getTime(), usedIds);
-        const checkin = {
+        closed.push(checkout, {
           id: checkinId,
           partId: part.id,
           partNumber: part.partNumber,
@@ -331,15 +331,26 @@ function buildShopActivity({ parts, asOf = new Date(), seed = 20261005, techs = 
           user: tech.name,
           timestamp: end.toISOString(),
           notes: note,
-          roNumber: ro,
-          unitNumber: unit,
+          roNumber: jobRo,
+          unitNumber: jobUnit,
           checkoutId,
           fromQuantity: qty - 1,
           toQuantity: qty,
           batchKey: BATCH_KEY,
-        };
+        });
         runningQty.set(part.id, qty);
-        closed.push(checkout, checkin);
+        return true;
+      };
+
+      let issued = 0;
+      for (let tool = 0; tool < tools; tool += 1) {
+        if (tool > 0) minute += 6 + Math.floor(rng() * 22);
+        if (minute >= windowEnd) break;
+        if (issueOne(minute, ro, unit)) issued += 1;
+      }
+      if (!weekend && issued > 0 && issued < 4 && rng() < 0.22) {
+        const later = minute + 80 + Math.floor(rng() * 70);
+        if (later < windowEnd) issueOne(later, makeRo(rng), makeUnit(rng));
       }
     }
   }

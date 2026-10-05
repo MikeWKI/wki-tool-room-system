@@ -1,5 +1,5 @@
 const { buildShopActivity } = require('../services/shopActivitySeed');
-const { mergeActivityBatch } = require('../services/shopActivityApply');
+const { mergeActivityBatch, checkoutFieldPatches } = require('../services/shopActivityApply');
 
 function pinRejected(req, res) {
   const expected = process.env.MANAGE_PIN;
@@ -32,23 +32,6 @@ function registerAuditRoutes(app, deps) {
 
       const parts = await readParts();
       const generated = buildShopActivity({ parts, asOf });
-      const preview = {
-        dryRun: !confirm,
-        ...generated.summary,
-        batchKey: generated.batchKey,
-        rangeStart: generated.rangeStart,
-        rangeEnd: generated.rangeEnd,
-        partsInInventory: parts.length,
-        partsDeleted: 0,
-      };
-
-      if (!confirm) {
-        return res.json({
-          ...preview,
-          message: 'Dry run. POST { "confirm": true } with the manage PIN to write history. Live parts are not deleted.',
-        });
-      }
-
       const transactions = await readTransactions();
       const existingBatch = await dbService.getAuditBatch(generated.batchKey);
       const merged = mergeActivityBatch({
@@ -57,30 +40,31 @@ function registerAuditRoutes(app, deps) {
         existingBatch,
         generated,
       });
-
       const batchRows = merged.transactions.filter((row) => row.batchKey === generated.batchKey);
-      await dbService.replaceBatchTransactions(generated.batchKey, batchRows);
+      const preview = {
+        dryRun: !confirm,
+        ...generated.summary,
+        batchKey: generated.batchKey,
+        rangeStart: generated.rangeStart,
+        rangeEnd: generated.rangeEnd,
+        partsInInventory: parts.length,
+        partsDeleted: 0,
+        replacesBatch: true,
+        outsideBatchRelabeled: merged.outsideBatchRelabeled,
+        systemRelabeled: merged.systemRelabeled,
+        checkedOutByReassigned: merged.checkedOutByReassigned,
+        checkedOutByCleared: merged.checkedOutByCleared,
+      };
 
-      const patches = [];
-      const snapshotIds = new Set([
-        ...(existingBatch?.partSnapshots || []).map((row) => row.id),
-        ...merged.touchedPartIds,
-      ]);
-      const beforeById = new Map(parts.map((part) => [part.id, part]));
-      for (const id of snapshotIds) {
-        const next = merged.parts.find((part) => part.id === id);
-        const prev = beforeById.get(id);
-        if (!next || !prev) continue;
-        patches.push({
-          id,
-          patch: {
-            status: next.status,
-            checkedOutBy: next.checkedOutBy,
-            checkedOutDate: next.checkedOutDate,
-            quantity: next.quantity,
-          },
+      if (!confirm) {
+        return res.json({
+          ...preview,
+          message: 'Dry run. POST { "confirm": true } with the manage PIN to replace shop-activity-95d and clear removed names from other transactions and checked-out parts. Live parts are not deleted.',
         });
       }
+
+      await dbService.replaceBatchTransactions(generated.batchKey, batchRows, merged.keptTransactions);
+      const patches = checkoutFieldPatches(parts, merged.parts);
       if (patches.length > 0) await dbService.patchPartsById(patches);
       await dbService.saveAuditBatch(merged.batch);
 
@@ -92,7 +76,7 @@ function registerAuditRoutes(app, deps) {
         transactions: merged.batch.transactionCount,
         partsPatched: patches.length,
         partsDeleted: 0,
-        message: 'Shop activity history loaded. Existing non-batch transactions were kept. No parts were deleted.',
+        message: 'Replaced shop-activity-95d. Removed technician names were reassigned on leftover transactions and checked-out parts. Fill-gaps apply labels were set to System. No parts were deleted.',
       });
     } catch (error) {
       res.status(500).json({ error: 'Activity history load failed', details: error.message });

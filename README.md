@@ -106,7 +106,7 @@ Coverage: `GET /api/parts/enrichment-coverage`.
 
 ## Shop activity history
 
-About 95 weekdays of check-out / check-in history, America/Chicago, using the shop roster. Preview, then write. This does not delete parts. Running it again replaces only the previous activity batch.
+About 95 days of check-out / check-in history, America/Chicago, using only the 14-name short roster (Laryssa J. through Danny C.). Mark P., Trenton W., and every other previous name are not used. Preview, then write. This does not delete parts. `confirm: true` replaces the whole `shop-activity-95d` batch. The same call reassigns leftover transactions and `checkedOutBy` values that still use a removed name, and sets the fill-gaps apply label to `System`. Import rows already named `System` stay.
 
 Against the Render API after deploy:
 

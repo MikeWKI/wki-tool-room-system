@@ -1,11 +1,90 @@
 /**
  * Merge a generated activity batch into live transactions.
- * Replaces only rows with the same batchKey. Restores part snapshots from
- * the previous apply, then marks a few parts checked out. Never deletes parts.
+ * Replaces every row with the same batchKey. Then rewrites leftover
+ * transactions and checkedOutBy values that still name someone outside the
+ * short roster. The fill-gaps apply label becomes System. Never deletes parts.
  */
+
+const { TECHS, isAllowedTechName } = require('../data/techRoster');
+const { mulberry32 } = require('./shopActivitySeed');
+
+const SYSTEM_USER = 'System';
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function hashString(text) {
+  let hash = 2166136261;
+  const value = String(text);
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function userKind(name) {
+  const text = String(name || '').trim();
+  if (!text) return 'blank';
+  if (text.toLowerCase() === 'system') return 'system';
+  if (/fill-gaps apply/i.test(text) || text === 'Reconcile fill-gaps') return 'internal';
+  if (isAllowedTechName(text)) return 'tech';
+  return 'removed';
+}
+
+function techForKey(key) {
+  const rng = mulberry32(hashString(key) ^ 20261005);
+  return TECHS[Math.floor(rng() * TECHS.length)].name;
+}
+
+function pairKey(row) {
+  if (row.action === 'checkin' && row.checkoutId != null) return `pair:${row.checkoutId}`;
+  if (row.action === 'checkout') return `pair:${row.id}`;
+  return `row:${row.id}`;
+}
+
+function relabelHistory(transactions, parts) {
+  let outsideBatchRelabeled = 0;
+  let systemRelabeled = 0;
+  let checkedOutByReassigned = 0;
+  let checkedOutByCleared = 0;
+
+  for (const row of transactions) {
+    const kind = userKind(row.user);
+    if (kind === 'internal' || kind === 'system') {
+      if (row.user !== SYSTEM_USER) {
+        row.user = SYSTEM_USER;
+        systemRelabeled += 1;
+      }
+      continue;
+    }
+    if (kind === 'removed') {
+      row.user = techForKey(pairKey(row));
+      outsideBatchRelabeled += 1;
+    }
+  }
+
+  for (const part of parts) {
+    const kind = userKind(part.checkedOutBy);
+    if (kind === 'tech' || kind === 'blank' || kind === 'system') continue;
+    if (kind === 'internal') {
+      part.checkedOutBy = null;
+      part.checkedOutDate = null;
+      if (part.status === 'checked_out') part.status = 'available';
+      checkedOutByCleared += 1;
+      continue;
+    }
+    part.checkedOutBy = techForKey(`part:${part.id}:${part.checkedOutDate || ''}`);
+    checkedOutByReassigned += 1;
+  }
+
+  return {
+    outsideBatchRelabeled,
+    systemRelabeled,
+    checkedOutByReassigned,
+    checkedOutByCleared,
+  };
 }
 
 function mergeActivityBatch({ parts, transactions, existingBatch, generated }) {
@@ -22,6 +101,8 @@ function mergeActivityBatch({ parts, transactions, existingBatch, generated }) {
     part.checkedOutDate = snap.checkedOutDate;
     part.quantity = snap.quantity;
   }
+
+  const relabel = relabelHistory(nextTx, nextParts);
 
   const snapshots = [];
   const appliedOpens = [];
@@ -99,7 +180,37 @@ function mergeActivityBatch({ parts, transactions, existingBatch, generated }) {
     },
     touchedPartIds: snapshots.map((row) => row.id),
     partsDeleted: 0,
+    ...relabel,
+    keptTransactions: nextTx.filter((row) => row.batchKey !== batchKey),
   };
+}
+
+function sameCheckoutValue(left, right) {
+  const norm = (value) => {
+    if (value == null || value === '') return '';
+    if (value instanceof Date) return value.toISOString();
+    return String(value);
+  };
+  return norm(left) === norm(right);
+}
+
+function checkoutFieldPatches(beforeParts, afterParts) {
+  const afterById = new Map(afterParts.map((part) => [part.id, part]));
+  const patches = [];
+  for (const before of beforeParts) {
+    const after = afterById.get(before.id);
+    if (!after) continue;
+    const patch = {};
+    let changed = false;
+    for (const field of ['status', 'checkedOutBy', 'checkedOutDate', 'quantity']) {
+      if (!sameCheckoutValue(before[field], after[field])) {
+        patch[field] = after[field] ?? null;
+        changed = true;
+      }
+    }
+    if (changed) patches.push({ id: before.id, patch });
+  }
+  return patches;
 }
 
 function snapshotsEqual(parts, snapshots) {
@@ -112,6 +223,9 @@ function snapshotsEqual(parts, snapshots) {
 
 module.exports = {
   mergeActivityBatch,
+  relabelHistory,
+  userKind,
+  checkoutFieldPatches,
   snapshotsEqual,
   clone,
 };

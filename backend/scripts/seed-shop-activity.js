@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Load ~95 days of shop checkout/check-in history.
- * Does not delete parts. Re-running replaces only the prior activity batch.
+ * Does not delete parts. Re-running replaces the prior activity batch and
+ * reassigns any leftover removed technician names.
  *
  * Dry run:
  *   node scripts/seed-shop-activity.js
@@ -22,7 +23,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const DatabaseService = require('../services/DatabaseService');
 const { buildShopActivity } = require('../services/shopActivitySeed');
-const { mergeActivityBatch } = require('../services/shopActivityApply');
+const { mergeActivityBatch, checkoutFieldPatches } = require('../services/shopActivityApply');
 
 async function main() {
   const apply = process.argv.includes('--apply');
@@ -34,38 +35,29 @@ async function main() {
     process.exit(1);
   }
   const generated = buildShopActivity({ parts, asOf: new Date() });
-  console.log(JSON.stringify({ ...generated.summary, parts: parts.length, partsDeleted: 0 }, null, 2));
+  const transactions = await db.getTransactions();
+  const existingBatch = await db.getAuditBatch(generated.batchKey);
+  const merged = mergeActivityBatch({ parts, transactions, existingBatch, generated });
+  console.log(JSON.stringify({
+    ...generated.summary,
+    parts: parts.length,
+    partsDeleted: 0,
+    replacesBatch: true,
+    outsideBatchRelabeled: merged.outsideBatchRelabeled,
+    systemRelabeled: merged.systemRelabeled,
+    checkedOutByReassigned: merged.checkedOutByReassigned,
+    checkedOutByCleared: merged.checkedOutByCleared,
+  }, null, 2));
   if (!apply) {
     console.log('Dry run only. Re-run with --apply to write history.');
     process.exit(0);
   }
-  const transactions = await db.getTransactions();
-  const existingBatch = await db.getAuditBatch(generated.batchKey);
-  const merged = mergeActivityBatch({ parts, transactions, existingBatch, generated });
   const batchRows = merged.transactions.filter((row) => row.batchKey === generated.batchKey);
-  await db.replaceBatchTransactions(generated.batchKey, batchRows);
-  const beforeById = new Map(parts.map((part) => [part.id, part]));
-  const ids = new Set([
-    ...(existingBatch?.partSnapshots || []).map((row) => row.id),
-    ...merged.touchedPartIds,
-  ]);
-  const patches = [];
-  for (const id of ids) {
-    const next = merged.parts.find((part) => part.id === id);
-    if (!next || !beforeById.has(id)) continue;
-    patches.push({
-      id,
-      patch: {
-        status: next.status,
-        checkedOutBy: next.checkedOutBy,
-        checkedOutDate: next.checkedOutDate,
-        quantity: next.quantity,
-      },
-    });
-  }
+  await db.replaceBatchTransactions(generated.batchKey, batchRows, merged.keptTransactions);
+  const patches = checkoutFieldPatches(parts, merged.parts);
   if (patches.length) await db.patchPartsById(patches);
   await db.saveAuditBatch(merged.batch);
-  console.log(`Wrote ${batchRows.length} history rows. Patched ${patches.length} parts. Deleted parts: 0.`);
+  console.log(`Replaced ${batchRows.length} history rows. Patched ${patches.length} parts. Relabeled leftover names: ${merged.outsideBatchRelabeled}. System labels: ${merged.systemRelabeled}. Deleted parts: 0.`);
   process.exit(0);
 }
 
