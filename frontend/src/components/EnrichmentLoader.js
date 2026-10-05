@@ -31,8 +31,7 @@ const EnrichmentLoader = ({ apiCall, onLoaded }) => {
     <section className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6">
       <h2 className="text-xl font-bold text-gray-900 dark:text-white">Load enrichment</h2>
       <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 max-w-3xl">
-        Upload a JSON file of part details. Matching P#s are updated. Unknown fields stay empty.
-        Quantity, shelf, and checkout state are left alone. No parts are deleted.
+        Upload enrichment JSON. A research file (found, ambiguous, unfound) updates matched P#s from found and ambiguous rows only. Unfound rows are skipped. Quantity, shelf, and the shop description stay as they are. No parts are deleted.
       </p>
       <label className="mt-4 inline-flex items-center min-h-[56px] px-4 rounded-lg bg-red-700 text-white font-semibold cursor-pointer">
         {busy ? 'Loading…' : 'Choose enrichment JSON'}
@@ -41,7 +40,8 @@ const EnrichmentLoader = ({ apiCall, onLoaded }) => {
       {error && <p className="mt-3 text-red-700">{error}</p>}
       {result?.summary && (
         <p className="mt-3 text-gray-900 dark:text-gray-100">
-          Updated {result.summary.partsUpdated}. Unmatched {result.summary.unmatched}. Rejected {result.summary.rejected}. Deleted {result.summary.deleted}.
+          Updated {result.summary.partsUpdated}. Unmatched {result.summary.unmatched}. Rejected {result.summary.rejected}.
+          {result.summary.skippedUnfound != null ? ` Skipped unfound ${result.summary.skippedUnfound}.` : ''} Deleted {result.summary.deleted}.
         </p>
       )}
     </section>

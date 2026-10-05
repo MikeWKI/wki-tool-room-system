@@ -70,6 +70,60 @@ test('enrich-batch updates matches and leaves inventory intact', () => {
   assert.equal(parts[0].quantity, 2);
 });
 
+test('research batch applies found and ambiguous and skips unfound', () => {
+  const batch = require('../data/enrichment-batch-20261005.json');
+  const found = batch.find((row) => row.partNumber === '1696707');
+  const ambiguous = batch.find((row) => row.partNumber === '4394639');
+  const dual = batch.find((row) => row.partNumber === '3824500');
+  const live = [
+    { id: 1, partNumber: '1696707', description: 'Shop liner tool', quantity: 1, shelf: 'A', manufacturer: null },
+    { id: 2, partNumber: '4394639', description: 'X15 Cylinder Leak Down Kit', quantity: 1, shelf: 'B' },
+    { id: 3, partNumber: '17592R', description: 'Keep', quantity: 4, shelf: 'C', manufacturer: 'Already', notes: 'keep me' },
+    { id: 4, partNumber: '3824500', description: 'Wear sleeve', quantity: 1, shelf: 'D' },
+  ];
+
+  const result = applyEnrichmentBatch(live, batch);
+  const liner = result.parts.find((part) => part.id === 1);
+  const valve = result.parts.find((part) => part.id === 2);
+  const untouched = result.parts.find((part) => part.id === 3);
+  const sleeve = result.parts.find((part) => part.id === 4);
+
+  assert.equal(result.summary.input, 118);
+  assert.equal(result.summary.skippedUnfound, 46);
+  assert.equal(result.summary.rejected, 0);
+  assert.equal(result.summary.deleted, 0);
+  assert.equal(result.summary.inventoryCountAfter, 4);
+  assert.equal(result.summary.appliedFound, 2);
+  assert.equal(result.summary.appliedAmbiguous, 1);
+
+  assert.equal(liner.description, 'Shop liner tool');
+  assert.equal(liner.quantity, 1);
+  assert.equal(liner.shelf, 'A');
+  assert.equal(liner.polishedDescription, found.description);
+  assert.equal(liner.manufacturer, found.manufacturer);
+  assert.equal(liner.engineFamily, 'MX');
+  assert.equal(liner.sourceUrl, found.sourceUrl);
+  assert.match(liner.notes, /MX-13/);
+
+  assert.equal(valve.description, 'X15 Cylinder Leak Down Kit');
+  assert.equal(valve.polishedDescription, ambiguous.description);
+  assert.equal(valve.manufacturer, ambiguous.manufacturer);
+  assert.match(valve.notes, /Shop inventory labeled/);
+  assert.equal(valve.engineFamily, undefined);
+
+  assert.equal(untouched.manufacturer, 'Already');
+  assert.equal(untouched.notes, 'keep me');
+  assert.equal(untouched.lastEnrichedAt, undefined);
+  assert.equal(untouched.description, 'Keep');
+
+  assert.equal(sleeve.polishedDescription, dual.description);
+  assert.equal(sleeve.manufacturer, dual.manufacturer);
+  assert.equal(sleeve.engineFamily, undefined);
+  assert.match(sleeve.notes, /Paccar PX-6/);
+  assert.equal(sleeve.description, 'Wear sleeve');
+  assert.equal(sleeve.quantity, 1);
+});
+
 test('coverage counts only filled enrichment fields', () => {
   const enriched = applyEnrichmentBatch(parts, {
     items: [{ id: 7, vendor: 'Kenworth', sourceUrl: 'https://example.com/tool' }],

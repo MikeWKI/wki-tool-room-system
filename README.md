@@ -62,10 +62,10 @@ Set `MANAGE_PIN` and `CAMERA_ACCESS_PASSWORD` on the API only. Do not put them i
 ```bash
 cd backend
 node scripts/load-enrichment.js ./data/enrichment.example.json
-node scripts/load-enrichment.js ./data/enrichment-from-jb.json --apply
+node scripts/load-enrichment.js ./data/enrichment-batch-20261005.json --apply
 ```
 
-`enrichment-from-jb.json` is built from the 2026-02-04 JB file. It sets `engineFamily` from the category label on real part numbers: 24 MX, 73 Cummins, 12 Detroit. CAT Tools and General Tools in that file are NOPN-only. Other fields stay null.
+`enrichment-batch-20261005.json` is the research batch (118 part numbers: 58 found, 14 ambiguous, 46 unfound). The API accepts that array as-is. Found and ambiguous rows write only the non-null fields in the file. `description` is stored as `polishedDescription` and does not replace the shop description. A specific engine string is kept in notes and sets the shop chip only when it names one family (MX, Cummins, Detroit, and so on). Two families in one string, such as a Cummins tool that also lists Paccar PX, leave the chip empty. Unfound rows are skipped and do not clear existing fields. Nothing in that file is added beyond the JSON.
 
 Against the Render API after deploy, from a clone of this branch:
 
@@ -73,7 +73,7 @@ Against the Render API after deploy, from a clone of this branch:
 API=https://wki-tool-room-system-1.onrender.com
 curl -sS -X POST "$API/api/parts/enrich-batch" \
   -H "Content-Type: application/json" \
-  --data-binary @backend/data/enrichment-from-jb.json
+  --data-binary @backend/data/enrichment-batch-20261005.json
 curl -sS "$API/api/parts/enrichment-coverage"
 ```
 
@@ -100,7 +100,7 @@ Shape (`items` or `parts` array). Omit a key to leave it unchanged. Use null whe
 }
 ```
 
-`engineFamily` is one of MX, Cummins, CAT, Detroit, Allison, Paccar, General, or null. Matching is by `id` when that id exists, otherwise by part number (duplicates all update). Quantity, shelf, status, and the inventory description are ignored. Parts are never created or deleted.
+On the canonical shape, `engineFamily` is one of MX, Cummins, CAT, Detroit, Allison, Paccar, General, or null. A research row may send a longer engine string with `researchStatus`; that string is kept in notes and sets the chip only when it names a single family. Matching is by `id` when that id exists, otherwise by part number (duplicates all update). Quantity, shelf, status, and the inventory description are ignored. Parts are never created or deleted.
 
 Coverage: `GET /api/parts/enrichment-coverage`.
 

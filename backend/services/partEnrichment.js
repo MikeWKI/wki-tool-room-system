@@ -1,7 +1,7 @@
 /**
  * Part enrichment upsert.
  *
- * JSON shape (file or POST /api/parts/enrich-batch):
+ * Canonical JSON (file or POST /api/parts/enrich-batch):
  * {
  *   "items": [
  *     {
@@ -21,11 +21,30 @@
  *   ]
  * }
  *
+ * Research batch (array, or items/parts). Exact row shape from
+ * enrichment-batch-20261005.json:
+ * {
+ *   "partNumber": "1696707",
+ *   "description": "Cylinder Liner Remover/Installer & Hold-Down",
+ *   "manufacturer": "Paccar",
+ *   "engineFamily": "MX-13",
+ *   "notes": "Often 1696707PE; remove/install/seat liner",
+ *   "sourceUrl": "https://example.com/tool",
+ *   "researchStatus": "found"
+ * }
+ * researchStatus "unfound" is skipped (nulls do not clear). "found" and
+ * "ambiguous" write only non-null fields. description becomes
+ * polishedDescription and never replaces the inventory description.
+ * A specific engine string such as "MX-13" is stored in notes and, when it
+ * names a single shop chip, also sets engineFamily. Ambiguous rows keep
+ * their notes; a shop-label warning is added only when the notes do not
+ * already mention the shop.
+ *
  * Match by id when that id exists, otherwise by normalized partNumber
- * (all live duplicates with that P# are updated). Omitted keys are left
- * alone. Explicit null clears a field. Unknown engine families and bad
- * URLs reject that row. Inventory quantity, shelf, status, and description
- * are never modified. Parts are never created or deleted.
+ * (all live duplicates with that P# are updated). On the canonical shape,
+ * omitted keys are left alone and explicit null clears a field. Unknown
+ * chip families and bad URLs reject that row. Inventory quantity, shelf,
+ * status, and description are never modified. Parts are never created or deleted.
  */
 
 const { normalizePartNumber } = require('../data/masterInventoryLayout');
@@ -201,6 +220,68 @@ function itemsFromPayload(payload) {
   return null;
 }
 
+function mapResearchEngineFamily(value) {
+  const text = emptyToNull(value);
+  if (!text) return null;
+  const exact = normalizeEngineFamily(text);
+  if (!exact.error) return exact.value;
+
+  const lower = text.toLowerCase();
+  if (/\bmulti\b/.test(lower)) return null;
+
+  const hits = new Set();
+  if (/\bmx[-\s]?(11|13)\b|\bpaccar\s+mx\b|\bmx engines\b/.test(lower)) hits.add('MX');
+  if (/\bdetroit\b|\bseries\s*50\b|\bseries\s*60\b|\bmbe\s*4000\b/.test(lower)) hits.add('Detroit');
+  if (
+    /\bcummins\b|\bisx\b|\bx15\b|\bqsx\b|\bisb\b|\bisc\b|\bisl\b|\bism\b|\bqsb\b|\bqsc\b|\bqsl\b|\bcelect\b|\bn14\b|\bl10\b|\bm11\b|\bb6\.7\b|\bb\s*&\s*c\s*series\b|\bb\s*series\b|\bc\s*series\b/.test(lower)
+  ) {
+    hits.add('Cummins');
+  }
+  if (/\bcaterpillar\b|\bcat\b/.test(lower)) hits.add('CAT');
+  if (/\ballison\b/.test(lower)) hits.add('Allison');
+  if (/\bpaccar\b|\bpx-?\d\b|\bdaf\b/.test(lower)) hits.add('Paccar');
+
+  if (hits.size === 1) return [...hits][0];
+  if (hits.size === 2 && hits.has('MX') && hits.has('Paccar') && !/\bpx-?\d\b/.test(lower)) return 'MX';
+  return null;
+}
+
+function adaptResearchItem(item) {
+  if (!hasOwn(item, 'researchStatus')) return { item };
+  const status = String(item.researchStatus || '').trim().toLowerCase();
+  if (status === 'unfound') return { skip: 'unfound' };
+  if (status !== 'found' && status !== 'ambiguous') {
+    return { error: 'researchStatus must be found, ambiguous, or unfound' };
+  }
+
+  const next = {};
+  if (item.partNumber != null) next.partNumber = item.partNumber;
+  if (item.id != null) next.id = item.id;
+
+  const polished = emptyToNull(item.description);
+  if (polished) next.polishedDescription = polished;
+  const manufacturer = emptyToNull(item.manufacturer);
+  if (manufacturer) next.manufacturer = manufacturer;
+  const sourceUrl = emptyToNull(item.sourceUrl);
+  if (sourceUrl) next.sourceUrl = sourceUrl;
+
+  let notes = emptyToNull(item.notes);
+  const familyText = emptyToNull(item.engineFamily);
+  if (familyText) {
+    const chip = mapResearchEngineFamily(familyText);
+    if (chip) next.engineFamily = chip;
+    if (!notes || !notes.includes(familyText)) {
+      notes = [notes, `Researched engine: ${familyText}`].filter(Boolean).join(' ');
+    }
+  }
+  if (status === 'ambiguous' && (!notes || !/shop/i.test(notes))) {
+    notes = [notes, 'Shop label may differ.'].filter(Boolean).join(' ');
+  }
+  if (notes) next.notes = notes;
+
+  return { item: next, researchStatus: status };
+}
+
 function applyEnrichmentBatch(parts, payload, now = new Date()) {
   const items = itemsFromPayload(payload);
   if (!items) {
@@ -219,12 +300,29 @@ function applyEnrichmentBatch(parts, payload, now = new Date()) {
   const unmatched = [];
   const rejected = [];
   let ignoredInventoryFields = 0;
+  let skippedUnfound = 0;
+  let appliedFound = 0;
+  let appliedAmbiguous = 0;
 
-  for (const item of items) {
-    if (!item || typeof item !== 'object') {
+  for (const raw of items) {
+    if (!raw || typeof raw !== 'object') {
       rejected.push({ error: 'Each item must be an object' });
       continue;
     }
+    const adapted = adaptResearchItem(raw);
+    if (adapted.skip === 'unfound') {
+      skippedUnfound += 1;
+      continue;
+    }
+    if (adapted.error) {
+      rejected.push({
+        id: raw.id ?? null,
+        partNumber: raw.partNumber ?? null,
+        error: adapted.error,
+      });
+      continue;
+    }
+    const item = adapted.item;
     const ignored = IGNORED_INVENTORY_KEYS.filter((key) => hasOwn(item, key));
     if (ignored.length) ignoredInventoryFields += 1;
 
@@ -238,6 +336,7 @@ function applyEnrichmentBatch(parts, payload, now = new Date()) {
       continue;
     }
     if (!built.patch || Object.keys(built.patch).length === 0) {
+      if (adapted.researchStatus) continue;
       rejected.push({
         id: item.id ?? null,
         partNumber: item.partNumber ?? null,
@@ -245,12 +344,13 @@ function applyEnrichmentBatch(parts, payload, now = new Date()) {
       });
       continue;
     }
-
     const matches = findMatches(partsCopy, item);
     if (matches.length === 0) {
       unmatched.push({ id: item.id ?? null, partNumber: item.partNumber ?? null });
       continue;
     }
+    if (adapted.researchStatus === 'found') appliedFound += 1;
+    if (adapted.researchStatus === 'ambiguous') appliedAmbiguous += 1;
 
     for (const part of matches) {
       Object.assign(part, built.patch);
@@ -278,6 +378,9 @@ function applyEnrichmentBatch(parts, payload, now = new Date()) {
       unmatched: unmatched.length,
       rejected: rejected.length,
       ignoredInventoryFields,
+      skippedUnfound,
+      appliedFound,
+      appliedAmbiguous,
       inventoryCountBefore: parts.length,
       inventoryCountAfter: partsCopy.length,
       deleted: 0,
