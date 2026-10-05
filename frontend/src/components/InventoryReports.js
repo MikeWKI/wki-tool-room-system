@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, Download, MapPin, Package, AlertCircle, TrendingUp, TrendingDown, Calendar, Users } from 'lucide-react';
+import { formatShelfLabel } from '../utils/masterInventoryLocation';
 
 const InventoryReports = ({ 
   isOpen, 
@@ -45,7 +46,7 @@ const InventoryReports = ({
     // Location utilization
     const locationUtilization = {};
     inventory.forEach(part => {
-      const location = part.shelf || 'Unassigned';
+      const location = formatShelfLabel(part.shelf);
       if (!locationUtilization[location]) {
         locationUtilization[location] = {
           totalParts: 0,
@@ -330,7 +331,7 @@ const InventoryReports = ({
                       <div key={location} className="border rounded-lg p-4">
                         <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
                           <MapPin className="w-4 h-4" />
-                          {location}
+                          {formatShelfLabel(location)}
                         </h4>
                         <div className="space-y-1 text-sm">
                           <p><span className="text-gray-600">Parts:</span> {data.parts.length}</p>

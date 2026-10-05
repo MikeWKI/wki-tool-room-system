@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Package, MapPin, Clock, User, AlertCircle } from 'lucide-react';
+import { formatShelfLabel } from '../utils/masterInventoryLocation';
 
 const InventoryGrid = memo(({ 
   inventory, 
@@ -72,7 +73,7 @@ const InventoryGrid = memo(({
             <div className="space-y-2 text-sm text-gray-600">
               <div className="flex items-center">
                 <MapPin className="w-4 h-4 mr-2" />
-                <span>{part.shelf}</span>
+                <span>{formatShelfLabel(part.shelf)}</span>
               </div>
               
               <div className="flex items-center justify-between">

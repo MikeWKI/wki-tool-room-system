@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, Check, GitCompare, RefreshCw, X, Lock } from 'lucide-react';
+import { formatShelfLabel } from '../utils/masterInventoryLocation';
 
 const TABS = [
   { id: 'jbStaging', label: 'JB Staging' },
@@ -212,15 +213,15 @@ const ReconcileInventory = ({ apiCall, currentUser }) => {
                 {row.message && <p className="text-sm text-gray-800 dark:text-gray-200 mb-2">{row.message}</p>}
                 {live && (
                   <p className="text-sm text-gray-800 dark:text-gray-200">
-                    <span className="font-semibold">Live:</span> {live.description} · {live.shelf || 'TBD'} · qty {live.quantity}
+                    <span className="font-semibold">Live:</span> {live.description} · {formatShelfLabel(live.shelf)} · qty {live.quantity}
                   </p>
                 )}
                 {jb && (
                   <p className="text-sm text-gray-800 dark:text-gray-200">
-                    <span className="font-semibold">JB:</span> {jb.description} · {jb.shelf} · qty {jb.quantity}
+                    <span className="font-semibold">JB:</span> {jb.description} · {formatShelfLabel(jb.shelf)} · qty {jb.quantity}
                   </p>
                 )}
-                {!live && row.description && <p className="text-sm text-gray-800">{row.description} · {row.shelf}</p>}
+                {!live && row.description && <p className="text-sm text-gray-800">{row.description} · {formatShelfLabel(row.shelf)}</p>}
                 {row.fields?.length > 0 && (
                   <p className="text-sm text-orange-800 mt-1">Waiting on Accept JB: {row.fields.join(', ')}</p>
                 )}

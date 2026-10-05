@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Save, X, Search, Package, AlertCircle, CheckCircle } from 'lucide-react';
+import { formatShelfLabel } from '../utils/masterInventoryLocation';
 
 const LocationManager = ({ 
   isOpen, 
@@ -34,7 +35,10 @@ const LocationManager = ({
     const matchesSearch = 
       part.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       part.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (part.shelf && part.shelf.toLowerCase().includes(searchTerm.toLowerCase()));
+      (part.shelf && (
+        part.shelf.toLowerCase().includes(searchTerm.toLowerCase())
+        || formatShelfLabel(part.shelf).toLowerCase().includes(searchTerm.toLowerCase())
+      ));
 
     if (!matchesSearch) return false;
 
@@ -193,7 +197,7 @@ const LocationManager = ({
                 >
                   <option value="">Select Location</option>
                   {uniqueLocations.map(location => (
-                    <option key={location} value={location}>{location}</option>
+                    <option key={location} value={location}>{formatShelfLabel(location)}</option>
                   ))}
                 </select>
               )}
@@ -305,7 +309,7 @@ const LocationManager = ({
                   <td className="p-3">
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm text-gray-700">
                       <MapPin className="w-3 h-3" />
-                      {part.shelf || 'Unassigned'}
+                      {formatShelfLabel(part.shelf)}
                     </span>
                   </td>
                   <td className="p-3 text-gray-900">{part.category}</td>

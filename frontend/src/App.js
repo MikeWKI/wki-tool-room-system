@@ -12,7 +12,8 @@ import EngineFamilyChips from './components/EngineFamilyChips';
 import PartEnrichmentDetails from './components/PartEnrichmentDetails';
 import EnrichmentLoader from './components/EnrichmentLoader';
 import ActivityHistoryPanel from './components/ActivityHistoryPanel';
-import { matchesEngineFamilyChip } from './utils/masterInventoryLocation';
+import { formatShelfLabel, matchesEngineFamilyChip, otherRowsWithSamePartNumber, samePartNumberHint } from './utils/masterInventoryLocation';
+import { isInstallPromptDismissed, rememberInstallPromptDismissal, shouldShowInstallBanner } from './utils/installPrompt';
 import AdvancedFilters from './components/AdvancedFilters';
 import InventoryReports from './components/InventoryReports';
 import DataManagement from './components/DataManagement';
@@ -96,6 +97,7 @@ const InventorySystem = () => {
   const [showPWANotification, setShowPWANotification] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallInstructions, setShowInstallInstructions] = useState(false);
+  const [installDismissed, setInstallDismissed] = useState(() => isInstallPromptDismissed());
 
   // Inventory Management State
   const [showAddPartModal, setShowAddPartModal] = useState(false);
@@ -667,13 +669,16 @@ const InventorySystem = () => {
     window.addEventListener('offline', handleOffline);
 
     // PWA event listeners
+    const isInstalledCheck = window.matchMedia('(display-mode: standalone)').matches;
     const handlePWAInstallPrompt = (e) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
       // Stash the event so it can be triggered later
       setDeferredPrompt(e);
-      // Show install prompt
-      setShowInstallPrompt(true);
+      if (!isInstalledCheck && !isInstallPromptDismissed()) {
+        setShowInstallPrompt(true);
+        setShowPWANotification(false);
+      }
     };
     const handlePWAUpdateAvailable = () => setShowUpdateNotification(true);
     const handlePWAOnlineStatus = (event) => setIsOnline(event.detail.online);
@@ -689,8 +694,6 @@ const InventorySystem = () => {
     window.addEventListener('pwa-update-available', handlePWAUpdateAvailable);
     window.addEventListener('pwa-online-status', handlePWAOnlineStatus);
     
-    // Check if app is already installed
-    const isInstalledCheck = window.matchMedia('(display-mode: standalone)').matches;
     setIsInstalled(isInstalledCheck);
     
     // Hide install prompt if already installed
@@ -698,13 +701,11 @@ const InventorySystem = () => {
       setShowInstallPrompt(false);
     }
     
-    // Show PWA notification if not shown before and not installed
-    const pwaNotificationShown = localStorage.getItem('pwa-notification-shown');
-    
-    if (!pwaNotificationShown && !isInstalledCheck) {
-      // Show notification after a short delay
-      setTimeout(() => {
-        setShowPWANotification(true);
+    // One install notice. Skip it when the tech already dismissed either banner.
+    let installNoticeTimer;
+    if (!isInstalledCheck && !isInstallPromptDismissed()) {
+      installNoticeTimer = setTimeout(() => {
+        if (!isInstallPromptDismissed()) setShowPWANotification(true);
       }, 3000);
     }
     
@@ -715,6 +716,7 @@ const InventorySystem = () => {
       window.removeEventListener('appinstalled', handleAppInstalled);
       window.removeEventListener('pwa-update-available', handlePWAUpdateAvailable);
       window.removeEventListener('pwa-online-status', handlePWAOnlineStatus);
+      if (installNoticeTimer) clearTimeout(installNoticeTimer);
       // Clear deferred prompt
       setDeferredPrompt(null);
     };
@@ -1075,14 +1077,20 @@ const InventorySystem = () => {
     }
   };
 
-  const handleDismissPWANotification = () => {
+  const handleDismissInstallBanner = () => {
     setShowPWANotification(false);
-    localStorage.setItem('pwa-notification-shown', 'true');
+    setShowInstallPrompt(false);
+    setInstallDismissed(true);
+    try {
+      rememberInstallPromptDismissal();
+    } catch (err) {
+      // Private mode can block localStorage. The in-memory flag still hides the banner.
+    }
   };
 
   const handlePWANotificationInstall = () => {
     handleInstallApp();
-    handleDismissPWANotification();
+    handleDismissInstallBanner();
   };
 
   // Camera Security Functions
@@ -2392,7 +2400,7 @@ const InventorySystem = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <MapPin className="w-4 h-4 text-gray-400 mr-1" />
-                      <span className="text-sm text-gray-900">{part.shelf}</span>
+                      <span className="text-sm text-gray-900">{formatShelfLabel(part.shelf)}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -3344,8 +3352,52 @@ const InventorySystem = () => {
         </div>
       </div>
 
+      {shouldShowInstallBanner({
+        isInstalled,
+        dismissed: installDismissed,
+        prompted: showInstallPrompt || showPWANotification,
+      }) && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4" data-testid="install-banner">
+          <div className="bg-red-700 text-white rounded-lg shadow-md p-4" role="region" aria-label="Install app">
+            <div className="flex items-start gap-3">
+              <Download className="w-6 h-6 shrink-0 mt-1" />
+              <div className="min-w-0 flex-1">
+                <h4 className="font-semibold text-base">Install as App</h4>
+                <p className="text-sm mt-1 leading-relaxed">
+                  Get faster access and work offline by installing this app on your device.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleDismissInstallBanner}
+                aria-label="Dismiss install prompt"
+                className="min-h-[56px] min-w-[56px] flex items-center justify-center rounded-lg hover:bg-white/20"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 mt-3">
+              <button
+                type="button"
+                onClick={handlePWANotificationInstall}
+                className="min-h-[56px] flex-1 px-4 rounded-lg bg-white text-red-700 text-base font-bold"
+              >
+                Install Now
+              </button>
+              <button
+                type="button"
+                onClick={handleDismissInstallBanner}
+                className="min-h-[56px] px-4 rounded-lg bg-white/20 text-base font-semibold"
+              >
+                Maybe Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-24 md:pt-6 md:pb-6">
         {/* Search and Controls */}
         {(activeView === 'inventory' || activeView === 'manage' || activeView === 'master') && (
           <div className="mb-6 space-y-4">
@@ -3471,7 +3523,7 @@ const InventorySystem = () => {
                               <p className="text-gray-800 dark:text-gray-100 text-base mt-1">{part.polishedDescription || part.description}</p>
                               <div className="flex items-center mt-2 text-sm text-gray-500 dark:text-gray-400">
                                 <MapPin className="w-4 h-4 mr-1" />
-                                <span>Shelf: {part.shelf}</span>
+                                <span>Shelf: {formatShelfLabel(part.shelf)}</span>
                                 {part.rack && <span className="ml-2">Rack: {part.rack}</span>}
                                 <span className="ml-4">Qty: {part.quantity}</span>
                                 {part.quantity === 0 && (
@@ -3491,7 +3543,7 @@ const InventorySystem = () => {
                                 <div className="w-full h-full bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
                                   <img
                                     src={`/${getShelfImagePath(part.shelf, part.rack)}`}
-                                    alt={`${part.shelf} ${part.rack}`}
+                                    alt={`${formatShelfLabel(part.shelf)} ${part.rack || ''}`.trim()}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
                                       e.target.style.display = 'none';
@@ -3552,9 +3604,14 @@ const InventorySystem = () => {
                     <div className="flex items-center mt-3 text-red-600 dark:text-red-400">
                       <MapPin className="w-5 h-5 mr-2" />
                       <span className="font-semibold">
-                        Located on Shelf: {selectedPart.shelf}
+                        Located on Shelf: {formatShelfLabel(selectedPart.shelf)}
                       </span>
                     </div>
+                    {samePartNumberHint(otherRowsWithSamePartNumber(inventory, selectedPart)) && (
+                      <p className="mt-1 text-sm font-medium text-amber-800 dark:text-amber-200">
+                        {samePartNumberHint(otherRowsWithSamePartNumber(inventory, selectedPart))}
+                      </p>
+                    )}
                     
                     {/* Shelf Image */}
                     {getShelfImagePath(selectedPart.shelf, selectedPart.rack) && (
@@ -3565,14 +3622,14 @@ const InventorySystem = () => {
                           onClick={() => {
                             setSelectedImage({
                               filename: getShelfImagePath(selectedPart.shelf, selectedPart.rack),
-                              title: `${selectedPart.shelf} Photo`
+                              title: `${formatShelfLabel(selectedPart.shelf)} Photo`
                             });
                             setShowImageModal(true);
                           }}
                         >
                           <img
                             src={`/${getShelfImagePath(selectedPart.shelf, selectedPart.rack)}`}
-                            alt={`${selectedPart.shelf} Photo`}
+                            alt={`${formatShelfLabel(selectedPart.shelf)} Photo`}
                             className="w-full h-48 object-cover rounded-lg shadow-md transition-transform duration-200 group-hover:scale-105"
                             onError={(e) => {
                               e.target.style.display = 'none';
@@ -3669,14 +3726,14 @@ const InventorySystem = () => {
                           onClick={() => {
                             setSelectedImage({
                               filename: getShelfImagePath(selectedPart.shelf, selectedPart.rack),
-                              title: `${selectedPart.shelf} Photo`
+                              title: `${formatShelfLabel(selectedPart.shelf)} Photo`
                             });
                             setShowImageModal(true);
                           }}
                         >
                           <img
                             src={`/${getShelfImagePath(selectedPart.shelf, selectedPart.rack)}`}
-                            alt={`${selectedPart.shelf} Photo`}
+                            alt={`${formatShelfLabel(selectedPart.shelf)} Photo`}
                             className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                             onError={(e) => {
                               e.target.style.display = 'none';
@@ -3695,7 +3752,7 @@ const InventorySystem = () => {
                           <div className="hidden w-full h-full items-center justify-center">
                             <div className="text-center">
                               <Package className="w-16 h-16 mx-auto mb-3 text-gray-400" />
-                              <p className="text-gray-500 dark:text-gray-400 font-medium">Shelf {selectedPart.shelf}</p>
+                              <p className="text-gray-500 dark:text-gray-400 font-medium">Shelf {formatShelfLabel(selectedPart.shelf)}</p>
                               <p className="text-sm text-gray-400 dark:text-gray-500">Photo Not Available</p>
                             </div>
                           </div>
@@ -3703,7 +3760,7 @@ const InventorySystem = () => {
                       ) : (
                         <div className="text-center">
                           <Package className="w-16 h-16 mx-auto mb-3 text-gray-400" />
-                          <p className="text-gray-500 dark:text-gray-400 font-medium">Shelf {selectedPart.shelf}</p>
+                          <p className="text-gray-500 dark:text-gray-400 font-medium">Shelf {formatShelfLabel(selectedPart.shelf)}</p>
                           <p className="text-sm text-gray-400 dark:text-gray-500">Photo Not Available</p>
                         </div>
                       )}
@@ -3823,48 +3880,9 @@ const InventorySystem = () => {
       />
       <ImageModal />
 
-      {/* PWA Feature Notification */}
-      {showPWANotification && (
-        <div className="fixed top-4 right-4 z-50 bg-gradient-to-br from-red-600 to-red-700 text-white p-4 rounded-lg shadow-lg max-w-sm animate-slide-in">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-3">
-              <div className="bg-white/20 p-2 rounded-lg">
-                <Download className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm">Install as App</h4>
-                <p className="text-xs opacity-90 mt-1 leading-relaxed">
-                  Get faster access and work offline by installing this app on your device!
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleDismissPWANotification}
-              className="p-1 hover:bg-white/20 rounded transition-colors ml-2 flex-shrink-0"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="flex space-x-2 mt-3">
-            <button
-              onClick={handlePWANotificationInstall}
-              className="flex-1 px-3 py-1.5 bg-white text-red-600 rounded text-sm font-medium hover:bg-gray-100 transition-colors"
-            >
-              Install Now
-            </button>
-            <button
-              onClick={handleDismissPWANotification}
-              className="px-3 py-1.5 bg-white/20 rounded text-sm hover:bg-white/30 transition-colors"
-            >
-              Maybe Later
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* PWA Update Notification */}
       {showUpdateNotification && (
-        <div className={`fixed right-4 z-50 bg-blue-600 text-white p-4 rounded-lg shadow-lg max-w-sm ${showPWANotification ? 'top-40' : 'top-4'}`}>
+        <div className="fixed right-4 top-4 z-50 bg-blue-600 text-white p-4 rounded-lg shadow-lg max-w-sm">
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-semibold">Update Available</h4>
@@ -3964,34 +3982,6 @@ const InventorySystem = () => {
         </div>
       </footer>
 
-      {/* Mobile Install Prompt */}
-      {showInstallPrompt && !isInstalled && (
-        <div className="md:hidden fixed bottom-24 left-4 right-4 z-50 bg-red-700 text-white p-4 rounded-lg shadow-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Download className="w-5 h-5" />
-              <div>
-                <h4 className="font-semibold">Install App</h4>
-                <p className="text-sm opacity-90">Add to home screen for better experience</p>
-              </div>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={handleInstallApp}
-                className="px-3 py-1 bg-white text-red-600 rounded text-sm font-medium hover:bg-gray-100 transition-colors"
-              >
-                Install
-              </button>
-              <button
-                onClick={() => setShowInstallPrompt(false)}
-                className="p-1 hover:bg-red-700 rounded transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

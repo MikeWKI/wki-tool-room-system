@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Filter, X, Search, ChevronDown, MapPin, Package, AlertCircle } from 'lucide-react';
+import { formatShelfLabel } from '../utils/masterInventoryLocation';
 
 const AdvancedFilters = ({ 
   inventory, 
@@ -47,6 +48,7 @@ const AdvancedFilters = ({
           part.partNumber,
           part.description,
           part.shelf,
+          formatShelfLabel(part.shelf),
           part.category
         ].join(' ').toLowerCase();
         
@@ -253,7 +255,7 @@ const AdvancedFilters = ({
               >
                 <option value="">All locations</option>
                 {uniqueLocations.map(location => (
-                  <option key={location} value={location}>{location}</option>
+                  <option key={location} value={location}>{formatShelfLabel(location)}</option>
                 ))}
               </select>
             </div>

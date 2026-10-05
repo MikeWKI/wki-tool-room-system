@@ -3,10 +3,12 @@ import { ChevronRight, ChevronDown, MapPin, Package, Search } from 'lucide-react
 import {
   resolvePartLocationId,
   ENGINE_FAMILY_CHIPS,
-  matchesEngineFamilyChip,
   resolveEngineFamily,
+  formatShelfLabel,
+  otherRowsWithSamePartNumber,
+  samePartNumberHint,
 } from '../utils/masterInventoryLocation';
-import { partMatchesQuery } from '../utils/partSearch';
+import { partsForMasterView } from '../utils/partSearch';
 import PartEnrichmentDetails from './PartEnrichmentDetails';
 
 const MasterInventory = ({
@@ -54,14 +56,37 @@ const MasterInventory = ({
     return { map, unassigned };
   }, [inventory, layout.locations]);
 
-  const filteredParts = useMemo(() => {
-    let list = selectedLocationId ? partsByLocation.map[selectedLocationId] || [] : inventory;
-    if (selectedLocationId === '__unassigned__') list = partsByLocation.unassigned;
-    return list.filter((part) => matchesEngineFamilyChip(part, engineFamily) && partMatchesQuery(part, searchTerm));
-  }, [inventory, partsByLocation, selectedLocationId, searchTerm, engineFamily]);
+  const searching = String(searchTerm || '').trim().length > 0;
+
+  const filteredParts = useMemo(
+    () => partsForMasterView({
+      inventory,
+      partsByLocation,
+      selectedLocationId,
+      searchTerm,
+      engineFamily,
+    }),
+    [inventory, partsByLocation, selectedLocationId, searchTerm, engineFamily]
+  );
 
   const selectedLoc = layout.locations.find((loc) => loc.id === selectedLocationId);
   const photo = activePart && getShelfImagePath ? getShelfImagePath(activePart.shelf, activePart.rack) : null;
+  const samePartHint = activePart ? samePartNumberHint(otherRowsWithSamePartNumber(inventory, activePart)) : '';
+
+  const jumpToShelf = (part) => {
+    const locId = resolvePartLocationId(part.shelf, part.category, layout.locations);
+    if (locId) {
+      const loc = layout.locations.find((item) => item.id === locId);
+      setSelectedLocationId(locId);
+      if (loc?.section != null) {
+        setExpandedSections((prev) => ({ ...prev, [loc.section]: true }));
+      }
+    } else {
+      setSelectedLocationId('__unassigned__');
+    }
+    if (onSearchChange) onSearchChange('');
+    setActivePart(part);
+  };
 
   return (
     <div className="flex flex-col lg:flex-row gap-4">
@@ -122,7 +147,7 @@ const MasterInventory = ({
                       }`}
                     >
                       <span className="font-semibold">{loc.shelfNumber ? `Shelf ${loc.shelfNumber}` : loc.area}</span>
-                      <span className="block text-xs text-gray-600 dark:text-gray-300">{label} · {count}</span>
+                      <span className="block text-xs text-gray-600 dark:text-gray-300">{formatShelfLabel(label)} · {count}</span>
                     </button>
                   );
                 })}
@@ -160,11 +185,15 @@ const MasterInventory = ({
               </button>
             ))}
           </div>
-          {selectedLoc && (
+          {searching ? (
+            <p className="mt-3 text-base font-semibold text-gray-900 dark:text-white">
+              Searching all shelves and sections. {filteredParts.length} match{filteredParts.length === 1 ? '' : 'es'}.
+            </p>
+          ) : selectedLoc && (
             <p className="mt-3 text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <MapPin className="w-5 h-5 text-red-700" />
-              {selectedLoc.label}
-              {selectedLoc.westRackLabel ? ` · ${selectedLoc.westRackLabel}` : ''}
+              {formatShelfLabel(selectedLoc.label)}
+              {selectedLoc.westRackLabel ? ` · ${formatShelfLabel(selectedLoc.westRackLabel)}` : ''}
             </p>
           )}
         </div>
@@ -176,25 +205,48 @@ const MasterInventory = ({
             ) : filteredParts.length === 0 ? (
               <div className="text-center py-12 text-gray-700">
                 <Package className="w-10 h-10 mx-auto mb-2" />
-                No parts in this view.
+                {searching ? 'No parts match that search across all shelves.' : 'No parts in this view.'}
               </div>
             ) : (
               <div className="space-y-2 max-h-[70vh] overflow-y-auto">
                 {filteredParts.map((part) => (
-                  <button
-                    key={part.id}
-                    type="button"
+                  <div
+                    key={part.id || part._id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setActivePart(part)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setActivePart(part);
+                      }
+                    }}
                     className={`w-full text-left min-h-[72px] p-3 rounded-lg border-2 ${
                       activePart?.id === part.id ? 'border-red-700 bg-red-50 dark:bg-red-950' : 'border-gray-300 dark:border-gray-600'
                     }`}
                   >
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">{part.partNumber}</p>
-                    <p className="text-base text-gray-800 dark:text-gray-100">{part.polishedDescription || part.description}</p>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                      {part.shelf || 'TBD'} · Qty {part.quantity} · {resolveEngineFamily(part) || 'General'} · {part.status === 'available' ? 'Available' : 'Out'}
-                    </p>
-                  </button>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-lg font-bold text-gray-900 dark:text-white">{part.partNumber}</p>
+                        <p className="text-base text-gray-800 dark:text-gray-100">{part.polishedDescription || part.description}</p>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                          {formatShelfLabel(part.shelf)} · Qty {part.quantity} · {resolveEngineFamily(part) || 'General'} · {part.status === 'available' ? 'Available' : 'Out'}
+                        </p>
+                      </div>
+                      {searching && (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            jumpToShelf(part);
+                          }}
+                          className="shrink-0 min-h-[56px] px-3 rounded-lg border-2 border-gray-500 text-sm font-semibold text-gray-900 dark:text-white"
+                        >
+                          Show shelf
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -204,7 +256,17 @@ const MasterInventory = ({
               <>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{activePart.partNumber}</p>
                 <p className="text-lg text-gray-800 dark:text-gray-100">{activePart.description}</p>
-                <p className="mt-2 font-semibold text-gray-900 dark:text-white">{activePart.shelf || 'TBD'} · Qty {activePart.quantity}</p>
+                <p className="mt-2 font-semibold text-gray-900 dark:text-white">{formatShelfLabel(activePart.shelf)} · Qty {activePart.quantity}</p>
+                {samePartHint && (
+                  <p className="mt-1 text-sm font-medium text-amber-800 dark:text-amber-200">{samePartHint}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => jumpToShelf(activePart)}
+                  className="mt-3 w-full min-h-[56px] rounded-lg border-2 border-gray-500 text-base font-semibold text-gray-900 dark:text-white"
+                >
+                  Show this shelf
+                </button>
                 {photo && (
                   <img src={`/${photo}`} alt="" className="mt-3 w-full h-40 object-cover rounded-lg border" />
                 )}
