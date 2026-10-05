@@ -62,7 +62,19 @@ Set `MANAGE_PIN` and `CAMERA_ACCESS_PASSWORD` on the API only. Do not put them i
 ```bash
 cd backend
 node scripts/load-enrichment.js ./data/enrichment.example.json
-node scripts/load-enrichment.js ./data/enrichment.json --apply
+node scripts/load-enrichment.js ./data/enrichment-from-jb.json --apply
+```
+
+`enrichment-from-jb.json` is built from the 2026-02-04 JB file. It sets `engineFamily` only when the JB category is MX, Cummins, Detroit, CAT, or General. Other fields stay null.
+
+Against the Render API after deploy, from a clone of this branch:
+
+```bash
+API=https://wki-tool-room-system-1.onrender.com
+curl -sS -X POST "$API/api/parts/enrich-batch" \
+  -H "Content-Type: application/json" \
+  --data-binary @backend/data/enrichment-from-jb.json
+curl -sS "$API/api/parts/enrichment-coverage"
 ```
 
 Shape (`items` or `parts` array). Omit a key to leave it unchanged. Use null when unknown. Do not invent specs.
