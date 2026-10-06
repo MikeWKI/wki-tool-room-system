@@ -147,7 +147,7 @@ function handlePlatformLogin(req, res) {
   if (!platformConfigured()) return platformNotConfigured(res);
   const password = req.body?.password;
   if (!timingSafeStringEqual(password, platformPassword())) {
-    return res.json({ ok: false, error: 'incorrect_password' });
+    return res.status(401).json({ ok: false, error: 'incorrect_password' });
   }
   const session = issuePlatformSession();
   res.locals.authSucceeded = true;

@@ -305,8 +305,9 @@ test('platform gate, health, manage pair, and rate limit', async () => {
       ip: '198.51.100.26',
       body: { password: 'not-the-shop-password' },
     });
-    assert.equal(wrong.status, 200);
+    assert.equal(wrong.status, 401);
     assert.equal(wrong.json.ok, false);
+    assert.equal(wrong.json.error, 'incorrect_password');
     assert.equal(wrong.json.token, undefined);
 
     const login = await call({
@@ -403,8 +404,9 @@ test('platform gate, health, manage pair, and rate limit', async () => {
         ip: limitIp,
         body: { password: 'wrong-password' },
       });
-      assert.equal(last.status, 200, `attempt ${attempt + 1} should still be allowed`);
+      assert.equal(last.status, 401, `attempt ${attempt + 1} should still be allowed`);
       assert.equal(last.json.ok, false);
+      assert.equal(last.json.error, 'incorrect_password');
     }
     const blocked = await call({
       method: 'POST',
@@ -451,8 +453,9 @@ test('platform gate, health, manage pair, and rate limit', async () => {
         ip: '198.51.100.103',
         body: { password: '  shop-secret  ' },
       });
-      assert.equal(paddedLogin.status, 200);
+      assert.equal(paddedLogin.status, 401);
       assert.equal(paddedLogin.json.ok, false);
+      assert.equal(paddedLogin.json.error, 'incorrect_password');
       assert.equal(paddedLogin.json.token, undefined);
 
       process.env.PLATFORM_PASSWORD = savedPassword;

@@ -11,6 +11,8 @@ const WALLPAPER_WEBP = `${process.env.PUBLIC_URL || ''}/login-wallpaper.webp`;
 function messageFor(status, data) {
   if (status === 429) return data.error || LOCKOUT;
   if (status === 503 || data.error === 'platform_password_not_configured') return NOT_CONFIGURED;
+  // 401 { error: 'incorrect_password' } is a wrong guess on this form.
+  // It is not an expired platform token. This component does not lock the gate.
   return WRONG_PASSWORD;
 }
 

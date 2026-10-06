@@ -59,6 +59,9 @@ export function platformAuthHeader() {
 }
 
 export function shouldLockPlatform(status, error) {
+  // POST /auth/platform returns 401 incorrect_password for a wrong shop password.
+  // That is not an expired X-Platform-Token and must not log the kiosk out.
+  if (error === 'incorrect_password') return false;
   if (status === 401 && isPlatformAuthError(error)) return true;
   if (status === 503 && error === 'platform_password_not_configured') return true;
   return false;

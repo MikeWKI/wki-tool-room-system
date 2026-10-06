@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
+const { clientRateLimitKey } = require('./clientIp');
 
 /** A shop shift, not a permanent credential. */
 const SESSION_TTL_MS = 10 * 60 * 60 * 1000;
@@ -9,9 +10,10 @@ const authLimiter = rateLimit({
   max: 8,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: clientRateLimitKey,
   // Shared bucket: manage PIN, camera password, and the platform shop password.
-  // Wrong PIN/password responses are HTTP 200 { ok: false }, so status alone
-  // cannot tell a success from a guess. Handlers set res.locals.authSucceeded.
+  // Platform wrong-password is HTTP 401. PIN and camera wrong guesses stay HTTP 200.
+  // Status alone cannot tell a success from a guess. Handlers set res.locals.authSucceeded.
   skipSuccessfulRequests: true,
   requestWasSuccessful: (req, res) => res.locals.authSucceeded === true,
   handler: (req, res) => {
