@@ -67,8 +67,6 @@ class ErrorLogger {
       logEntry.request = {
         method: req.method,
         url: req.url,
-        headers: req.headers,
-        body: req.body,
         ip: req.ip,
         userAgent: req.get('User-Agent'),
       };

@@ -85,7 +85,20 @@ const transactionSchema = new mongoose.Schema({
   partNumber: { type: String, required: true },
   action: { 
     type: String, 
-    enum: ['checkout', 'checkin', 'location_change', 'quantity_update', 'created', 'updated', 'import'], // Add 'import'
+    enum: [
+      'checkout',
+      'checkin',
+      'location_change',
+      'quantity_update',
+      'created',
+      'updated',
+      'import',
+      'door_entry',
+      'door_exit',
+      'door_alert',
+      'door_ack',
+      'door_sweep',
+    ],
     required: true 
   },
   user: { type: String, required: true },
@@ -99,7 +112,11 @@ const transactionSchema = new mongoose.Schema({
   unitNumber: { type: String, default: null },
   checkoutId: { type: Number, default: null },
   // Internal batch marker for idempotent history loads. Stripped from public API responses.
+  // Seeded shop history uses batchKey 'shop-activity-95d'. That marker is left as-is.
   batchKey: { type: String, default: null },
+  // Optional origin for new rows (door, simulated). No default, so existing rows are not rewritten.
+  source: { type: String },
+  visitId: { type: String },
 }, {
   timestamps: true,
   collection: 'transactions'
@@ -135,11 +152,92 @@ const auditBatchSchema = new mongoose.Schema({
   collection: 'audit_batches',
 });
 
+const doorEventSchema = new mongoose.Schema({
+  eventId: { type: String, required: true, unique: true },
+  type: { type: String, enum: ['entry', 'exit', 'unknown'], required: true },
+  occurredAt: { type: Date, default: null },
+  actorId: { type: String, default: '' },
+  actorName: { type: String, default: '' },
+  credential: { type: String, default: '' },
+  doorName: { type: String, default: '' },
+  raw: { type: mongoose.Schema.Types.Mixed, default: null },
+  source: { type: String, default: 'webhook' },
+  mapped: { type: Boolean, default: false },
+  adapterNote: { type: String, default: '' },
+}, { timestamps: true, collection: 'door_events' });
+
+const badgeMapSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  actorId: { type: String, default: '' },
+  actorName: { type: String, default: '' },
+  credential: { type: String, default: '' },
+  techName: { type: String, required: true },
+  techEmail: { type: String, default: '' },
+}, { timestamps: true, collection: 'door_badges' });
+
+const doorVisitSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  eventId: { type: String, default: '' },
+  actorId: { type: String, default: '' },
+  actorName: { type: String, default: '' },
+  credential: { type: String, default: '' },
+  doorName: { type: String, default: '' },
+  techName: { type: String, default: '' },
+  techEmail: { type: String, default: '' },
+  displayName: { type: String, required: true },
+  enteredAt: { type: Date, required: true },
+  deadlineAt: { type: Date, required: true },
+  windowMinutes: { type: Number, default: 10 },
+  status: { type: String, enum: ['open', 'resolved', 'entry_without_checkout'], default: 'open' },
+  resolvedAt: { type: Date, default: null },
+  resolvedBy: { type: String, default: null },
+  exitAt: { type: Date, default: null },
+  exitEventId: { type: String, default: '' },
+  ackReason: { type: String, default: '' },
+  ackAt: { type: Date, default: null },
+  alertedAt: { type: Date, default: null },
+  alertSuppressed: { type: Boolean, default: false },
+  source: { type: String, default: 'webhook' },
+}, { timestamps: true, collection: 'door_visits' });
+
+const emailOutboxSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  kind: { type: String, default: '' },
+  to: { type: String, default: '' },
+  cc: { type: String, default: '' },
+  subject: { type: String, default: '' },
+  text: { type: String, default: '' },
+  requestedMode: { type: String, default: '' },
+  mode: { type: String, default: '' },
+  status: { type: String, default: '' },
+  warning: { type: String, default: '' },
+  error: { type: String, default: '' },
+  relatedId: { type: String, default: '' },
+  dayKey: { type: String, default: '' },
+  createdAt: { type: Date, default: Date.now },
+  sentAt: { type: Date, default: null },
+}, { timestamps: true, collection: 'email_outbox' });
+
+const sweepRunSchema = new mongoose.Schema({
+  dayKey: { type: String, required: true, unique: true },
+  ranAt: { type: Date, default: Date.now },
+  openCount: { type: Number, default: 0 },
+  items: { type: [mongoose.Schema.Types.Mixed], default: [] },
+}, { timestamps: true, collection: 'door_sweeps' });
+
+doorVisitSchema.index({ status: 1, deadlineAt: 1 });
+doorVisitSchema.index({ displayName: 1, enteredAt: -1 });
+
 const Part = mongoose.model('Part', partSchema);
 const Shelf = mongoose.model('Shelf', shelfSchema);
 const Transaction = mongoose.model('Transaction', transactionSchema);
 const ReconcileStaging = mongoose.model('ReconcileStaging', reconcileStagingSchema);
 const AuditBatch = mongoose.model('AuditBatch', auditBatchSchema);
+const DoorEvent = mongoose.model('DoorEvent', doorEventSchema);
+const BadgeMap = mongoose.model('BadgeMap', badgeMapSchema);
+const DoorVisit = mongoose.model('DoorVisit', doorVisitSchema);
+const EmailOutbox = mongoose.model('EmailOutbox', emailOutboxSchema);
+const SweepRun = mongoose.model('SweepRun', sweepRunSchema);
 
 module.exports = {
   Part,
@@ -147,4 +245,9 @@ module.exports = {
   Transaction,
   ReconcileStaging,
   AuditBatch,
+  DoorEvent,
+  BadgeMap,
+  DoorVisit,
+  EmailOutbox,
+  SweepRun,
 };

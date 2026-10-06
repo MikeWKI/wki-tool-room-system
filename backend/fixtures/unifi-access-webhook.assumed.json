@@ -1,0 +1,22 @@
+{
+  "comment": "assumed, verify against a real payload. These shapes are NOT from a captured UniFi Access webhook. Ubiquiti's Alarm Manager POST body was not available to verify. The adapter tries these fields and always stores the raw body.",
+  "entry": {
+    "event": "access.door.unlock",
+    "event_id": "evt-assumed-entry-1",
+    "timestamp": "2026-10-06T20:04:00.000Z",
+    "user_name": "Noah R.",
+    "user_id": "badge-noah",
+    "credential": "nfc-1001",
+    "location": { "name": "Tool Room" }
+  },
+  "exit": {
+    "event_type": "access.door.exit",
+    "id": "evt-assumed-exit-1",
+    "time": "2026-10-06T20:12:00.000Z",
+    "actor": { "id": "badge-noah", "name": "Noah R.", "credential": "nfc-1001" },
+    "door": { "name": "Tool Room" }
+  },
+  "unrecognized": {
+    "hello": "not a door event"
+  }
+}
