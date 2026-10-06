@@ -21,6 +21,8 @@ import EnhancedSearchBar from './components/EnhancedSearchBar';
 import { useEnhancedSearch } from './hooks/useEnhancedSearch';
 import pwaManager from './utils/pwa';
 import { clearManageSession, manageAuthHeader, readManageSession, storeManageSession } from './utils/manageSession';
+import PlatformGate from './components/PlatformGate';
+import { lockPlatform, platformAuthHeader, shouldLockPlatform } from './utils/platformSession';
 
 // Camera Feed Component (simplified without hooks)
 const CameraFeed = ({ camera, onOpenCamera, onCopyUrl }) => {
@@ -276,11 +278,20 @@ const InventorySystem = () => {
         headers: {
           'Content-Type': 'application/json',
           ...optionHeaders,
+          ...platformAuthHeader(),
           ...(isWrite ? manageAuthHeader() : {}),
         },
       });
 
       const data = await response.json().catch(() => ({}));
+
+      if (shouldLockPlatform(response.status, data.error)) {
+        lockPlatform({ reason: data.error });
+        const platformError = new Error(data.error || 'Shop access required');
+        platformError.status = response.status;
+        platformError.platform = true;
+        throw platformError;
+      }
 
       if (response.status === 401) {
         promptForManagePin(data.error);
@@ -294,6 +305,7 @@ const InventorySystem = () => {
 
       return data;
     } catch (error) {
+      if (error.platform) throw error;
       console.error(`API call failed for ${endpoint}:`, error);
       
       // Check if it's a CORS error
@@ -539,16 +551,20 @@ const InventorySystem = () => {
 
       const response = await fetch(`${API_BASE_URL}/import/excel`, {
         method: 'POST',
-        headers: manageAuthHeader(),
+        headers: {
+          ...platformAuthHeader(),
+          ...manageAuthHeader(),
+        },
         body: formData,
       });
 
-      if (response.status === 401) {
-        promptForManagePin('Session expired or missing. Enter the manage PIN again.');
-      }
-
       if (!response.ok) {
         const failure = await response.json().catch(() => ({}));
+        if (shouldLockPlatform(response.status, failure.error)) {
+          lockPlatform({ reason: failure.error });
+        } else if (response.status === 401) {
+          promptForManagePin('Session expired or missing. Enter the manage PIN again.');
+        }
         throw new Error(failure.error || `Import failed: ${response.status} ${response.statusText}`);
       }
 
@@ -3201,6 +3217,15 @@ const InventorySystem = () => {
                 </span>
               </div>
 
+              <button
+                type="button"
+                onClick={() => lockPlatform()}
+                className="px-2 py-1 text-xs font-semibold bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                title="Lock the tool room"
+              >
+                Lock
+              </button>
+
               {/* PWA Install Button */}
               {!isInstalled && (
                 <button
@@ -3328,6 +3353,15 @@ const InventorySystem = () => {
                   <WifiOff className="w-4 h-4 text-red-300" />
                 )}
               </div>
+
+              <button
+                type="button"
+                onClick={() => lockPlatform()}
+                className="px-2 py-1 text-xs font-semibold bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                title="Lock the tool room"
+              >
+                Lock
+              </button>
 
               {/* Refresh Button */}
               <button
@@ -3989,7 +4023,9 @@ const InventorySystem = () => {
 const App = () => {
   return (
     <ThemeProvider>
-      <InventorySystem />
+      <PlatformGate>
+        <InventorySystem />
+      </PlatformGate>
     </ThemeProvider>
   );
 };

@@ -6,7 +6,9 @@ const path = require('path');
 
 process.env.MANAGE_PIN = 'test-manage-pin';
 process.env.CAMERA_ACCESS_PASSWORD = 'test-camera-password';
+process.env.PLATFORM_PASSWORD = 'test-platform-password';
 delete process.env.SESSION_SECRET;
+delete process.env.PLATFORM_SESSION_DAYS;
 delete process.env.FRONTEND_ORIGIN;
 process.env.NODE_ENV = 'test';
 
@@ -15,6 +17,7 @@ const {
   issueManageSession,
   verifyManageToken,
 } = require('../middleware/manageAuth');
+const { issuePlatformSession } = require('../middleware/platformAuth');
 const { PRODUCTION_FRONTEND_ORIGIN } = require('../middleware/corsPolicy');
 const app = require('../server');
 
@@ -54,6 +57,13 @@ function request(port, { method = 'GET', path: reqPath, body, headers = {}, ip =
     if (payload) req.write(payload);
     req.end();
   });
+}
+
+function platformAuthHeaders(extra = {}) {
+  return {
+    'X-Platform-Token': issuePlatformSession().token,
+    ...extra,
+  };
 }
 
 function listen(appInstance) {
@@ -119,6 +129,7 @@ test('write routes, cors, rate limit, and production debug', async () => {
       path: '/api/parts/1/checkout',
       body: {},
       ip: '203.0.113.42',
+      headers: platformAuthHeaders(),
     });
     assert.equal(checkout.status, 400);
     assert.notEqual(checkout.status, 401);
@@ -128,6 +139,7 @@ test('write routes, cors, rate limit, and production debug', async () => {
       path: '/api/parts/1/checkin',
       body: {},
       ip: '203.0.113.43',
+      headers: platformAuthHeaders(),
     });
     assert.equal(checkin.status, 400);
     assert.notEqual(checkin.status, 401);
@@ -136,13 +148,17 @@ test('write routes, cors, rate limit, and production debug', async () => {
       method: 'POST',
       path: '/api/auth/manage-pin',
       ip: '203.0.113.21',
+      headers: platformAuthHeaders(),
       body: { pin: process.env.MANAGE_PIN, actor: 'Floor Lead' },
     });
     assert.equal(login.status, 200);
     assert.equal(login.json.ok, true);
     assert.ok(login.json.token);
     assert.ok(login.json.expiresAt > Date.now());
-    const auth = { Authorization: `Bearer ${login.json.token}` };
+    const auth = {
+      Authorization: `Bearer ${login.json.token}`,
+      ...platformAuthHeaders(),
+    };
 
     const seeded = await call({
       method: 'POST',
@@ -169,6 +185,7 @@ test('write routes, cors, rate limit, and production debug', async () => {
       method: 'POST',
       path: '/api/audit/load-activity',
       ip: '203.0.113.23',
+      headers: platformAuthHeaders(),
       body: { pin: process.env.MANAGE_PIN, confirm: false },
     });
     assert.equal(auditPin.status, 200);
@@ -178,6 +195,7 @@ test('write routes, cors, rate limit, and production debug', async () => {
       method: 'POST',
       path: '/api/auth/camera-access',
       ip: '203.0.113.24',
+      headers: platformAuthHeaders(),
       body: { password: 'wrong-password' },
     });
     assert.equal(wrongCamera.status, 200);
@@ -189,6 +207,7 @@ test('write routes, cors, rate limit, and production debug', async () => {
       method: 'POST',
       path: '/api/auth/camera-access',
       ip: '203.0.113.25',
+      headers: platformAuthHeaders(),
       body: { password: process.env.CAMERA_ACCESS_PASSWORD },
     });
     assert.equal(camera.status, 200);
@@ -203,6 +222,7 @@ test('write routes, cors, rate limit, and production debug', async () => {
         method: 'POST',
         path: '/api/auth/manage-pin',
         ip: '203.0.113.60',
+        headers: platformAuthHeaders(),
         body: { pin: savedPin },
       });
       assert.equal(pinClosed.status, 503);
@@ -218,6 +238,7 @@ test('write routes, cors, rate limit, and production debug', async () => {
         method: 'POST',
         path: '/api/audit/load-activity',
         ip: '203.0.113.62',
+        headers: platformAuthHeaders(),
         body: { pin: savedPin, confirm: false },
       });
       assert.equal(auditClosed.status, 503);
@@ -232,6 +253,7 @@ test('write routes, cors, rate limit, and production debug', async () => {
         method: 'POST',
         path: '/api/auth/manage-pin',
         ip: limitIp,
+        headers: platformAuthHeaders(),
         body: { pin: 'wrong-pin' },
       });
       assert.equal(last.status, 200, `attempt ${attempt + 1} should still be allowed`);
@@ -241,6 +263,7 @@ test('write routes, cors, rate limit, and production debug', async () => {
       method: 'POST',
       path: '/api/auth/camera-access',
       ip: limitIp,
+      headers: platformAuthHeaders(),
       body: { password: 'wrong-password' },
     });
     assert.equal(blocked.status, 429);
@@ -287,6 +310,7 @@ test('write routes, cors, rate limit, and production debug', async () => {
         method: 'GET',
         path: '/api/debug/database',
         ip: '203.0.113.90',
+        headers: platformAuthHeaders(),
       });
       assert.equal(debug.status, 404);
     } finally {

@@ -1,6 +1,6 @@
-const CACHE_NAME = 'wki-tool-room-v1';
-const STATIC_CACHE_NAME = 'wki-static-v1';
-const DYNAMIC_CACHE_NAME = 'wki-dynamic-v1';
+const CACHE_NAME = 'wki-tool-room-v2';
+const STATIC_CACHE_NAME = 'wki-static-v2';
+const DYNAMIC_CACHE_NAME = 'wki-dynamic-v2';
 
 const STATIC_FILES = [
   '/',
@@ -133,6 +133,11 @@ async function handleStaticAsset(request) {
 async function handleAPIRequest(request) {
   try {
     const networkResponse = await fetch(request);
+
+    // Auth failures must reach the page so a dead platform token returns to login.
+    if (networkResponse.status === 401 || networkResponse.status === 503) {
+      return networkResponse;
+    }
     
     if (networkResponse.ok) {
       const cache = await caches.open(DYNAMIC_CACHE_NAME);

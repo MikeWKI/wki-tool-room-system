@@ -9,6 +9,7 @@ const authLimiter = rateLimit({
   max: 8,
   standardHeaders: true,
   legacyHeaders: false,
+  // Shared bucket: manage PIN, camera password, and the platform shop password.
   // Wrong PIN/password responses are HTTP 200 { ok: false }, so status alone
   // cannot tell a success from a guess. Handlers set res.locals.authSucceeded.
   skipSuccessfulRequests: true,

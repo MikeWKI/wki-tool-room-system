@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { clearManageSession, manageAuthHeader } from '../utils/manageSession';
+import { lockPlatform, platformAuthHeader, shouldLockPlatform } from '../utils/platformSession';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 
   (process.env.NODE_ENV === 'production' 
@@ -96,17 +97,19 @@ export const useApi = () => {
         headers: {
           'Content-Type': 'application/json',
           ...optionHeaders,
+          ...platformAuthHeader(),
           ...(isWrite ? manageAuthHeader() : {}),
         },
         signal: abortControllerRef.current.signal,
       });
 
-      if (response.status === 401) {
-        clearManageSession();
-      }
-
       if (!response.ok) {
         const failure = await response.json().catch(() => ({}));
+        if (shouldLockPlatform(response.status, failure.error)) {
+          lockPlatform({ reason: failure.error });
+        } else if (response.status === 401) {
+          clearManageSession();
+        }
         const err = new Error(failure.error || `HTTP error! status: ${response.status}`);
         err.status = response.status;
         throw err;
