@@ -50,23 +50,40 @@ const PlatformLogin = ({ onUnlocked, checking = false, notice = '', onRetry }) =
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden flex items-center justify-center px-4 py-8">
+    <div className="relative min-h-screen w-full overflow-hidden flex items-center justify-center px-4 py-8 bg-black">
       <style>{`
-        .platform-wallpaper {
+        .platform-wallpaper,
+        .platform-wallpaper-fill {
           background-image: url('${WALLPAPER_JPEG}');
-          background-size: cover;
           background-position: center;
           background-repeat: no-repeat;
         }
+        .platform-wallpaper {
+          background-size: contain;
+        }
+        .platform-wallpaper-fill {
+          background-size: cover;
+          filter: blur(24px) brightness(0.45);
+          transform: scale(1.1);
+        }
         @supports (background-image: image-set(url('${WALLPAPER_WEBP}') type('image/webp'))) {
-          .platform-wallpaper {
+          .platform-wallpaper,
+          .platform-wallpaper-fill {
             background-image: image-set(
               url('${WALLPAPER_WEBP}') type('image/webp'),
               url('${WALLPAPER_JPEG}') type('image/jpeg')
             );
           }
         }
+        /* A 3:2 scene on a tall phone is a thin strip with contain, so cover and keep the logo. */
+        @media (max-aspect-ratio: 3/4) {
+          .platform-wallpaper {
+            background-size: cover;
+            background-position: center top;
+          }
+        }
       `}</style>
+      <div className="platform-wallpaper-fill absolute inset-0" aria-hidden="true" />
       <div
         className="platform-wallpaper absolute inset-0"
         data-testid="platform-wallpaper"
@@ -78,10 +95,10 @@ const PlatformLogin = ({ onUnlocked, checking = false, notice = '', onRetry }) =
         className="absolute inset-0"
         aria-hidden="true"
         style={{
-          background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.78) 72%, rgba(0,0,0,0.9) 100%)',
+          background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0.38) 70%, rgba(0,0,0,0.45) 100%)',
         }}
       />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-red-600/80 bg-neutral-950/75 shadow-2xl backdrop-blur-md px-5 py-6 sm:px-8 sm:py-8">
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-red-600/80 bg-[rgba(10,10,12,0.92)] shadow-2xl backdrop-blur-sm px-5 py-6 sm:px-8 sm:py-8">
         <div className="h-1.5 w-16 rounded bg-red-600 mb-5" />
         <h1 className="text-3xl font-bold text-white tracking-tight">WKI Tool Room</h1>
         <p className="mt-1 text-base text-gray-200">Enter the shop password</p>
