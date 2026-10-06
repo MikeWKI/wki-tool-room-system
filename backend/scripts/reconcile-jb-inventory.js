@@ -15,7 +15,7 @@ let parts = [];
 try {
   parts = JSON.parse(fs.readFileSync(partsPath, 'utf8'));
 } catch (e) {
-  console.error('Could not read parts file:', partsPath, e.message);
+  console.error('Could not read parts file:', e && e.name, e && e.code, 'store_error');
   process.exit(1);
 }
 

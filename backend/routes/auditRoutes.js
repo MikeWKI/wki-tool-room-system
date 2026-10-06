@@ -46,7 +46,7 @@ function registerAuditRoutes(app, deps) {
         });
       }
 
-      await dbService.replaceBatchTransactions(generated.batchKey, batchRows, merged.keptTransactions);
+      await dbService.applyActivityBatch(generated.batchKey, batchRows, merged.keptTransactions);
       const patches = checkoutFieldPatches(parts, merged.parts);
       if (patches.length > 0) await dbService.patchPartsById(patches);
       await dbService.saveAuditBatch(merged.batch);
@@ -62,7 +62,7 @@ function registerAuditRoutes(app, deps) {
         message: 'Replaced shop-activity-95d. Removed technician names were reassigned on leftover transactions and checked-out parts. Fill-gaps apply labels were set to System. No parts were deleted.',
       });
     } catch (error) {
-      res.status(500).json({ error: 'Activity history load failed', details: error.message });
+      res.status(500).json({ error: 'Activity history load failed' });
     }
   });
 }

@@ -21,6 +21,7 @@ const { isDoorWebhookPost } = require('./middleware/doorRateLimit');
 const { doorWebhookBodyParser } = require('./middleware/doorBody');
 const { allowedOrigins, corsOptions } = require('./middleware/corsPolicy');
 const { trustProxyHops, clientRateLimitKey } = require('./middleware/clientIp');
+const { logStoreError } = require('./services/safeLog');
 require('dotenv').config();
 
 // Create instance of DatabaseService
@@ -82,62 +83,41 @@ const upload = multer({
 // The old JSON file initialization is no longer needed as the DatabaseService
 // handles both MongoDB and JSON file operations automatically
 
-// Database helper functions using the new DatabaseService
-async function readParts() {
-  try {
-    return await dbService.getParts();
-  } catch (error) {
-    console.error('Error reading parts:', error);
-    return [];
+function respondError(res, error, fallback) {
+  logStoreError(fallback, error);
+  if (error && (error.status === 503 || error.code === 'STORE_UNAVAILABLE' || error.code === 'STORE_READ_FAILED')) {
+    return res.status(503).json({ error: 'store_unavailable' });
   }
+  return res.status(500).json({ error: fallback });
+}
+
+// Database helper functions using the new DatabaseService.
+// Read failures throw. They are not turned into an empty list.
+async function readParts() {
+  return dbService.getParts();
 }
 
 async function writeParts(parts) {
-  try {
-    await dbService.saveParts(parts);
-    return true;
-  } catch (error) {
-    console.error('Error writing parts:', error);
-    return false;
-  }
+  await dbService.saveParts(parts);
+  return true;
 }
 
 async function readTransactions() {
-  try {
-    return await dbService.getTransactions();
-  } catch (error) {
-    console.error('Error reading transactions:', error);
-    return [];
-  }
+  return dbService.getTransactions();
 }
 
 async function writeTransactions(transactions) {
-  try {
-    await dbService.saveTransactions(transactions);
-    return true;
-  } catch (error) {
-    console.error('Error writing transactions:', error);
-    return false;
-  }
+  await dbService.saveTransactions(transactions);
+  return true;
 }
 
 async function readShelves() {
-  try {
-    return await dbService.getShelves();
-  } catch (error) {
-    console.error('Error reading shelves:', error);
-    return {};
-  }
+  return dbService.getShelves();
 }
 
 async function writeShelves(shelves) {
-  try {
-    await dbService.saveShelves(shelves);
-    return true;
-  } catch (error) {
-    console.error('Error writing shelves:', error);
-    return false;
-  }
+  await dbService.saveShelves(shelves);
+  return true;
 }
 
 const doorService = createDoorStack({
@@ -157,7 +137,7 @@ app.get('/api/parts', async (req, res) => {
     const parts = await readParts();
     res.json(parts);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch parts' });
+    return respondError(res, error, 'Failed to fetch parts');
   }
 });
 
@@ -227,75 +207,48 @@ app.get('/api/parts/search/:query', async (req, res) => {
 app.post('/api/parts/:id/checkout', async (req, res) => {
   try {
     const { user, notes, roNumber, unitNumber } = req.body;
-    const partId = parseInt(req.params.id);
+    const partId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(partId)) {
+      return res.status(404).json({ error: 'Part not found' });
+    }
     
     if (!user) {
       return res.status(400).json({ error: 'User name is required' });
     }
     
-    const parts = await readParts();
-    const partIndex = parts.findIndex(p => p.id === partId);
-    
-    if (partIndex === -1) {
-      return res.status(404).json({ error: 'Part not found' });
-    }
-    
-    const part = parts[partIndex];
-    
-    if (part.status === 'checked_out') {
-      return res.status(400).json({ error: 'Part is already checked out' });
-    }
-    
-    if (part.quantity <= 0) {
-      return res.status(400).json({ error: 'Part is out of stock' });
-    }
-    
-    // Update part status
-    parts[partIndex] = {
-      ...part,
-      status: 'checked_out',
-      checkedOutBy: user,
-      checkedOutDate: new Date().toISOString(),
-      quantity: part.quantity - 1
-    };
-    
-    // Save updated parts
-    await writeParts(parts);
-    
-    const newTransaction = {
-      id: Date.now(),
-      partId: partId,
-      partNumber: part.partNumber,
-      action: 'checkout',
-      user: user,
-      timestamp: new Date().toISOString(),
+    const result = await dbService.checkoutPart({
+      id: partId,
+      user,
       notes: notes || '',
       roNumber: cleanShopCode(roNumber),
       unitNumber: cleanShopCode(unitNumber),
-      quantityBefore: part.quantity,
-      quantityAfter: part.quantity - 1
-    };
-
-    await dbService.mutateTransactions((transactions) => {
-      transactions.unshift(newTransaction);
-      return transactions;
+      checkedOutDate: new Date().toISOString(),
     });
+
+    if (result.error === 'not_found') {
+      return res.status(404).json({ error: 'Part not found' });
+    }
+    if (result.error === 'checked_out') {
+      return res.status(400).json({ error: 'Part is already checked out' });
+    }
+    if (result.error === 'out_of_stock') {
+      return res.status(400).json({ error: 'Part is out of stock' });
+    }
 
     try {
       await doorService.onToolActivity({ user, action: 'checkout', at: new Date() });
     } catch (doorError) {
-      console.error('Door visit update failed:', doorError.message);
+      logStoreError('Door visit update failed', doorError);
     }
     
     res.json({ 
       success: true, 
-      part: parts[partIndex], 
-      transaction: toPublicTransaction(newTransaction) 
+      part: result.part, 
+      transaction: toPublicTransaction(result.transaction) 
     });
     
   } catch (error) {
-    console.error('Checkout error:', error);
-    res.status(500).json({ error: 'Failed to check out part' });
+    return respondError(res, error, 'Failed to check out part');
   }
 });
 
@@ -303,69 +256,42 @@ app.post('/api/parts/:id/checkout', async (req, res) => {
 app.post('/api/parts/:id/checkin', async (req, res) => {
   try {
     const { user, notes } = req.body;
-    const partId = parseInt(req.params.id);
+    const partId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(partId)) {
+      return res.status(404).json({ error: 'Part not found' });
+    }
     
     if (!user) {
       return res.status(400).json({ error: 'User name is required' });
     }
-    
-    const parts = await readParts();
-    const partIndex = parts.findIndex(p => p.id === partId);
-    
-    if (partIndex === -1) {
+
+    const result = await dbService.checkinPart({
+      id: partId,
+      user,
+      notes: notes || '',
+    });
+
+    if (result.error === 'not_found') {
       return res.status(404).json({ error: 'Part not found' });
     }
-    
-    const part = parts[partIndex];
-    
-    if (part.status !== 'checked_out') {
+    if (result.error === 'not_checked_out') {
       return res.status(400).json({ error: 'Part is not checked out' });
     }
-    
-    // Update part status
-    parts[partIndex] = {
-      ...part,
-      status: 'available',
-      checkedOutBy: null,
-      checkedOutDate: null,
-      quantity: part.quantity + 1
-    };
-    
-    // Save updated parts
-    await writeParts(parts);
-    
-    const newTransaction = {
-      id: Date.now(),
-      partId: partId,
-      partNumber: part.partNumber,
-      action: 'checkin',
-      user: user,
-      timestamp: new Date().toISOString(),
-      notes: notes || '',
-      quantityBefore: part.quantity,
-      quantityAfter: part.quantity + 1
-    };
-
-    await dbService.mutateTransactions((transactions) => {
-      transactions.unshift(newTransaction);
-      return transactions;
-    });
 
     try {
       await doorService.onToolActivity({ user, action: 'checkin', at: new Date() });
     } catch (doorError) {
-      console.error('Door visit update failed:', doorError.message);
+      logStoreError('Door visit update failed', doorError);
     }
-    
+
     res.json({ 
       success: true, 
-      part: parts[partIndex], 
-      transaction: newTransaction 
+      part: result.part, 
+      transaction: result.transaction 
     });
     
   } catch (error) {
-    console.error('Checkin error:', error);
-    res.status(500).json({ error: 'Failed to check in part' });
+    return respondError(res, error, 'Failed to check in part');
   }
 });
 
@@ -378,7 +304,7 @@ app.get('/api/transactions', async (req, res) => {
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     res.json(publicRows);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch transactions' });
+    return respondError(res, error, 'Failed to fetch transactions');
   }
 });
 
@@ -439,8 +365,7 @@ app.post('/api/parts', requireManageSession, async (req, res) => {
       return res.status(400).json({ error: 'Part number already exists' });
     }
     
-    const newPart = {
-      id: Math.max(...parts.map(p => p.id), 0) + 1,
+    const newPart = await dbService.addPart({
       partNumber,
       description,
       shelf,
@@ -449,11 +374,8 @@ app.post('/api/parts', requireManageSession, async (req, res) => {
       checkedOutBy: null,
       checkedOutDate: null,
       quantity: quantity || 1,
-      minQuantity: minQuantity || 1
-    };
-    
-    parts.push(newPart);
-    await writeParts(parts);
+      minQuantity: minQuantity || 1,
+    });
     
     res.status(201).json(newPart);
   } catch (error) {
@@ -464,17 +386,14 @@ app.post('/api/parts', requireManageSession, async (req, res) => {
 // Update part
 app.put('/api/parts/:id', requireManageSession, async (req, res) => {
   try {
-    const partId = parseInt(req.params.id);
+    const partId = parseInt(req.params.id, 10);
     const updates = req.body;
     
-    const parts = await readParts();
-    const partIndex = parts.findIndex(p => p.id === partId);
+    const originalPart = await dbService.findPart(partId);
     
-    if (partIndex === -1) {
+    if (!originalPart) {
       return res.status(404).json({ error: 'Part not found' });
     }
-    
-    const originalPart = { ...parts[partIndex] };
     
     // Prevent updating checkout status through this endpoint
     delete updates.status;
@@ -491,15 +410,15 @@ app.put('/api/parts/:id', requireManageSession, async (req, res) => {
     updates.lastModified = new Date().toISOString();
     updates.modifiedBy = updates.modifiedBy || 'System';
     
-    parts[partIndex] = { ...parts[partIndex], ...updates };
-    await writeParts(parts);
+    const updatedPart = { ...originalPart, ...updates };
+    await dbService.updatePartById(partId, updates);
 
     // Log the location change in transactions if shelf was updated
     if (updates.shelf && updates.shelf !== originalPart.shelf) {
       const locationChangeRecord = {
         id: Date.now(),
         partId: partId,
-        partNumber: parts[partIndex].partNumber,
+        partNumber: updatedPart.partNumber,
         action: 'location_change',
         fromLocation: originalPart.shelf,
         toLocation: updates.shelf,
@@ -507,13 +426,10 @@ app.put('/api/parts/:id', requireManageSession, async (req, res) => {
         timestamp: new Date().toISOString(),
         notes: `Part moved from ${originalPart.shelf} to ${updates.shelf}`
       };
-      await dbService.mutateTransactions((transactions) => {
-        transactions.push(locationChangeRecord);
-        return transactions;
-      });
+      await dbService.insertTransaction(locationChangeRecord);
     }
     
-    res.json(parts[partIndex]);
+    res.json(updatedPart);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update part' });
   }
@@ -522,17 +438,12 @@ app.put('/api/parts/:id', requireManageSession, async (req, res) => {
 // Delete part
 app.delete('/api/parts/:id', requireManageSession, async (req, res) => {
   try {
-    const partId = parseInt(req.params.id);
+    const partId = parseInt(req.params.id, 10);
+    const deletedPart = await dbService.deletePartById(partId);
     
-    const parts = await readParts();
-    const partIndex = parts.findIndex(p => p.id === partId);
-    
-    if (partIndex === -1) {
+    if (!deletedPart) {
       return res.status(404).json({ error: 'Part not found' });
     }
-    
-    const deletedPart = parts.splice(partIndex, 1)[0];
-    await writeParts(parts);
     
     res.json({ success: true, deletedPart });
   } catch (error) {
@@ -556,24 +467,27 @@ app.put('/api/parts/bulk/locations', requireManageSession, async (req, res) => {
     const locationChanges = [];
     
     for (const update of updates) {
-      const partIndex = parts.findIndex(p => p.id === parseInt(update.id));
+      const partIndex = parts.findIndex(p => p.id === parseInt(update.id, 10));
       if (partIndex !== -1) {
         const originalPart = { ...parts[partIndex] };
         
         if (update.shelf && update.shelf !== originalPart.shelf) {
-          parts[partIndex].shelf = update.shelf;
-          parts[partIndex].lastLocationChange = timestamp;
-          parts[partIndex].previousLocation = originalPart.shelf;
-          parts[partIndex].lastModified = timestamp;
-          parts[partIndex].modifiedBy = modifiedBy;
-          
-          updatedParts.push(parts[partIndex]);
+          const patch = {
+            shelf: update.shelf,
+            lastLocationChange: timestamp,
+            previousLocation: originalPart.shelf,
+            lastModified: timestamp,
+            modifiedBy,
+          };
+          const saved = await dbService.updatePartById(originalPart.id, patch);
+          const updated = saved || { ...originalPart, ...patch };
+          updatedParts.push(updated);
           
           // Track location change for transaction log
           locationChanges.push({
             id: Date.now() + partIndex, // Ensure unique ID
-            partId: parts[partIndex].id,
-            partNumber: parts[partIndex].partNumber,
+            partId: originalPart.id,
+            partNumber: originalPart.partNumber,
             action: 'location_change',
             fromLocation: originalPart.shelf,
             toLocation: update.shelf,
@@ -585,14 +499,8 @@ app.put('/api/parts/bulk/locations', requireManageSession, async (req, res) => {
       }
     }
     
-    await writeParts(parts);
-    
-    // Add all location changes to transaction history
-    if (locationChanges.length > 0) {
-      await dbService.mutateTransactions((transactions) => {
-        transactions.push(...locationChanges);
-        return transactions;
-      });
+    for (const change of locationChanges) {
+      await dbService.insertTransaction(change);
     }
     
     res.json({ 
@@ -615,50 +523,11 @@ app.put('/api/parts/bulk/quantities', requireManageSession, async (req, res) => 
       return res.status(400).json({ error: 'Updates must be an array' });
     }
     
-    const parts = await readParts();
-    const quantityChanges = [];
-    const timestamp = new Date().toISOString();
-    const updatedParts = [];
-    
-    for (const update of updates) {
-      const partIndex = parts.findIndex(p => p.id === parseInt(update.id));
-      if (partIndex !== -1) {
-        const originalQuantity = parts[partIndex].quantity;
-        
-        if (update.quantity !== undefined) {
-          parts[partIndex].quantity = Math.max(0, parseInt(update.quantity));
-        } else if (update.adjustment !== undefined) {
-          parts[partIndex].quantity = Math.max(0, originalQuantity + parseInt(update.adjustment));
-        }
-        
-        parts[partIndex].lastModified = timestamp;
-        parts[partIndex].modifiedBy = modifiedBy;
-        
-        updatedParts.push(parts[partIndex]);
-        
-        // Log quantity change
-        quantityChanges.push({
-          id: Date.now() + partIndex,
-          partId: parts[partIndex].id,
-          partNumber: parts[partIndex].partNumber,
-          action: 'quantity_update',
-          fromQuantity: originalQuantity,
-          toQuantity: parts[partIndex].quantity,
-          user: modifiedBy,
-          timestamp: timestamp,
-          notes: `Quantity updated: ${originalQuantity} → ${parts[partIndex].quantity}`
-        });
-      }
+    const { updatedParts, transactions } = await dbService.applyQuantityUpdates(updates, modifiedBy);
+    for (const change of transactions) {
+      await dbService.insertTransaction(change);
     }
-    
-    await writeParts(parts);
-    if (quantityChanges.length > 0) {
-      await dbService.mutateTransactions((transactions) => {
-        transactions.push(...quantityChanges);
-        return transactions;
-      });
-    }
-    
+
     res.json({ 
       success: true, 
       updated: updatedParts.length,
@@ -838,7 +707,7 @@ app.post('/api/backup/restore', requireManageSession, async (req, res) => {
       return res.status(400).json({ error: 'Restoration requires confirmation' });
     }
     
-    if (!data || !data.parts || !data.shelves || !data.transactions) {
+    if (!data || !data.shelves || !data.transactions || !Array.isArray(data.parts) || data.parts.length === 0) {
       return res.status(400).json({ error: 'Invalid backup data format' });
     }
     
@@ -850,10 +719,10 @@ app.post('/api/backup/restore', requireManageSession, async (req, res) => {
       transactions: await readTransactions()
     };
     
-    // Write backup data to disk
-    await writeParts(data.parts);
+    // Per-document restore. Does not deleteMany + insertMany.
+    await dbService.restoreParts(data.parts);
     await writeShelves(data.shelves);
-    await dbService.mutateTransactions(() => data.transactions);
+    await dbService.restoreTransactions(data.transactions);
     
     res.json({ 
       success: true, 
@@ -1028,11 +897,7 @@ app.put('/api/shelves/:id', requireManageSession, async (req, res) => {
     
     // If name changed, we need to update parts that reference this shelf
     if (name !== shelfId) {
-      const parts = await readParts();
-      const updatedParts = parts.map(part => 
-        part.shelf === shelfId ? { ...part, shelf: name } : part
-      );
-      await writeParts(updatedParts);
+      await dbService.renamePartsShelf(shelfId, name);
       
       // Remove old shelf and add new one
       delete shelves[shelfId];
@@ -1163,9 +1028,9 @@ app.post('/api/import/excel', requireManageSession, upload.single('excelFile'), 
       });
     }
 
-    // Add parts to existing inventory
-    const updatedParts = [...existingParts, ...validParts];
-    await dbService.saveParts(updatedParts);
+    for (const part of validParts) {
+      await dbService.insertPart(part);
+    }
 
     // Create transaction records for the import
     const importTransaction = {
@@ -1177,29 +1042,22 @@ app.post('/api/import/excel', requireManageSession, upload.single('excelFile'), 
       timestamp: new Date().toISOString(),
       notes: `Imported ${validParts.length} parts from Excel file: ${req.file.originalname}`,
       quantityBefore: existingParts.length,
-      quantityAfter: updatedParts.length
+      quantityAfter: existingParts.length + validParts.length
     };
 
-    await dbService.mutateTransactions((transactions) => {
-      transactions.unshift(importTransaction);
-      return transactions;
-    });
+    await dbService.insertTransaction(importTransaction);
 
     res.json({
       success: true,
       message: `Successfully imported ${validParts.length} parts`,
       importedCount: validParts.length,
-      totalParts: updatedParts.length,
+      totalParts: existingParts.length + validParts.length,
       errors: errors.length > 0 ? errors : null,
       transaction: importTransaction
     });
 
   } catch (error) {
-    console.error('Excel import error:', error);
-    res.status(500).json({ 
-      error: 'Failed to process Excel import', 
-      details: error.message 
-    });
+    return respondError(res, error, 'Failed to process Excel import');
   }
 });
 
@@ -1229,16 +1087,13 @@ app.get('/api/health', (req, res) => {
 // CORS preflight handler (same allowlist as the main middleware)
 app.options('*', cors(corsOptions));
 
-function describeError(err) {
-  const type = (err && (err.type || err.name)) || 'Error';
-  const message = err && typeof err.message === 'string' ? err.message.slice(0, 200) : '';
-  return { type, message };
-}
-
 function errorResponse(err) {
   const status = err && (err.status || err.statusCode);
   if (err && (err.type === 'entity.too.large' || status === 413)) {
     return { status: 413, body: { error: 'payload_too_large' } };
+  }
+  if (err && (status === 503 || err.code === 'STORE_UNAVAILABLE' || err.code === 'STORE_READ_FAILED')) {
+    return { status: 503, body: { error: 'store_unavailable' } };
   }
   if (err && (err.type === 'entity.parse.failed' || err instanceof SyntaxError)) {
     return { status: 400, body: { error: 'invalid_body' } };
@@ -1246,10 +1101,10 @@ function errorResponse(err) {
   return { status: 500, body: { error: 'internal_error' } };
 }
 
-// Global error handler. Log type and message only — never err.body or the request body.
+// Global error handler. Name and code only — never the message or request body.
 app.use((error, req, res, next) => {
-  const described = describeError(error);
-  console.error('Global error handler:', described.type, described.message);
+  logStoreError('Global error handler', error);
+  if (res.headersSent) return;
   const mapped = errorResponse(error);
   res.status(mapped.status).json(mapped.body);
 });
@@ -1284,17 +1139,13 @@ app.get('/api/debug/database', async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ 
-      error: 'Database debug failed', 
-      details: error.message 
-    });
+    return respondError(res, error, 'Database debug failed');
   }
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  const described = describeError(err);
-  console.error('Request error:', described.type, described.message);
+  logStoreError('Request error', err);
   if (res.headersSent) return;
   const mapped = errorResponse(err);
   res.status(mapped.status).json(mapped.body);
@@ -1328,16 +1179,17 @@ async function startServer() {
       }
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logStoreError('Failed to start server', error);
     process.exit(1);
   }
 }
 
 if (require.main === module) {
   startServer().catch((error) => {
-    console.error(error);
+    logStoreError('Failed to start server', error);
     process.exit(1);
   });
 }
 
+app.dbService = dbService;
 module.exports = app;

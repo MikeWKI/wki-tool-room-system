@@ -62,6 +62,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error);
+  const { logStoreError } = require('../services/safeLog');
+  logStoreError('seed-shop-activity', error);
   process.exit(1);
 });

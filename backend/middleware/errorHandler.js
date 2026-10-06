@@ -49,7 +49,7 @@ class ErrorLogger {
     try {
       await fs.mkdir(this.logDir, { recursive: true });
     } catch (error) {
-      console.error('Failed to create log directory:', error);
+      console.error('Failed to create log directory:', error && error.name, error && error.code, 'store_error');
     }
   }
 
@@ -57,10 +57,9 @@ class ErrorLogger {
     const logEntry = {
       timestamp: new Date().toISOString(),
       level,
-      message: error.message,
-      stack: error.stack,
-      code: error.code,
-      statusCode: error.statusCode,
+      name: error && error.name ? error.name : 'Error',
+      code: error && error.code != null ? error.code : '',
+      statusCode: error && error.statusCode,
     };
 
     if (req) {
@@ -72,11 +71,10 @@ class ErrorLogger {
       };
     }
 
-    // Log to console
-    console.error(`[${level.toUpperCase()}] ${error.message}`, {
-      code: error.code,
-      statusCode: error.statusCode,
-    });
+    // Name and code only. Do not log error.message, stacks, or the request body.
+    const name = error && error.name ? error.name : 'Error';
+    const code = error && error.code != null ? error.code : '';
+    console.error(`[${level.toUpperCase()}]`, name, code, 'store_error');
 
     // Log to file
     try {
@@ -84,7 +82,7 @@ class ErrorLogger {
       const logLine = JSON.stringify(logEntry) + '\n';
       await fs.appendFile(logFile, logLine);
     } catch (fileError) {
-      console.error('Failed to write to log file:', fileError);
+      console.error('Failed to write to log file:', fileError && fileError.name, fileError && fileError.code, 'store_error');
     }
 
     // In production, you might want to send to external logging service
@@ -124,7 +122,7 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Programming errors or unknown errors - don't leak to client
-  console.error('UNKNOWN ERROR:', err);
+  console.error('UNKNOWN ERROR:', err && err.name, err && err.code, 'store_error');
   
   const response = {
     error: 'Internal server error',
@@ -211,7 +209,7 @@ const getErrorStats = async () => {
       totalWarnFiles: warnFiles.length,
     };
   } catch (error) {
-    console.error('Failed to get error stats:', error);
+    console.error('Failed to get error stats:', error && error.name, error && error.code, 'store_error');
     return {
       errorsToday: -1,
       warningsToday: -1,

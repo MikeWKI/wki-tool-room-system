@@ -29,11 +29,8 @@ function registerMasterInventoryRoutes(app, deps) {
   const {
     dbService,
     readParts,
-    writeParts,
     readShelves,
     writeShelves,
-    readTransactions,
-    writeTransactions,
   } = deps;
   const stagingService = new ReconcileStagingService(dbService);
 
@@ -186,7 +183,7 @@ function registerMasterInventoryRoutes(app, deps) {
       }
 
       const result = applyFillGapsToParts(parts, staging, appliedBy);
-      await writeParts(result.parts);
+      await dbService.applyPartListEdits(parts, result.parts);
 
       const tx = {
         id: Date.now(),
@@ -204,10 +201,7 @@ function registerMasterInventoryRoutes(app, deps) {
           liveCountAfter: result.liveCountAfter,
         }),
       };
-      await dbService.mutateTransactions((transactions) => {
-        transactions.unshift(tx);
-        return transactions;
-      });
+      await dbService.insertTransaction(tx);
 
       res.json({
         success: true,
@@ -221,7 +215,7 @@ function registerMasterInventoryRoutes(app, deps) {
         message: 'Fill-gaps apply complete. TBD shelves and missing P#s were written. Location and field differences stay in JB Staging until Accept JB. No live parts were deleted.',
       });
     } catch (error) {
-      res.status(500).json({ error: 'Fill-gaps apply failed', details: error.message });
+      res.status(500).json({ error: 'Fill-gaps apply failed' });
     }
   });
 
