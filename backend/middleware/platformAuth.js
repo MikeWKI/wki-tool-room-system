@@ -10,7 +10,8 @@ const { timingSafeStringEqual, configuredSecret } = require('./manageAuth');
  *   (PLATFORM_SESSION_DAYS) so a shop-floor kiosk does not re-login each shift.
  * - Manage token: `Authorization: Bearer <token>` from POST /api/auth/manage-pin,
  *   stored in sessionStorage, about 10 hours. Manage routes need BOTH headers.
- *   Check-out and check-in need only the platform token.
+ *   Check-out, check-in, the kiosk door note, and the open-visit lookup need
+ *   only the platform token.
  *
  * The platform token's `purpose` claim is `platform`. Manage tokens use
  * `role: manage` and are rejected here. A platform token is rejected by
@@ -125,6 +126,13 @@ function isOpenPlatformRoute(req) {
   const path = requestPath(req);
   if (path === '/api/health' || path === '/health') return true;
   if (req.method === 'POST' && (path === '/api/auth/platform' || path === '/auth/platform')) return true;
+  // Reader and email inbound only. Route handlers still require
+  // X-Door-Webhook-Secret and return 503 when that secret is unset.
+  // GET /api/door/events, ack, open-visit, mapping, simulate, outbox, and
+  // metrics stay behind this gate.
+  if (req.method === 'POST' && (path === '/api/door/events' || path === '/api/door/email-inbound')) {
+    return true;
+  }
   return false;
 }
 

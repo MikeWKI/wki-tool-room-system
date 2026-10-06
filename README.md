@@ -147,6 +147,12 @@ node scripts/seed-shop-activity.js --apply
 
 The Audit view filters by tech, date, part, and action. Manage also has Preview / Load history, which sends the PIN to the API.
 
+Seeded history is the `shop-activity-95d` batch (`batchKey` on each row, hidden from the public transaction API). Door metrics skip that batch unless Include seeded history is on. Those rows are not rewritten.
+
+## Door access
+
+See `docs/door-access-setup.md`. The tool-room reader posts to `POST /api/door/events` with `X-Door-Webhook-Secret` and no platform token. Other door routes need `X-Platform-Token`. Mapping, simulate, outbox, and metrics also need the manage session. `ALERTS_MODE` defaults to `dry_run` (outbox only).
+
 ## Reconcile
 
 See `docs/RECONCILE.md`. Fill-gaps still fills TBD shelves and adds missing P#s when `RECONCILE_APPLY_TO_LIVE=true`. Location and field differences stay in JB Staging until Accept JB.

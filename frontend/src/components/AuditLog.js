@@ -1,6 +1,23 @@
 import React, { useMemo, useState } from 'react';
 import { History, RefreshCw, Minus, Plus } from 'lucide-react';
 
+const ACTION_LABELS = {
+  checkout: 'Out',
+  checkin: 'In',
+  door_entry: 'Door entry',
+  door_exit: 'Door exit',
+  door_alert: 'No checkout',
+  door_ack: 'Kiosk note',
+  door_sweep: '5 PM sweep',
+  location_change: 'Location',
+  quantity_update: 'Quantity',
+  import: 'Import',
+};
+
+function actionLabel(action) {
+  return ACTION_LABELS[action] || action;
+}
+
 const AuditLog = ({ transactions, onRefresh, loading }) => {
   const [tech, setTech] = useState('all');
   const [action, setAction] = useState('all');
@@ -77,6 +94,11 @@ const AuditLog = ({ transactions, onRefresh, loading }) => {
             <option value="all">All actions</option>
             <option value="checkout">Check out</option>
             <option value="checkin">Check in</option>
+            <option value="door_entry">Door entry</option>
+            <option value="door_exit">Door exit</option>
+            <option value="door_alert">No checkout alert</option>
+            <option value="door_ack">Kiosk note</option>
+            <option value="door_sweep">5 PM sweep</option>
             <option value="location_change">Location</option>
             <option value="import">Import</option>
           </select>
@@ -126,10 +148,13 @@ const AuditLog = ({ transactions, onRefresh, loading }) => {
                     )}
                     {row.partNumber}
                     <span className={`text-sm px-2 py-1 rounded ${
-                      row.action === 'checkout' ? 'bg-red-100 text-red-900' : 'bg-green-100 text-green-900'
+                      row.action === 'checkout' || row.action === 'door_alert' ? 'bg-red-100 text-red-900' : 'bg-green-100 text-green-900'
                     }`}>
-                      {row.action === 'checkout' ? 'Out' : row.action === 'checkin' ? 'In' : row.action}
+                      {actionLabel(row.action)}
                     </span>
+                    {row.source === 'simulated' && (
+                      <span className="text-sm px-2 py-1 rounded bg-gray-200 text-gray-900">Simulated</span>
+                    )}
                   </div>
                   <p className="text-base text-gray-900 dark:text-gray-100 mt-1">{row.user}</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">

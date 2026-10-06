@@ -8,6 +8,8 @@ import LocationManager from './components/LocationManager';
 import MasterInventory from './components/MasterInventory';
 import ReconcileInventory from './components/ReconcileInventory';
 import AuditLog from './components/AuditLog';
+import DoorAccountability from './components/DoorAccountability';
+import OpenVisitBanner from './components/OpenVisitBanner';
 import EngineFamilyChips from './components/EngineFamilyChips';
 import PartEnrichmentDetails from './components/PartEnrichmentDetails';
 import EnrichmentLoader from './components/EnrichmentLoader';
@@ -2329,6 +2331,7 @@ const InventorySystem = () => {
   // Manage Inventory View
   const ManageInventoryView = () => (
     <div className="space-y-6">
+      <DoorAccountability apiCall={apiCall} />
       <ReconcileInventory apiCall={apiCall} currentUser={currentUser} />
       <ActivityHistoryPanel
         apiCall={apiCall}
@@ -3515,6 +3518,8 @@ const InventorySystem = () => {
             getShelfImagePath={getShelfImagePath}
           />
         ) : activeView === 'inventory' ? (
+          <div className="flex flex-col gap-4">
+            <OpenVisitBanner apiCall={apiCall} techName={currentUser} />
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Parts List Panel */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 lg:w-1/2 flex flex-col">
@@ -3813,6 +3818,7 @@ const InventorySystem = () => {
                 </div>
               )}
             </div>
+          </div>
           </div>
         ) : activeView === 'history' ? (
           <AuditLog

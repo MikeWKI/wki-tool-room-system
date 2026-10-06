@@ -24,6 +24,20 @@ const rows = [
   },
 ];
 
+test('audit log labels a door entry', () => {
+  render(<AuditLog transactions={[{
+    id: 9,
+    partNumber: 'Tool Room',
+    action: 'door_entry',
+    user: 'Noah R.',
+    timestamp: '2026-10-06T20:00:00.000Z',
+    notes: 'Noah R. entered Tool Room.',
+    source: 'simulated',
+  }]} onRefresh={() => {}} loading={false} />);
+  expect(screen.getAllByText('Door entry').length).toBeGreaterThan(0);
+  expect(screen.getByText('Simulated')).toBeInTheDocument();
+});
+
 test('audit log filters by tech and shows RO', () => {
   render(<AuditLog transactions={rows} onRefresh={() => {}} loading={false} />);
   expect(screen.getByText('Audit Log')).toBeInTheDocument();

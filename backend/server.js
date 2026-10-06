@@ -16,6 +16,7 @@ const {
   handlePlatformLogin,
   handlePlatformCheck,
 } = require('./middleware/platformAuth');
+const { createDoorStack, registerDoorRoutes, startDoorMaintenance } = require('./routes/doorRoutes');
 const { allowedOrigins, corsOptions } = require('./middleware/corsPolicy');
 const { trustProxyHops, clientRateLimitKey } = require('./middleware/clientIp');
 require('dotenv').config();
@@ -46,7 +47,9 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '2mb' }));
 
 // Platform gate for every /api route except health, POST /api/auth/platform,
-// and CORS preflight. Manage routes still require their own session after this.
+// CORS preflight, and the two door webhooks (POST /api/door/events and
+// POST /api/door/email-inbound). Those webhooks use X-Door-Webhook-Secret.
+// Manage routes still require their own session after this.
 app.use('/api', requirePlatformSession);
 app.post('/api/auth/platform', authLimiter, handlePlatformLogin);
 app.get('/api/auth/platform/check', handlePlatformCheck);
@@ -127,6 +130,15 @@ async function writeShelves(shelves) {
     return false;
   }
 }
+
+const doorService = createDoorStack({
+  dbService,
+  readTransactions,
+  readParts,
+  writeTransactions,
+});
+app.doorService = doorService;
+registerDoorRoutes(app, doorService);
 
 // API Routes
 
@@ -259,6 +271,12 @@ app.post('/api/parts/:id/checkout', async (req, res) => {
     
     transactions.unshift(newTransaction);
     await writeTransactions(transactions);
+
+    try {
+      await doorService.onToolActivity({ user, action: 'checkout', at: new Date() });
+    } catch (doorError) {
+      console.error('Door visit update failed:', doorError.message);
+    }
     
     res.json({ 
       success: true, 
@@ -323,6 +341,12 @@ app.post('/api/parts/:id/checkin', async (req, res) => {
     
     transactions.unshift(newTransaction);
     await writeTransactions(transactions);
+
+    try {
+      await doorService.onToolActivity({ user, action: 'checkin', at: new Date() });
+    } catch (doorError) {
+      console.error('Door visit update failed:', doorError.message);
+    }
     
     res.json({ 
       success: true, 
@@ -1251,6 +1275,7 @@ async function startServer() {
   try {
     // Initialize database service (MongoDB or JSON fallback)
     await dbService.initialize();
+    startDoorMaintenance(doorService);
     
     const baseUrl = process.env.NODE_ENV === 'production' 
       ? `https://wki-tool-room-system-1.onrender.com` 
