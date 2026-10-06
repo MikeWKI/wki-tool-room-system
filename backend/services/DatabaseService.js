@@ -574,6 +574,8 @@ class DatabaseService {
     if (!before) return { error: 'not_found' };
     let result;
     try {
+      // Atomic form of the e2cdef3 checks. Status is set to checked_out on
+      // every success, so quantity > 1 does not allow another checkout.
       result = await Part.updateOne(
         { id: input.id, status: { $ne: 'checked_out' }, quantity: { $gt: 0 } },
         {
@@ -599,7 +601,7 @@ class DatabaseService {
       status: 'checked_out',
       checkedOutBy: input.user,
       checkedOutDate: input.checkedOutDate,
-      quantity: Number(before.quantity) - 1,
+      quantity: before.quantity - 1,
     };
     const transaction = this.buildMovementTransaction(before, input, 'checkout', part.quantity);
     await this.insertTransaction(transaction);
@@ -611,15 +613,17 @@ class DatabaseService {
     const index = parts.findIndex((part) => part.id === input.id);
     if (index < 0) return { error: 'not_found' };
     const before = parts[index];
+    // Same order as main e2cdef3: status blocks first, then quantity.
+    // Status becomes checked_out on every successful checkout, including when
+    // quantity stays above 0. A second unit waits for check-in.
     if (before.status === 'checked_out') return { error: 'checked_out' };
-    const quantity = Number(before.quantity);
-    if (!Number.isFinite(quantity) || quantity <= 0) return { error: 'out_of_stock' };
+    if (before.quantity <= 0) return { error: 'out_of_stock' };
     const part = {
       ...before,
       status: 'checked_out',
       checkedOutBy: input.user,
       checkedOutDate: input.checkedOutDate,
-      quantity: quantity - 1,
+      quantity: before.quantity - 1,
     };
     parts[index] = part;
     await this.savePartsToFile(parts);
@@ -662,7 +666,7 @@ class DatabaseService {
       status: 'available',
       checkedOutBy: null,
       checkedOutDate: null,
-      quantity: Number(before.quantity) + 1,
+      quantity: before.quantity + 1,
     };
     const transaction = {
       id: Date.now(),
@@ -690,7 +694,7 @@ class DatabaseService {
       status: 'available',
       checkedOutBy: null,
       checkedOutDate: null,
-      quantity: Number(before.quantity) + 1,
+      quantity: before.quantity + 1,
     };
     parts[index] = part;
     await this.savePartsToFile(parts);

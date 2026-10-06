@@ -25,6 +25,9 @@ const SECRET = 'Radial impeller secret';
 const PART_COUNT = 120;
 const REQUESTS = 50;
 const ACTIVE_PARTS = 10;
+const MULTI_ID = 50;
+const ZERO_ID = 51;
+const MULTI_QTY = 3;
 
 function makeParts() {
   return Array.from({ length: PART_COUNT }, (_, index) => ({
@@ -116,6 +119,149 @@ function tally(responses) {
   return { successes, conflicts, failures };
 }
 
+async function setPartState(partsFile, fieldsById) {
+  if (app.dbService.useMongoDb) {
+    for (const [id, fields] of Object.entries(fieldsById)) {
+      await Part.updateOne({ id: Number(id) }, { $set: fields });
+    }
+    return;
+  }
+  const parts = JSON.parse(await fs.promises.readFile(partsFile, 'utf8'));
+  for (const part of parts) {
+    if (fieldsById[part.id]) Object.assign(part, fieldsById[part.id]);
+  }
+  await fs.promises.writeFile(partsFile, JSON.stringify(parts, null, 2));
+}
+
+/**
+ * Old checkout (e2cdef3) sets status to checked_out on every success.
+ * A quantity-3 part accepts one checkout, then rejects the next three
+ * until check-in puts it back to available and adds the unit back.
+ */
+async function assertOldMultiQuantityRules(call, platform, partsFile, ipPrefix) {
+  await setPartState(partsFile, {
+    [MULTI_ID]: {
+      quantity: MULTI_QTY,
+      status: 'available',
+      checkedOutBy: null,
+      checkedOutDate: null,
+    },
+    [ZERO_ID]: {
+      quantity: 0,
+      status: 'checked_out',
+      checkedOutBy: 'Prior Tech',
+      checkedOutDate: '2026-01-01T00:00:00.000Z',
+    },
+  });
+
+  const checkout = (ipSuffix) => call({
+    method: 'POST',
+    path: `/api/parts/${MULTI_ID}/checkout`,
+    headers: platform,
+    ip: `${ipPrefix}.${ipSuffix}`,
+    body: { user: TECH, notes: 'multi', roNumber: 'RO-9', unitNumber: 'U-3' },
+  });
+  const checkin = (id, ipSuffix) => call({
+    method: 'POST',
+    path: `/api/parts/${id}/checkin`,
+    headers: platform,
+    ip: `${ipPrefix}.${ipSuffix}`,
+    body: { user: TECH, notes: 'multi' },
+  });
+
+  const first = await checkout(1);
+  assert.equal(first.status, 200);
+  assert.equal(first.json.success, true);
+  assert.equal(first.json.part.quantity, MULTI_QTY - 1);
+  assert.equal(first.json.part.status, 'checked_out');
+  assert.equal(first.json.part.checkedOutBy, TECH);
+  assert.equal(typeof first.json.part.checkedOutDate, 'string');
+  assert.equal(first.json.transaction.action, 'checkout');
+  assert.equal(first.json.transaction.user, TECH);
+  assert.equal(first.json.transaction.partNumber, `PN-${MULTI_ID}`);
+  assert.equal(first.json.transaction.quantityBefore, MULTI_QTY);
+  assert.equal(first.json.transaction.quantityAfter, MULTI_QTY - 1);
+  assert.equal(first.json.transaction.notes, 'multi');
+  assert.equal(first.json.transaction.roNumber, 'RO-9');
+  assert.equal(first.json.transaction.unitNumber, 'U-3');
+
+  for (let attempt = 2; attempt <= 4; attempt += 1) {
+    const denied = await checkout(attempt);
+    assert.equal(denied.status, 400, `checkout ${attempt}`);
+    assert.equal(denied.json.error, 'Part is already checked out');
+  }
+
+  const held = await call({
+    method: 'GET',
+    path: `/api/parts/${MULTI_ID}`,
+    headers: platform,
+    ip: `${ipPrefix}.10`,
+  });
+  assert.equal(held.json.quantity, MULTI_QTY - 1);
+  assert.equal(held.json.status, 'checked_out');
+  assert.equal(held.json.checkedOutBy, TECH);
+
+  const returned = await checkin(MULTI_ID, 11);
+  assert.equal(returned.status, 200);
+  assert.equal(returned.json.success, true);
+  assert.equal(returned.json.part.quantity, MULTI_QTY);
+  assert.equal(returned.json.part.status, 'available');
+  assert.equal(returned.json.part.checkedOutBy, null);
+  assert.equal(returned.json.part.checkedOutDate, null);
+  assert.equal(returned.json.transaction.action, 'checkin');
+  assert.equal(returned.json.transaction.user, TECH);
+  assert.equal(returned.json.transaction.notes, 'multi');
+  assert.equal(returned.json.transaction.quantityBefore, MULTI_QTY - 1);
+  assert.equal(returned.json.transaction.quantityAfter, MULTI_QTY);
+  assert.equal(returned.json.transaction.roNumber, undefined);
+
+  const extraIn = await checkin(MULTI_ID, 12);
+  assert.equal(extraIn.status, 400);
+  assert.equal(extraIn.json.error, 'Part is not checked out');
+
+  const zeroCheckout = await call({
+    method: 'POST',
+    path: `/api/parts/${ZERO_ID}/checkout`,
+    headers: platform,
+    ip: `${ipPrefix}.13`,
+    body: { user: TECH },
+  });
+  assert.equal(zeroCheckout.status, 400);
+  assert.equal(zeroCheckout.json.error, 'Part is already checked out');
+
+  const zeroIn = await checkin(ZERO_ID, 14);
+  assert.equal(zeroIn.status, 200);
+  assert.equal(zeroIn.json.part.quantity, 1);
+  assert.equal(zeroIn.json.part.status, 'available');
+  assert.equal(zeroIn.json.part.checkedOutBy, null);
+  assert.equal(zeroIn.json.part.checkedOutDate, null);
+
+  const parallel = await Promise.all(
+    Array.from({ length: 12 }, (_, index) => checkout(20 + index))
+  );
+  const wins = parallel.filter((row) => row.status === 200);
+  const blocked = parallel.filter((row) => row.status === 400);
+  const errors = parallel.filter((row) => row.status >= 500);
+  assert.equal(errors.length, 0);
+  assert.equal(wins.length, 1);
+  assert.equal(blocked.length, 11);
+  assert.equal(wins[0].json.part.quantity, MULTI_QTY - 1);
+  assert.equal(wins[0].json.part.status, 'checked_out');
+  assert.equal(wins[0].json.part.checkedOutBy, TECH);
+  for (const row of blocked) {
+    assert.equal(row.json.error, 'Part is already checked out');
+  }
+  const stored = await call({
+    method: 'GET',
+    path: `/api/parts/${MULTI_ID}`,
+    headers: platform,
+    ip: `${ipPrefix}.40`,
+  });
+  assert.equal(stored.json.quantity, MULTI_QTY - 1);
+  assert.ok(stored.json.quantity >= 0);
+  assert.equal(stored.json.status, 'checked_out');
+}
+
 test('parts and transactions survive parallel checkouts', { timeout: 180000 }, async () => {
   const server = await listen(app);
   const port = server.address().port;
@@ -188,6 +334,14 @@ test('parts and transactions survive parallel checkouts', { timeout: 180000 }, a
       transactions: jsonTransactions.length,
       serverErrors: jsonTallied.failures.length,
     };
+
+    await assertOldMultiQuantityRules(call, platform, partsFile, '192.0.2');
+    const jsonAfterMulti = JSON.parse(await fs.promises.readFile(partsFile, 'utf8'));
+    assert.equal(jsonAfterMulti.length, PART_COUNT);
+    const jsonMulti = jsonAfterMulti.find((row) => row.id === MULTI_ID);
+    assert.equal(jsonMulti.quantity, MULTI_QTY - 1);
+    assert.equal(jsonMulti.status, 'checked_out');
+    assert.ok(jsonAfterMulti.every((row) => row.quantity >= 0));
 
     const { MongoMemoryServer } = require('mongodb-memory-server');
     const mongoose = require('mongoose');
@@ -278,6 +432,18 @@ test('parts and transactions survive parallel checkouts', { timeout: 180000 }, a
         serverErrors: mongoTallied.failures.length,
         e11000: mongoBurst.logs.join('\n').includes('E11000'),
       };
+
+      await assertOldMultiQuantityRules(call, platform, partsFile, '203.0.114');
+      assert.equal(await Part.countDocuments(), PART_COUNT);
+      assert.equal(partDeletes, 0);
+      assert.equal(txDeletes, 0);
+      assert.equal(partInsertMany, 0);
+      assert.equal(txInsertMany, 0);
+      const mongoMulti = await Part.findOne({ id: MULTI_ID }).lean();
+      assert.equal(mongoMulti.quantity, MULTI_QTY - 1);
+      assert.equal(mongoMulti.status, 'checked_out');
+      assert.equal(mongoMulti.checkedOutBy, TECH);
+      assert.equal(await Part.countDocuments({ quantity: { $lt: 0 } }), 0);
 
       const fsp = fs.promises;
       const touches = [];
