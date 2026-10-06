@@ -971,3 +971,206 @@ test('padded SMTP settings still count as configured', () => {
     else process.env.ALERT_FROM = previous.from;
   }
 });
+
+test('server.js keeps proxy trust, the global limiter key, and door middleware order', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
+  const trust = source.indexOf("app.set('trust proxy', trustProxyHops())");
+  const key = source.indexOf('keyGenerator: clientRateLimitKey');
+  const legacy = source.indexOf('legacyHeaders: true');
+  const standard = source.indexOf('standardHeaders: false');
+  const doorParser = source.indexOf('app.use(doorWebhookBodyParser)');
+  const globalParser = source.indexOf("app.use(express.json({ limit: '2mb' }))");
+  const gate = source.indexOf("app.use('/api', requirePlatformSession)");
+  const routes = source.indexOf('registerDoorRoutes(app, doorService)');
+  assert.ok(trust !== -1);
+  assert.ok(trust < key);
+  assert.ok(key < doorParser);
+  assert.ok(legacy !== -1 && legacy < doorParser);
+  assert.ok(standard !== -1 && standard < doorParser);
+  assert.match(source, /max:\s*100/);
+  assert.ok(doorParser < globalParser);
+  assert.ok(globalParser < gate);
+  assert.ok(gate < routes);
+
+  const limiterSource = fs.readFileSync(path.join(__dirname, '../middleware/doorRateLimit.js'), 'utf8');
+  assert.match(limiterSource, /keyGenerator:\s*clientRateLimitKey/);
+  assert.match(limiterSource, /max:\s*10/);
+  assert.match(limiterSource, /max:\s*600/);
+  assert.equal(limiterSource.includes('TODO'), false);
+  assert.equal(limiterSource.includes('req.ip'), false);
+
+  const { trustProxyHops } = require('../middleware/clientIp');
+  const app = require('../server');
+  assert.equal(app.get('trust proxy'), trustProxyHops());
+});
+
+test('only the exact door webhook posts skip the platform token', async () => {
+  const previousSecret = process.env.DOOR_WEBHOOK_SECRET;
+  const previousPlatform = process.env.PLATFORM_PASSWORD;
+  process.env.DOOR_WEBHOOK_SECRET = 'test-door-secret';
+  process.env.PLATFORM_PASSWORD = 'test-platform-password';
+  const app = require('../server');
+  const server = await listen(app);
+  const port = server.address().port;
+  const secret = { 'X-Door-Webhook-Secret': 'test-door-secret' };
+  const body = {
+    eventId: `matrix-${Date.now()}`,
+    type: 'entry',
+    occurredAt: new Date().toISOString(),
+    actorName: 'Noah R.',
+  };
+  try {
+    const events = await request(port, {
+      method: 'POST',
+      path: '/api/door/events',
+      body,
+      headers: { ...secret, 'X-Forwarded-For': '198.51.100.60' },
+    });
+    assert.equal(events.status, 201);
+    assert.notEqual(events.json.error, 'platform_token_required');
+
+    const chicago = chicagoParts(new Date());
+    const emailStamp = `${chicago.year}-${String(chicago.month).padStart(2, '0')}-${String(chicago.day).padStart(2, '0')} ${String(chicago.hour).padStart(2, '0')}:${String(chicago.minute).padStart(2, '0')}`;
+    const email = await request(port, {
+      method: 'POST',
+      path: '/api/door/email-inbound',
+      body: { subject: 'Tool room door', text: `Noah R. entered the tool room at ${emailStamp}` },
+      headers: { ...secret, 'X-Forwarded-For': '198.51.100.61' },
+    });
+    assert.equal(email.status, 201);
+    assert.notEqual(email.json.error, 'platform_token_required');
+
+    const variants = [
+      ['POST', '/api/door/events/'],
+      ['POST', '/api/door/email-inbound/'],
+      ['POST', '/api/door/Events'],
+      ['POST', '/api/door/Email-Inbound'],
+      ['POST', '/API/door/events'],
+      ['POST', '/API/door/email-inbound'],
+      ['POST', '/api/door/%65vents'],
+      ['POST', '/api/door/e%76ents'],
+      ['POST', '/api/door/events%2Fextra'],
+      ['POST', '/api/door/%65mail-inbound'],
+      ['POST', '/api/door/email-inbound%2Fextra'],
+      ['POST', '/api/door/./events'],
+      ['POST', '/api/door/foo/../events'],
+      ['POST', '/api/door/./email-inbound'],
+      ['POST', '/api/door/foo/../email-inbound'],
+      ['POST', '/api/door/events;param'],
+      ['POST', '/api/door/email-inbound;x'],
+      ['GET', '/api/door/events'],
+      ['PUT', '/api/door/events'],
+      ['DELETE', '/api/door/events'],
+      ['PATCH', '/api/door/events'],
+      ['GET', '/api/door/email-inbound'],
+      ['PUT', '/api/door/email-inbound'],
+      ['DELETE', '/api/door/email-inbound'],
+    ];
+    for (const [index, [method, reqPath]] of variants.entries()) {
+      const response = await request(port, {
+        method,
+        path: reqPath,
+        body: { ...body, eventId: `variant-${index}` },
+        headers: { ...secret, 'X-Forwarded-For': `198.51.100.${70 + (index % 20)}` },
+      });
+      assert.equal(response.status, 401, `${method} ${reqPath} -> ${response.status} ${response.text}`);
+      assert.equal(response.json && response.json.error, 'platform_token_required', `${method} ${reqPath}`);
+    }
+
+    const wrongPassword = await request(port, {
+      method: 'POST',
+      path: '/api/auth/platform',
+      body: { password: 'not-the-shop-password' },
+      headers: { 'X-Forwarded-For': '198.51.100.91' },
+    });
+    assert.equal(wrongPassword.status, 401);
+    assert.equal(wrongPassword.json.error, 'incorrect_password');
+  } finally {
+    server.close();
+    if (previousSecret == null) delete process.env.DOOR_WEBHOOK_SECRET;
+    else process.env.DOOR_WEBHOOK_SECRET = previousSecret;
+    if (previousPlatform == null) delete process.env.PLATFORM_PASSWORD;
+    else process.env.PLATFORM_PASSWORD = previousPlatform;
+  }
+});
+
+test('a valid door webhook burst is not rate limited and a spoofed client ip stays in the same bucket', async () => {
+  const previousSecret = process.env.DOOR_WEBHOOK_SECRET;
+  const previousPlatform = process.env.PLATFORM_PASSWORD;
+  process.env.DOOR_WEBHOOK_SECRET = 'test-door-secret';
+  process.env.PLATFORM_PASSWORD = 'test-platform-password';
+  const app = require('../server');
+  const server = await listen(app);
+  const port = server.address().port;
+  const ip = '198.51.100.77';
+  const occurredAt = new Date().toISOString();
+  try {
+    const accepted = await Promise.all(Array.from({ length: 100 }, (_, index) => request(port, {
+      method: 'POST',
+      path: '/api/door/events',
+      body: {
+        eventId: `burst-${index}`,
+        type: 'entry',
+        occurredAt,
+        actorName: 'Noah R.',
+      },
+      headers: {
+        'X-Door-Webhook-Secret': 'test-door-secret',
+        'X-Forwarded-For': ip,
+      },
+    })));
+    const acceptedStatuses = accepted.map((response) => response.status);
+    assert.equal(acceptedStatuses.filter((status) => status === 429).length, 0);
+    assert.equal(acceptedStatuses.filter((status) => status === 201).length, 100);
+
+    const failed = [];
+    for (let index = 0; index < 11; index += 1) {
+      const response = await request(port, {
+        method: 'POST',
+        path: '/api/door/events',
+        body: { eventId: `burst-bad-${index}`, type: 'entry', occurredAt, actorName: 'Noah R.' },
+        headers: {
+          'X-Door-Webhook-Secret': 'wrong-secret',
+          'X-Forwarded-For': ip,
+        },
+      });
+      failed.push(response);
+    }
+    assert.equal(failed.slice(0, 10).every((response) => response.status === 401), true);
+    assert.equal(failed.slice(0, 10).every((response) => response.json.error === 'webhook_secret_rejected'), true);
+    assert.equal(failed[10].status, 429);
+    assert.equal(failed[10].json.error, 'door_rate_limited');
+
+    const spoofedForwarded = await request(port, {
+      method: 'POST',
+      path: '/api/door/events',
+      body: { eventId: 'burst-spoof-xff', type: 'entry', occurredAt, actorName: 'Noah R.' },
+      headers: {
+        'X-Door-Webhook-Secret': 'wrong-secret',
+        'X-Forwarded-For': `203.0.113.9, ${ip}`,
+        'CF-Connecting-IP': '1.1.1.1',
+      },
+    });
+    assert.equal(spoofedForwarded.status, 429);
+    assert.equal(spoofedForwarded.json.error, 'door_rate_limited');
+
+    const spoofedCloudflare = await request(port, {
+      method: 'POST',
+      path: '/api/door/events',
+      body: { eventId: 'burst-spoof-cf', type: 'entry', occurredAt, actorName: 'Noah R.' },
+      headers: {
+        'X-Door-Webhook-Secret': 'wrong-secret',
+        'X-Forwarded-For': ip,
+        'CF-Connecting-IP': '203.0.113.50',
+      },
+    });
+    assert.equal(spoofedCloudflare.status, 429);
+    assert.equal(spoofedCloudflare.json.error, 'door_rate_limited');
+  } finally {
+    server.close();
+    if (previousSecret == null) delete process.env.DOOR_WEBHOOK_SECRET;
+    else process.env.DOOR_WEBHOOK_SECRET = previousSecret;
+    if (previousPlatform == null) delete process.env.PLATFORM_PASSWORD;
+    else process.env.PLATFORM_PASSWORD = previousPlatform;
+  }
+});

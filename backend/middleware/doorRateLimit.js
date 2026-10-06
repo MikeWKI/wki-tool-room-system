@@ -1,12 +1,8 @@
 const rateLimit = require('express-rate-limit');
+const { clientRateLimitKey } = require('./clientIp');
 const { doorWebhookSecret, doorSecretAccepted } = require('./doorWebhookAuth');
 
 const WINDOW_MS = 15 * 60 * 1000;
-
-// TODO: switch to clientRateLimitKey from PR #6 (fix/ratelimit-client-ip) after that branch merges.
-function doorRateLimitKey(req) {
-  return req.ip || 'unknown';
-}
 
 function limited(res) {
   return res.status(429).json({ error: 'door_rate_limited' });
@@ -22,7 +18,7 @@ const doorFailedSecretLimiter = rateLimit({
   max: 10,
   standardHeaders: false,
   legacyHeaders: false,
-  keyGenerator: doorRateLimitKey,
+  keyGenerator: clientRateLimitKey,
   skip: (req) => !secretConfigured() || doorSecretAccepted(req),
   handler: (req, res) => limited(res),
 });
@@ -33,7 +29,7 @@ const doorAcceptedSecretLimiter = rateLimit({
   max: 600,
   standardHeaders: false,
   legacyHeaders: false,
-  keyGenerator: doorRateLimitKey,
+  keyGenerator: clientRateLimitKey,
   skip: (req) => !secretConfigured() || !doorSecretAccepted(req),
   handler: (req, res) => limited(res),
 });
@@ -47,7 +43,6 @@ function isDoorWebhookPost(req) {
 }
 
 module.exports = {
-  doorRateLimitKey,
   doorFailedSecretLimiter,
   doorAcceptedSecretLimiter,
   isDoorWebhookPost,

@@ -75,6 +75,8 @@ test('password can be shown, Enter submits, and errors cover wrong, lockout, and
 test('a 401 from platform login shows the shop password error and does not log the gate out', async () => {
   expect(shouldLockPlatform(401, 'incorrect_password')).toBe(false);
   expect(shouldLockPlatform(401, 'platform_token_invalid')).toBe(true);
+  expect(shouldLockPlatform(401, 'webhook_secret_rejected')).toBe(false);
+  expect(shouldLockPlatform(401, 'Door webhook secret rejected')).toBe(false);
 
   const locks = [];
   const onLock = (event) => locks.push(event);
