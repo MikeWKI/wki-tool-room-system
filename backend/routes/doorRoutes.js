@@ -1,22 +1,23 @@
-const { timingSafeStringEqual, requireManageSession } = require('../middleware/manageAuth');
+const { requireManageSession } = require('../middleware/manageAuth');
+const { HEADER, requireDoorWebhook } = require('../middleware/doorWebhookAuth');
+const { doorFailedSecretLimiter, doorAcceptedSecretLimiter } = require('../middleware/doorRateLimit');
 const { TECHS } = require('../data/techRoster');
 const { MemoryDoorRepository, PersistentDoorRepository } = require('../services/door/repository');
 const { DoorService, startDoorMaintenance } = require('../services/door/doorService');
 
-const HEADER = 'x-door-webhook-secret';
+function publicError(status, error) {
+  if (typeof error === 'string' && /^[a-z0-9_]+$/.test(error)) return error;
+  if (status === 404) return 'not_found';
+  if (status === 400) return 'invalid_request';
+  return 'door_request_failed';
+}
 
-function requireDoorWebhook(req, res, next) {
-  const secret = process.env.DOOR_WEBHOOK_SECRET;
-  if (!secret) {
-    return res.status(503).json({
-      error: 'Door webhook is not configured. Set DOOR_WEBHOOK_SECRET on the API.',
-    });
+function sendResult(res, result, okStatus) {
+  if (!result.ok) {
+    const status = result.status || 400;
+    return res.status(status).json({ error: publicError(status, result.error) });
   }
-  const provided = req.get(HEADER) || '';
-  if (!timingSafeStringEqual(provided, secret)) {
-    return res.status(401).json({ error: 'Door webhook secret rejected' });
-  }
-  return next();
+  return res.status(result.duplicate ? 200 : okStatus).json(result);
 }
 
 function createDoorStack({ dbService, readTransactions, readParts, writeTransactions }) {
@@ -41,10 +42,7 @@ function createDoorStack({ dbService, readTransactions, readParts, writeTransact
         memory.audits.unshift(entry);
         return entry;
       }
-      const transactions = await readTransactions();
-      transactions.unshift(entry);
-      await writeTransactions(transactions);
-      return entry;
+      return dbService.appendTransaction(entry);
     },
   });
   service.memory = memory;
@@ -53,23 +51,25 @@ function createDoorStack({ dbService, readTransactions, readParts, writeTransact
 }
 
 function registerDoorRoutes(app, service) {
-  app.post('/api/door/events', requireDoorWebhook, async (req, res) => {
+  const webhookGuards = [doorFailedSecretLimiter, doorAcceptedSecretLimiter, requireDoorWebhook];
+
+  app.post('/api/door/events', ...webhookGuards, async (req, res) => {
     try {
+      if (typeof req.body === 'string') return res.status(400).json({ error: 'invalid_body' });
       const result = await service.ingestWebhook(req.body);
-      if (!result.ok) return res.status(result.status || 400).json({ error: result.error });
-      return res.status(result.duplicate ? 200 : 201).json(result);
+      return sendResult(res, result, 201);
     } catch (error) {
-      return res.status(500).json({ error: 'Door event failed', details: error.message });
+      return res.status(500).json({ error: 'door_event_failed' });
     }
   });
 
-  app.post('/api/door/email-inbound', requireDoorWebhook, async (req, res) => {
+  app.post('/api/door/email-inbound', ...webhookGuards, async (req, res) => {
     try {
-      const result = await service.ingestEmail(req.body || {});
-      if (!result.ok) return res.status(result.status || 400).json({ error: result.error });
-      return res.status(result.duplicate ? 200 : 201).json(result);
+      const body = typeof req.body === 'string' ? { text: req.body } : (req.body || {});
+      const result = await service.ingestEmail(body);
+      return sendResult(res, result, 201);
     } catch (error) {
-      return res.status(500).json({ error: 'Door email failed', details: error.message });
+      return res.status(500).json({ error: 'door_email_failed' });
     }
   });
 
@@ -85,7 +85,7 @@ function registerDoorRoutes(app, service) {
   app.post('/api/door/visits/:id/ack', async (req, res) => {
     try {
       const result = await service.acknowledge(req.params.id, { reason: req.body?.reason });
-      if (!result.ok) return res.status(result.status || 400).json({ error: result.error });
+      if (!result.ok) return res.status(result.status || 400).json({ error: publicError(result.status || 400, result.error) });
       return res.json(result);
     } catch (error) {
       return res.status(500).json({ error: 'Acknowledgement failed' });
@@ -106,19 +106,19 @@ function registerDoorRoutes(app, service) {
 
   app.post('/api/door/badges', requireManageSession, async (req, res) => {
     const result = await service.saveBadge(req.body || {});
-    if (!result.ok) return res.status(result.status || 400).json({ error: result.error });
+    if (!result.ok) return res.status(result.status || 400).json({ error: publicError(result.status || 400, result.error) });
     return res.status(201).json(result.badge);
   });
 
   app.put('/api/door/badges/:id', requireManageSession, async (req, res) => {
     const result = await service.saveBadge({ ...(req.body || {}), id: req.params.id });
-    if (!result.ok) return res.status(result.status || 400).json({ error: result.error });
+    if (!result.ok) return res.status(result.status || 400).json({ error: publicError(result.status || 400, result.error) });
     return res.json(result.badge);
   });
 
   app.delete('/api/door/badges/:id', requireManageSession, async (req, res) => {
     const result = await service.deleteBadge(req.params.id);
-    if (!result.ok) return res.status(result.status || 404).json({ error: result.error });
+    if (!result.ok) return res.status(result.status || 404).json({ error: publicError(result.status || 404, result.error) });
     return res.json({ ok: true });
   });
 
@@ -165,13 +165,13 @@ function registerDoorRoutes(app, service) {
 
   app.post('/api/door/simulate', requireManageSession, async (req, res) => {
     const result = await service.simulate(req.body || {});
-    if (!result.ok) return res.status(result.status || 400).json({ error: result.error });
+    if (!result.ok) return res.status(result.status || 400).json({ error: publicError(result.status || 400, result.error) });
     return res.status(result.duplicate ? 200 : 201).json(result);
   });
 
   app.post('/api/door/maintenance', requireManageSession, async (req, res) => {
     const now = req.body?.now ? new Date(req.body.now) : new Date();
-    if (Number.isNaN(now.getTime())) return res.status(400).json({ error: 'now is not a valid time' });
+    if (Number.isNaN(now.getTime())) return res.status(400).json({ error: 'invalid_time' });
     const result = await service.runMaintenance(now);
     return res.json(result);
   });
@@ -180,6 +180,7 @@ function registerDoorRoutes(app, service) {
 module.exports = {
   HEADER,
   requireDoorWebhook,
+  publicError,
   createDoorStack,
   registerDoorRoutes,
   startDoorMaintenance,

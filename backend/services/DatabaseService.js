@@ -2,6 +2,8 @@
 const fs = require('fs').promises;
 const path = require('path');
 const { Part, Shelf, Transaction, AuditBatch } = require('../models');
+const { withStoreLock } = require('./storeLock');
+const { writeJsonAtomic } = require('./atomicJson');
 
 class DatabaseService {
   constructor() {
@@ -237,22 +239,67 @@ class DatabaseService {
     }
   }
 
+  transactionModel() {
+    return this._transactionModel || Transaction;
+  }
+
   async readTransactionsFromFile() {
+    await fs.mkdir(this.DB_DIR, { recursive: true });
     try {
-      await fs.mkdir(this.DB_DIR, { recursive: true });
       const data = await fs.readFile(this.TRANSACTIONS_FILE, 'utf8');
-      return JSON.parse(data);
-    } catch (error) {
-      if (error.code === 'ENOENT') {
-        await fs.writeFile(this.TRANSACTIONS_FILE, JSON.stringify([], null, 2));
-        return [];
+      let parsed;
+      try {
+        parsed = JSON.parse(data);
+      } catch (error) {
+        const failure = new Error('transaction_store_unreadable');
+        failure.code = 'STORE_READ_FAILED';
+        throw failure;
       }
-      console.error('Error reading transactions file:', error);
-      return [];
+      if (!Array.isArray(parsed)) {
+        const failure = new Error('transaction_store_unreadable');
+        failure.code = 'STORE_READ_FAILED';
+        throw failure;
+      }
+      return parsed;
+    } catch (error) {
+      if (error.code === 'ENOENT') return [];
+      throw error;
     }
   }
 
+  /**
+   * Append one audit or door row. Mongo uses a single insert. JSON reads,
+   * appends, and atomically replaces the file. Never deleteMany/insertMany.
+   */
+  async appendTransaction(entry) {
+    return withStoreLock(async () => {
+      if (this.useMongoDb) {
+        const Model = this.transactionModel();
+        if (typeof Model.insertOne === 'function') await Model.insertOne(entry);
+        else await Model.create(entry);
+        return entry;
+      }
+      const rows = await this.readTransactionsFromFile();
+      rows.unshift(entry);
+      await this.saveTransactionsToFile(rows);
+      return entry;
+    });
+  }
+
+  async mutateTransactions(mutator) {
+    return withStoreLock(async () => {
+      const current = await this.getTransactions();
+      const next = await mutator(current);
+      await this.saveTransactions(next);
+      return next;
+    });
+  }
+
   async saveTransactions(transactions) {
+    return withStoreLock(() => this.writeAllTransactions(transactions));
+  }
+
+  async writeAllTransactions(transactions) {
     if (this.useMongoDb) {
       try {
         // Clean and validate transaction data before saving
@@ -280,14 +327,8 @@ class DatabaseService {
   }
 
   async saveTransactionsToFile(transactions) {
-    try {
-      await fs.mkdir(this.DB_DIR, { recursive: true });
-      await fs.writeFile(this.TRANSACTIONS_FILE, JSON.stringify(transactions, null, 2));
-      return true;
-    } catch (error) {
-      console.error('Error saving transactions file:', error);
-      return false;
-    }
+    await writeJsonAtomic(this.TRANSACTIONS_FILE, transactions);
+    return true;
   }
 
   async getShelves() {
@@ -419,10 +460,12 @@ class DatabaseService {
       }
       return batchTransactions.length;
     }
-    const existing = await this.getTransactions();
-    const keptRows = kept || existing.filter((row) => row.batchKey !== batchKey);
-    await this.saveTransactionsToFile([...batchTransactions, ...keptRows]);
-    return batchTransactions.length;
+    return withStoreLock(async () => {
+      const existing = await this.getTransactions();
+      const keptRows = kept || existing.filter((row) => row.batchKey !== batchKey);
+      await this.saveTransactionsToFile([...batchTransactions, ...keptRows]);
+      return batchTransactions.length;
+    });
   }
 
   async getAuditBatch(batchKey) {

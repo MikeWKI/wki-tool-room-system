@@ -11,8 +11,12 @@ function setMailTransport(fn) {
   transportOverride = fn;
 }
 
+function trimmedEnv(name) {
+  return String(process.env[name] || '').trim();
+}
+
 function smtpConfigured() {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.ALERT_FROM);
+  return Boolean(trimmedEnv('SMTP_HOST') && trimmedEnv('SMTP_PORT') && trimmedEnv('ALERT_FROM'));
 }
 
 function resolveAlertsMode() {
@@ -39,17 +43,18 @@ async function defaultTransport(message) {
   // Loaded only when a live send actually happens.
   // eslint-disable-next-line global-require
   const nodemailer = require('nodemailer');
-  const port = Number(process.env.SMTP_PORT);
+  const port = Number(trimmedEnv('SMTP_PORT'));
+  const user = trimmedEnv('SMTP_USER');
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
+    host: trimmedEnv('SMTP_HOST'),
     port,
     secure: port === 465,
-    auth: process.env.SMTP_USER
-      ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS || '' }
+    auth: user
+      ? { user, pass: process.env.SMTP_PASS || '' }
       : undefined,
   });
   await transporter.sendMail({
-    from: process.env.ALERT_FROM,
+    from: trimmedEnv('ALERT_FROM'),
     to: message.to,
     cc: message.cc || undefined,
     subject: message.subject,

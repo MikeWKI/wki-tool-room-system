@@ -7,6 +7,9 @@ const {
   EmailOutbox,
   SweepRun,
 } = require('../../models');
+const { withStoreLock } = require('../storeLock');
+const { writeJsonAtomic } = require('../atomicJson');
+const defaultModels = { DoorEvent, BadgeMap, DoorVisit, EmailOutbox, SweepRun };
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -113,9 +116,10 @@ class MemoryDoorRepository {
 }
 
 class PersistentDoorRepository {
-  constructor(dbService) {
+  constructor(dbService, options = {}) {
     this.db = dbService;
-    this.dir = path.join(__dirname, '../../database');
+    this.models = options.models || defaultModels;
+    this.dir = options.dir || path.join(__dirname, '../../database');
     this.files = {
       events: path.join(this.dir, 'door-events.json'),
       badges: path.join(this.dir, 'door-badges.json'),
@@ -125,6 +129,10 @@ class PersistentDoorRepository {
     };
   }
 
+  model(name) {
+    return this.models[name];
+  }
+
   mongo() {
     return Boolean(this.db && this.db.useMongoDb);
   }
@@ -132,8 +140,20 @@ class PersistentDoorRepository {
   async readFile(name) {
     try {
       const raw = await fs.readFile(this.files[name], 'utf8');
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (error) {
+        const failure = new Error('door_store_unreadable');
+        failure.code = 'STORE_READ_FAILED';
+        throw failure;
+      }
+      if (!Array.isArray(parsed)) {
+        const failure = new Error('door_store_unreadable');
+        failure.code = 'STORE_READ_FAILED';
+        throw failure;
+      }
+      return parsed;
     } catch (error) {
       if (error.code === 'ENOENT') return [];
       throw error;
@@ -141,13 +161,12 @@ class PersistentDoorRepository {
   }
 
   async writeFile(name, rows) {
-    await fs.mkdir(this.dir, { recursive: true });
-    await fs.writeFile(this.files[name], JSON.stringify(rows, null, 2));
+    await writeJsonAtomic(this.files[name], rows);
   }
 
   async findEvent(eventId) {
     if (this.mongo()) {
-      const doc = await DoorEvent.findOne({ eventId }).lean();
+      const doc = await this.model('DoorEvent').findOne({ eventId }).lean();
       return doc || null;
     }
     const rows = await this.readFile('events');
@@ -157,7 +176,7 @@ class PersistentDoorRepository {
   async insertEvent(event) {
     if (this.mongo()) {
       try {
-        await DoorEvent.create(event);
+        await this.model('DoorEvent').create(event);
       } catch (error) {
         if (error && error.code === 11000) {
           const dup = new Error('duplicate event');
@@ -168,66 +187,74 @@ class PersistentDoorRepository {
       }
       return event;
     }
-    const rows = await this.readFile('events');
-    if (rows.some((row) => row.eventId === event.eventId)) {
-      const dup = new Error('duplicate event');
-      dup.code = 'DUPLICATE';
-      throw dup;
-    }
-    rows.push(event);
-    await this.writeFile('events', rows);
-    return event;
+    return withStoreLock(async () => {
+      const rows = await this.readFile('events');
+      if (rows.some((row) => row.eventId === event.eventId)) {
+        const dup = new Error('duplicate event');
+        dup.code = 'DUPLICATE';
+        throw dup;
+      }
+      rows.push(event);
+      await this.writeFile('events', rows);
+      return event;
+    });
   }
 
   async listEvents() {
-    if (this.mongo()) return DoorEvent.find({}).lean();
+    if (this.mongo()) return this.model('DoorEvent').find({}).lean();
     return this.readFile('events');
   }
 
   async listBadges() {
-    if (this.mongo()) return BadgeMap.find({}).lean();
+    if (this.mongo()) return this.model('BadgeMap').find({}).lean();
     return this.readFile('badges');
   }
 
   async upsertBadge(badge) {
     if (this.mongo()) {
-      await BadgeMap.findOneAndUpdate({ id: badge.id }, badge, { upsert: true, new: true });
+      await this.model('BadgeMap').findOneAndUpdate({ id: badge.id }, badge, { upsert: true, new: true });
       return badge;
     }
-    const rows = await this.readFile('badges');
-    const index = rows.findIndex((row) => row.id === badge.id);
-    if (index >= 0) rows[index] = badge;
-    else rows.push(badge);
-    await this.writeFile('badges', rows);
-    return badge;
+    return withStoreLock(async () => {
+      const rows = await this.readFile('badges');
+      const index = rows.findIndex((row) => row.id === badge.id);
+      if (index >= 0) rows[index] = badge;
+      else rows.push(badge);
+      await this.writeFile('badges', rows);
+      return badge;
+    });
   }
 
   async deleteBadge(id) {
     if (this.mongo()) {
-      const result = await BadgeMap.deleteOne({ id });
+      const result = await this.model('BadgeMap').deleteOne({ id });
       return result.deletedCount > 0;
     }
-    const rows = await this.readFile('badges');
-    const next = rows.filter((row) => row.id !== id);
-    await this.writeFile('badges', next);
-    return next.length !== rows.length;
+    return withStoreLock(async () => {
+      const rows = await this.readFile('badges');
+      const next = rows.filter((row) => row.id !== id);
+      await this.writeFile('badges', next);
+      return next.length !== rows.length;
+    });
   }
 
   async findVisit(id) {
-    if (this.mongo()) return DoorVisit.findOne({ id }).lean();
+    if (this.mongo()) return this.model('DoorVisit').findOne({ id }).lean();
     const rows = await this.readFile('visits');
     return rows.find((row) => row.id === id) || null;
   }
 
   async insertVisit(visit) {
     if (this.mongo()) {
-      await DoorVisit.create(visit);
+      await this.model('DoorVisit').create(visit);
       return visit;
     }
-    const rows = await this.readFile('visits');
-    rows.push(visit);
-    await this.writeFile('visits', rows);
-    return visit;
+    return withStoreLock(async () => {
+      const rows = await this.readFile('visits');
+      rows.push(visit);
+      await this.writeFile('visits', rows);
+      return visit;
+    });
   }
 
   async updateVisit(id, patch, options = {}) {
@@ -237,42 +264,46 @@ class PersistentDoorRepository {
         filter.status = 'open';
         filter.alertedAt = null;
       }
-      const doc = await DoorVisit.findOneAndUpdate(filter, { $set: patch }, { new: true }).lean();
+      const doc = await this.model('DoorVisit').findOneAndUpdate(filter, { $set: patch }, { new: true }).lean();
       return doc || null;
     }
-    const rows = await this.readFile('visits');
-    const index = rows.findIndex((row) => row.id === id);
-    if (index < 0) return null;
-    if (options.ifOpenUnalerted && (rows[index].status !== 'open' || rows[index].alertedAt)) return null;
-    rows[index] = { ...rows[index], ...patch };
-    await this.writeFile('visits', rows);
-    return rows[index];
+    return withStoreLock(async () => {
+      const rows = await this.readFile('visits');
+      const index = rows.findIndex((row) => row.id === id);
+      if (index < 0) return null;
+      if (options.ifOpenUnalerted && (rows[index].status !== 'open' || rows[index].alertedAt)) return null;
+      rows[index] = { ...rows[index], ...patch };
+      await this.writeFile('visits', rows);
+      return rows[index];
+    });
   }
 
   async listVisits() {
-    if (this.mongo()) return DoorVisit.find({}).lean();
+    if (this.mongo()) return this.model('DoorVisit').find({}).lean();
     return this.readFile('visits');
   }
 
   async insertOutbox(row) {
     if (this.mongo()) {
-      await EmailOutbox.create(row);
+      await this.model('EmailOutbox').create(row);
       return row;
     }
-    const rows = await this.readFile('outbox');
-    rows.push(row);
-    await this.writeFile('outbox', rows);
-    return row;
+    return withStoreLock(async () => {
+      const rows = await this.readFile('outbox');
+      rows.push(row);
+      await this.writeFile('outbox', rows);
+      return row;
+    });
   }
 
   async listOutbox() {
-    if (this.mongo()) return EmailOutbox.find({}).sort({ createdAt: -1 }).lean();
+    if (this.mongo()) return this.model('EmailOutbox').find({}).sort({ createdAt: -1 }).lean();
     const rows = await this.readFile('outbox');
     return rows.slice().reverse();
   }
 
   async findSweep(dayKey) {
-    if (this.mongo()) return SweepRun.findOne({ dayKey }).lean();
+    if (this.mongo()) return this.model('SweepRun').findOne({ dayKey }).lean();
     const rows = await this.readFile('sweeps');
     return rows.find((row) => row.dayKey === dayKey) || null;
   }
@@ -280,7 +311,7 @@ class PersistentDoorRepository {
   async insertSweep(row) {
     if (this.mongo()) {
       try {
-        await SweepRun.create(row);
+        await this.model('SweepRun').create(row);
       } catch (error) {
         if (error && error.code === 11000) {
           const dup = new Error('duplicate sweep');
@@ -291,19 +322,21 @@ class PersistentDoorRepository {
       }
       return row;
     }
-    const rows = await this.readFile('sweeps');
-    if (rows.some((item) => item.dayKey === row.dayKey)) {
-      const dup = new Error('duplicate sweep');
-      dup.code = 'DUPLICATE';
-      throw dup;
-    }
-    rows.push(row);
-    await this.writeFile('sweeps', rows);
-    return row;
+    return withStoreLock(async () => {
+      const rows = await this.readFile('sweeps');
+      if (rows.some((item) => item.dayKey === row.dayKey)) {
+        const dup = new Error('duplicate sweep');
+        dup.code = 'DUPLICATE';
+        throw dup;
+      }
+      rows.push(row);
+      await this.writeFile('sweeps', rows);
+      return row;
+    });
   }
 
   async listSweeps() {
-    if (this.mongo()) return SweepRun.find({}).lean();
+    if (this.mongo()) return this.model('SweepRun').find({}).lean();
     return this.readFile('sweeps');
   }
 }

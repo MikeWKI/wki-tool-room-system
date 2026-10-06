@@ -14,7 +14,7 @@ Send this header on every request:
 
 `X-Door-Webhook-Secret: <the secret HQ sets as DOOR_WEBHOOK_SECRET>`
 
-`POST /api/door/events` and `POST /api/door/email-inbound` are the only door routes that skip the shop platform token (`X-Platform-Token`). They do not use the manage PIN. They still require `X-Door-Webhook-Secret`. If `DOOR_WEBHOOK_SECRET` is not set on the API, those paths answer 503 and store nothing. A wrong secret answers 401.
+`POST /api/door/events` and `POST /api/door/email-inbound` are the only door routes that skip the shop platform token (`X-Platform-Token`). They do not use the manage PIN. They still require `X-Door-Webhook-Secret`. If `DOOR_WEBHOOK_SECRET` is unset or blank, those paths answer 503 `webhook_not_configured` and store nothing. A wrong secret answers 401 `webhook_secret_rejected`. Whitespace around the secret is ignored. Bodies over 64 KB answer 413.
 
 Every other door route requires the platform token, the same way check-out does. The kiosk note (`POST /api/door/visits/:id/ack`) and `GET /api/door/open-visit` need that token and do not need a manage session. Badge mapping, simulate, outbox, and metrics need both the platform token and the manage session.
 

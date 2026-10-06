@@ -17,6 +17,8 @@ const {
   handlePlatformCheck,
 } = require('./middleware/platformAuth');
 const { createDoorStack, registerDoorRoutes, startDoorMaintenance } = require('./routes/doorRoutes');
+const { isDoorWebhookPost } = require('./middleware/doorRateLimit');
+const { doorWebhookBodyParser } = require('./middleware/doorBody');
 const { allowedOrigins, corsOptions } = require('./middleware/corsPolicy');
 const { trustProxyHops, clientRateLimitKey } = require('./middleware/clientIp');
 require('dotenv').config();
@@ -42,8 +44,15 @@ const limiter = rateLimit({
 
 // Middleware
 app.use(helmet());
-app.use(limiter);
+// Door webhooks use their own limiter (failed secrets vs accepted bursts) and
+// do not consume this global 100/15 min budget. The limiter options above are unchanged.
+app.use((req, res, next) => {
+  if (isDoorWebhookPost(req)) return next();
+  return limiter(req, res, next);
+});
 app.use(cors(corsOptions));
+// 64 KB parsers for the two webhook paths, before the global 2mb parser.
+app.use(doorWebhookBodyParser);
 app.use(express.json({ limit: '2mb' }));
 
 // Platform gate for every /api route except health, POST /api/auth/platform,
@@ -253,8 +262,6 @@ app.post('/api/parts/:id/checkout', async (req, res) => {
     // Save updated parts
     await writeParts(parts);
     
-    // Create transaction record
-    const transactions = await readTransactions();
     const newTransaction = {
       id: Date.now(),
       partId: partId,
@@ -268,9 +275,11 @@ app.post('/api/parts/:id/checkout', async (req, res) => {
       quantityBefore: part.quantity,
       quantityAfter: part.quantity - 1
     };
-    
-    transactions.unshift(newTransaction);
-    await writeTransactions(transactions);
+
+    await dbService.mutateTransactions((transactions) => {
+      transactions.unshift(newTransaction);
+      return transactions;
+    });
 
     try {
       await doorService.onToolActivity({ user, action: 'checkout', at: new Date() });
@@ -325,8 +334,6 @@ app.post('/api/parts/:id/checkin', async (req, res) => {
     // Save updated parts
     await writeParts(parts);
     
-    // Create transaction record
-    const transactions = await readTransactions();
     const newTransaction = {
       id: Date.now(),
       partId: partId,
@@ -338,9 +345,11 @@ app.post('/api/parts/:id/checkin', async (req, res) => {
       quantityBefore: part.quantity,
       quantityAfter: part.quantity + 1
     };
-    
-    transactions.unshift(newTransaction);
-    await writeTransactions(transactions);
+
+    await dbService.mutateTransactions((transactions) => {
+      transactions.unshift(newTransaction);
+      return transactions;
+    });
 
     try {
       await doorService.onToolActivity({ user, action: 'checkin', at: new Date() });
@@ -487,7 +496,6 @@ app.put('/api/parts/:id', requireManageSession, async (req, res) => {
 
     // Log the location change in transactions if shelf was updated
     if (updates.shelf && updates.shelf !== originalPart.shelf) {
-      const transactions = await readTransactions();
       const locationChangeRecord = {
         id: Date.now(),
         partId: partId,
@@ -499,8 +507,10 @@ app.put('/api/parts/:id', requireManageSession, async (req, res) => {
         timestamp: new Date().toISOString(),
         notes: `Part moved from ${originalPart.shelf} to ${updates.shelf}`
       };
-      transactions.push(locationChangeRecord);
-      await writeTransactions(transactions);
+      await dbService.mutateTransactions((transactions) => {
+        transactions.push(locationChangeRecord);
+        return transactions;
+      });
     }
     
     res.json(parts[partIndex]);
@@ -541,7 +551,6 @@ app.put('/api/parts/bulk/locations', requireManageSession, async (req, res) => {
     }
     
     const parts = await readParts();
-    const transactions = await readTransactions();
     const timestamp = new Date().toISOString();
     const updatedParts = [];
     const locationChanges = [];
@@ -580,8 +589,10 @@ app.put('/api/parts/bulk/locations', requireManageSession, async (req, res) => {
     
     // Add all location changes to transaction history
     if (locationChanges.length > 0) {
-      transactions.push(...locationChanges);
-      await writeTransactions(transactions);
+      await dbService.mutateTransactions((transactions) => {
+        transactions.push(...locationChanges);
+        return transactions;
+      });
     }
     
     res.json({ 
@@ -605,7 +616,7 @@ app.put('/api/parts/bulk/quantities', requireManageSession, async (req, res) => 
     }
     
     const parts = await readParts();
-    const transactions = await readTransactions();
+    const quantityChanges = [];
     const timestamp = new Date().toISOString();
     const updatedParts = [];
     
@@ -626,7 +637,7 @@ app.put('/api/parts/bulk/quantities', requireManageSession, async (req, res) => 
         updatedParts.push(parts[partIndex]);
         
         // Log quantity change
-        transactions.push({
+        quantityChanges.push({
           id: Date.now() + partIndex,
           partId: parts[partIndex].id,
           partNumber: parts[partIndex].partNumber,
@@ -641,7 +652,12 @@ app.put('/api/parts/bulk/quantities', requireManageSession, async (req, res) => 
     }
     
     await writeParts(parts);
-    await writeTransactions(transactions);
+    if (quantityChanges.length > 0) {
+      await dbService.mutateTransactions((transactions) => {
+        transactions.push(...quantityChanges);
+        return transactions;
+      });
+    }
     
     res.json({ 
       success: true, 
@@ -837,7 +853,7 @@ app.post('/api/backup/restore', requireManageSession, async (req, res) => {
     // Write backup data to disk
     await writeParts(data.parts);
     await writeShelves(data.shelves);
-    await writeTransactions(data.transactions);
+    await dbService.mutateTransactions(() => data.transactions);
     
     res.json({ 
       success: true, 
@@ -1152,7 +1168,6 @@ app.post('/api/import/excel', requireManageSession, upload.single('excelFile'), 
     await dbService.saveParts(updatedParts);
 
     // Create transaction records for the import
-    const transactions = await dbService.getTransactions();
     const importTransaction = {
       id: Date.now(),
       partId: null,
@@ -1165,8 +1180,10 @@ app.post('/api/import/excel', requireManageSession, upload.single('excelFile'), 
       quantityAfter: updatedParts.length
     };
 
-    transactions.unshift(importTransaction);
-    await dbService.saveTransactions(transactions);
+    await dbService.mutateTransactions((transactions) => {
+      transactions.unshift(importTransaction);
+      return transactions;
+    });
 
     res.json({
       success: true,
@@ -1212,14 +1229,29 @@ app.get('/api/health', (req, res) => {
 // CORS preflight handler (same allowlist as the main middleware)
 app.options('*', cors(corsOptions));
 
-// Global error handler
+function describeError(err) {
+  const type = (err && (err.type || err.name)) || 'Error';
+  const message = err && typeof err.message === 'string' ? err.message.slice(0, 200) : '';
+  return { type, message };
+}
+
+function errorResponse(err) {
+  const status = err && (err.status || err.statusCode);
+  if (err && (err.type === 'entity.too.large' || status === 413)) {
+    return { status: 413, body: { error: 'payload_too_large' } };
+  }
+  if (err && (err.type === 'entity.parse.failed' || err instanceof SyntaxError)) {
+    return { status: 400, body: { error: 'invalid_body' } };
+  }
+  return { status: 500, body: { error: 'internal_error' } };
+}
+
+// Global error handler. Log type and message only — never err.body or the request body.
 app.use((error, req, res, next) => {
-  console.error('Global error handler:', error);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: error.message,
-    timestamp: new Date().toISOString()
-  });
+  const described = describeError(error);
+  console.error('Global error handler:', described.type, described.message);
+  const mapped = errorResponse(error);
+  res.status(mapped.status).json(mapped.body);
 });
 
 // Debug endpoint to check database status. Off in production.
@@ -1261,8 +1293,11 @@ app.get('/api/debug/database', async (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+  const described = describeError(err);
+  console.error('Request error:', described.type, described.message);
+  if (res.headersSent) return;
+  const mapped = errorResponse(err);
+  res.status(mapped.status).json(mapped.body);
 });
 
 // 404 handler

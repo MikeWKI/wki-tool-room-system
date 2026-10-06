@@ -26,7 +26,7 @@ delete process.env.EOD_SWEEP_DAYS;
 const { MemoryDoorRepository } = require('../services/door/repository');
 const { DoorService } = require('../services/door/doorService');
 const { registerDoorRoutes } = require('../routes/doorRoutes');
-const { setMailTransport, resolveAlertsMode } = require('../services/door/mailer');
+const { setMailTransport, resolveAlertsMode, smtpConfigured } = require('../services/door/mailer');
 const { adaptDoorPayload } = require('../services/door/unifiAdapter');
 const { parseDoorEmail, DEFAULT_DOOR_EMAIL_PATTERN } = require('../services/door/emailParse');
 const { visitAlertText } = require('../services/door/messages');
@@ -141,7 +141,7 @@ test('assumed UniFi fixtures adapt and an unrecognized body is stored unmapped',
   assert.equal(unknown.event.type, 'unknown');
   assert.equal(unknown.event.mapped, false);
   const { service, repo } = makeService();
-  const storedResult = await service.ingestWebhook(assumed.entry);
+  const storedResult = await service.ingestWebhook({ ...assumed.entry, timestamp: new Date().toISOString() });
   assert.equal(storedResult.visit.displayName, 'Unknown badge (Noah R.)');
   const stored = await repo.findEvent('evt-assumed-entry-1');
   assert.equal(stored.raw.user_name, 'Noah R.');
@@ -166,16 +166,16 @@ test('email pattern extracts a name and Chicago time', async () => {
   assert.equal(bad.ok, false);
   const invalid = parseDoorEmail({ text: 'Noah R. entered at 1:00 PM' }, now, '(');
   assert.equal(invalid.ok, false);
-  assert.match(invalid.error, /DOOR_EMAIL_PATTERN/);
+  assert.equal(invalid.error, 'invalid_email_pattern');
   const { service } = makeService();
   const saved = await service.ingestEmail({
     subject: 'Tool room door',
-    text: 'Noah R. entered the tool room at 2026-10-06 15:04',
+    text: 'Noah R. entered the tool room at 2026-10-06 12:01',
   }, now);
   assert.equal(saved.ok, true);
   const duplicate = await service.ingestEmail({
     subject: 'Tool room door',
-    text: 'Noah R. entered the tool room at 2026-10-06 15:04',
+    text: 'Noah R. entered the tool room at 2026-10-06 12:01',
   }, now);
   assert.equal(duplicate.duplicate, true);
   process.env.DOOR_EMAIL_PATTERN = '(';
@@ -200,6 +200,7 @@ test('webhook auth fails closed, duplicates are ignored, and manage routes need 
       body: { eventId: 'e1', type: 'entry', occurredAt: '2026-10-06T15:00:00.000Z', actorName: 'Noah R.' },
     });
     assert.equal(closed.status, 503);
+    assert.equal(closed.json.error, 'webhook_not_configured');
 
     process.env.DOOR_WEBHOOK_SECRET = 'test-door-secret';
     const rejected = await request(port, {
@@ -209,11 +210,13 @@ test('webhook auth fails closed, duplicates are ignored, and manage routes need 
       headers: { 'X-Door-Webhook-Secret': 'wrong' },
     });
     assert.equal(rejected.status, 401);
+    assert.equal(rejected.json.error, 'webhook_secret_rejected');
 
+    const occurredAt = new Date().toISOString();
     const created = await request(port, {
       method: 'POST',
       path: '/api/door/events',
-      body: { eventId: 'e1', type: 'entry', occurredAt: '2026-10-06T20:00:00.000Z', actorName: 'Noah R.', doorName: 'Tool Room' },
+      body: { eventId: 'e1', type: 'entry', occurredAt, actorName: 'Noah R.', doorName: 'Tool Room' },
       headers: { 'X-Door-Webhook-Secret': 'test-door-secret' },
     });
     assert.equal(created.status, 201);
@@ -221,7 +224,7 @@ test('webhook auth fails closed, duplicates are ignored, and manage routes need 
     const again = await request(port, {
       method: 'POST',
       path: '/api/door/events',
-      body: { eventId: 'e1', type: 'entry', occurredAt: '2026-10-06T20:00:00.000Z', actorName: 'Noah R.' },
+      body: { eventId: 'e1', type: 'entry', occurredAt, actorName: 'Noah R.' },
       headers: { 'X-Door-Webhook-Secret': 'test-door-secret' },
     });
     assert.equal(again.status, 200);
@@ -251,7 +254,7 @@ test('the mounted API fails closed before a door secret is set', async () => {
       headers: { 'X-Forwarded-For': '203.0.113.77' },
     });
     assert.equal(closed.status, 503);
-    assert.match(closed.json.error, /DOOR_WEBHOOK_SECRET/);
+    assert.equal(closed.json.error, 'webhook_not_configured');
   } finally {
     server.close();
     if (previous == null) delete process.env.DOOR_WEBHOOK_SECRET;
@@ -280,7 +283,7 @@ test('door webhooks skip the platform token and every other door route does not'
       headers: { 'X-Forwarded-For': '203.0.113.10' },
     });
     assert.equal(closed.status, 503);
-    assert.match(closed.json.error, /DOOR_WEBHOOK_SECRET/);
+    assert.equal(closed.json.error, 'webhook_not_configured');
 
     process.env.DOOR_WEBHOOK_SECRET = 'test-door-secret';
     const wrongSecret = await request(port, {
@@ -290,21 +293,23 @@ test('door webhooks skip the platform token and every other door route does not'
       headers: { 'X-Door-Webhook-Secret': 'wrong', 'X-Forwarded-For': '203.0.113.11' },
     });
     assert.equal(wrongSecret.status, 401);
-    assert.equal(wrongSecret.json.error, 'Door webhook secret rejected');
+    assert.equal(wrongSecret.json.error, 'webhook_secret_rejected');
 
     const webhook = await request(port, {
       method: 'POST',
       path: '/api/door/events',
-      body: { eventId: 'exempt-entry', type: 'entry', occurredAt: '2026-10-06T20:00:00.000Z', actorName: 'Noah R.', doorName: 'Tool Room' },
+      body: { eventId: 'exempt-entry', type: 'entry', occurredAt: new Date().toISOString(), actorName: 'Noah R.', doorName: 'Tool Room' },
       headers: { 'X-Door-Webhook-Secret': 'test-door-secret', 'X-Forwarded-For': '203.0.113.12' },
     });
     assert.equal(webhook.status, 201);
     assert.equal(webhook.json.visit.displayName, 'Unknown badge (Noah R.)');
 
+    const chicago = chicagoParts(new Date());
+    const emailStamp = `${chicago.year}-${String(chicago.month).padStart(2, '0')}-${String(chicago.day).padStart(2, '0')} ${String(chicago.hour).padStart(2, '0')}:${String(chicago.minute).padStart(2, '0')}`;
     const email = await request(port, {
       method: 'POST',
       path: '/api/door/email-inbound',
-      body: { subject: 'Tool room door', text: 'Noah R. exited at 3:11 PM' },
+      body: { subject: 'Tool room door', text: `Noah R. exited the tool room at ${emailStamp}` },
       headers: { 'X-Door-Webhook-Secret': 'test-door-secret', 'X-Forwarded-For': '203.0.113.13' },
     });
     assert.equal(email.status, 201);
@@ -387,7 +392,7 @@ test('door webhooks skip the platform token and every other door route does not'
 test('checkout or check-in inside the window resolves, exit and expiry alert once', async () => {
   transportCalls = 0;
   process.env.ALERTS_MODE = 'dry_run';
-  const entered = new Date('2026-10-06T20:00:00.000Z');
+  const entered = new Date(Date.now() - 60 * 1000);
   const { service, audits, transactions } = makeService();
   await service.saveBadge({ actorId: 'badge-noah', actorName: 'Noah R.', techName: 'Noah R.', techEmail: 'noah@example.com' });
   const opened = await service.ingestWebhook({
@@ -460,7 +465,7 @@ test('checkout or check-in inside the window resolves, exit and expiry alert onc
 
 test('a restart sweeps a deadline that passed while the process was down', async () => {
   const { service } = makeService();
-  const entered = new Date('2026-10-06T18:00:00.000Z');
+  const entered = new Date(Date.now() - 60 * 1000);
   const opened = await service.ingestWebhook({
     eventId: 'asleep',
     type: 'entry',
@@ -477,7 +482,7 @@ test('a restart sweeps a deadline that passed while the process was down', async
 });
 
 test('tool activity during the window is honored after a restart, and a kiosk note does not suppress', async () => {
-  const entered = new Date('2026-10-06T18:00:00.000Z');
+  const entered = new Date(Date.now() - 60 * 1000);
   const caughtUp = makeService({
     transactions: [{
       id: 9,
@@ -580,7 +585,7 @@ test('dry_run never sends, and live without SMTP stays in the outbox with a warn
   process.env.ALERTS_MODE = 'dry_run';
   delete process.env.SMTP_HOST;
   const { service } = makeService();
-  const entered = new Date('2026-10-06T18:00:00.000Z');
+  const entered = new Date(Date.now() - 60 * 1000);
   await service.ingestWebhook({
     eventId: 'dry',
     type: 'entry',
@@ -736,5 +741,233 @@ test('simulate uses a short window and manage auth guards it on the app', async 
   } finally {
     server.close();
     delete process.env.DOOR_WEBHOOK_SECRET;
+  }
+});
+
+test('webhook rejects bad event ids and times outside the window', async () => {
+  const { service } = makeService();
+  const now = new Date();
+  const base = { type: 'entry', actorName: 'Noah R.', doorName: 'Tool Room' };
+  const cases = [
+    { eventId: 12345, occurredAt: now.toISOString() },
+    { eventId: 'x'.repeat(201), occurredAt: now.toISOString() },
+    { eventId: 'epoch', occurredAt: Date.now() },
+    { eventId: 'old', occurredAt: '1970-01-01T00:00:00.000Z' },
+    { eventId: 'far', occurredAt: '2999-01-01T00:00:00.000Z' },
+    { eventId: 'space', occurredAt: '2026-10-06 15:00:00' },
+  ];
+  for (const body of cases) {
+    const result = await service.ingestWebhook({ ...base, ...body }, now);
+    assert.equal(result.ok, false, JSON.stringify(body));
+    assert.equal(result.status, 400);
+    assert.equal(result.error, 'invalid_event');
+  }
+  const unknown = await service.ingestWebhook({ eventId: 'unclassified', type: 'nope' }, now);
+  assert.equal(unknown.ok, true);
+  assert.equal(unknown.event.type, 'unknown');
+  const named = await service.ingestWebhook({
+    eventId: 'padded-name',
+    type: 'entry',
+    occurredAt: now.toISOString(),
+    actorName: `  ${'Noah'.repeat(40)}  `,
+    doorName: '  Tool Room  ',
+  }, now);
+  assert.equal(named.ok, true);
+  assert.ok(named.event.actorName.length <= 120);
+  assert.equal(named.event.actorName, named.event.actorName.trim());
+  assert.equal(named.visit.doorName, 'Tool Room');
+});
+
+test('blank door secret is unconfigured and a padded secret still matches', async () => {
+  const previous = process.env.DOOR_WEBHOOK_SECRET;
+  const { service } = makeService();
+  const app = express();
+  app.use(express.json());
+  registerDoorRoutes(app, service);
+  const server = await listen(app);
+  const port = server.address().port;
+  try {
+    process.env.DOOR_WEBHOOK_SECRET = '   ';
+    const blank = await request(port, {
+      method: 'POST',
+      path: '/api/door/events',
+      body: { eventId: 'blank', type: 'entry', occurredAt: new Date().toISOString(), actorName: 'Noah R.' },
+      headers: { 'X-Door-Webhook-Secret': 'secret' },
+    });
+    assert.equal(blank.status, 503);
+    assert.equal(blank.json.error, 'webhook_not_configured');
+
+    process.env.DOOR_WEBHOOK_SECRET = '  test-door-secret  ';
+    const padded = await request(port, {
+      method: 'POST',
+      path: '/api/door/events',
+      body: { eventId: 'padded-secret', type: 'entry', occurredAt: new Date().toISOString(), actorName: 'Noah R.' },
+      headers: { 'X-Door-Webhook-Secret': 'test-door-secret' },
+    });
+    assert.equal(padded.status, 201);
+  } finally {
+    server.close();
+    if (previous == null) delete process.env.DOOR_WEBHOOK_SECRET;
+    else process.env.DOOR_WEBHOOK_SECRET = previous;
+  }
+});
+
+test('failed door secrets are limited separately from a correct secret', async () => {
+  const previous = process.env.DOOR_WEBHOOK_SECRET;
+  process.env.DOOR_WEBHOOK_SECRET = 'test-door-secret';
+  const { service } = makeService();
+  const app = express();
+  app.set('trust proxy', 1);
+  app.use(express.json());
+  registerDoorRoutes(app, service);
+  const server = await listen(app);
+  const port = server.address().port;
+  const ip = '203.0.113.210';
+  try {
+    const statuses = [];
+    for (let i = 0; i < 11; i += 1) {
+      const response = await request(port, {
+        method: 'POST',
+        path: '/api/door/events',
+        body: { eventId: `bad-${i}`, type: 'entry', occurredAt: new Date().toISOString(), actorName: 'Noah R.' },
+        headers: { 'X-Door-Webhook-Secret': 'nope', 'X-Forwarded-For': ip },
+      });
+      statuses.push(response.status);
+    }
+    assert.equal(statuses.filter((status) => status === 401).length, 10);
+    assert.equal(statuses[10], 429);
+    const allowed = await request(port, {
+      method: 'POST',
+      path: '/api/door/events',
+      body: { eventId: 'after-failures', type: 'entry', occurredAt: new Date().toISOString(), actorName: 'Noah R.' },
+      headers: { 'X-Door-Webhook-Secret': 'test-door-secret', 'X-Forwarded-For': ip },
+    });
+    assert.equal(allowed.status, 201);
+  } finally {
+    server.close();
+    if (previous == null) delete process.env.DOOR_WEBHOOK_SECRET;
+    else process.env.DOOR_WEBHOOK_SECRET = previous;
+  }
+});
+
+test('adversarial email bodies answer quickly and health stays up', async () => {
+  const previousSecret = process.env.DOOR_WEBHOOK_SECRET;
+  const previousPlatform = process.env.PLATFORM_PASSWORD;
+  process.env.DOOR_WEBHOOK_SECRET = 'test-door-secret';
+  process.env.PLATFORM_PASSWORD = 'test-platform-password';
+  const app = require('../server');
+  const server = await listen(app);
+  const port = server.address().port;
+  const sendRaw = (raw, ip) => new Promise((resolve, reject) => {
+    const payload = Buffer.from(raw);
+    const req = http.request({
+      hostname: '127.0.0.1',
+      port,
+      path: '/api/door/email-inbound',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': payload.length,
+        'X-Door-Webhook-Secret': 'test-door-secret',
+        'X-Forwarded-For': ip,
+      },
+    }, (res) => {
+      const chunks = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf8');
+        let json = null;
+        try { json = JSON.parse(text); } catch (error) { json = null; }
+        resolve({ status: res.statusCode, json });
+      });
+    });
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
+  try {
+    const medium = `{"subject":"x","text":"${'A'.repeat(50 * 1024)}"}`;
+    const huge = `{"subject":"x","text":"${'A'.repeat(1024 * 1024)}"}`;
+    const started = Date.now();
+    const healthPromise = request(port, { path: '/api/health', headers: { 'X-Forwarded-For': '203.0.113.80' } });
+    const mediumResult = await sendRaw(medium, '203.0.113.81');
+    const health = await healthPromise;
+    const mediumMs = Date.now() - started;
+    assert.ok(mediumMs < 200, `50KB body took ${mediumMs}ms`);
+    assert.equal(health.status, 200);
+    assert.notEqual(mediumResult.status, 500);
+    assert.equal(mediumResult.json && mediumResult.json.details, undefined);
+    assert.equal(mediumResult.json && mediumResult.json.message, undefined);
+
+    const hugeStarted = Date.now();
+    const healthAgain = request(port, { path: '/api/health', headers: { 'X-Forwarded-For': '203.0.113.82' } });
+    const hugeResult = await sendRaw(huge, '203.0.113.83');
+    const health2 = await healthAgain;
+    const hugeMs = Date.now() - hugeStarted;
+    assert.ok(hugeMs < 200, `1MB body took ${hugeMs}ms`);
+    assert.equal(hugeResult.status, 413);
+    assert.equal(hugeResult.json.error, 'payload_too_large');
+    assert.equal(health2.status, 200);
+
+    const malformed = await sendRaw('{', '203.0.113.84');
+    assert.equal(malformed.status, 400);
+    assert.equal(malformed.json.error, 'invalid_body');
+    assert.equal(malformed.json.details, undefined);
+    assert.equal(malformed.json.message, undefined);
+  } finally {
+    server.close();
+    if (previousSecret == null) delete process.env.DOOR_WEBHOOK_SECRET;
+    else process.env.DOOR_WEBHOOK_SECRET = previousSecret;
+    if (previousPlatform == null) delete process.env.PLATFORM_PASSWORD;
+    else process.env.PLATFORM_PASSWORD = previousPlatform;
+  }
+});
+
+test('end of day emails leave seeded checkouts out', async () => {
+  const now = zonedTimeToUtc(2026, 10, 6, 17, 5, 0);
+  const { service, repo } = makeService({
+    parts: [
+      { id: 1, partNumber: 'SEED-9', description: 'Seeded tool', status: 'checked_out', checkedOutBy: 'Noah R.', checkedOutDate: '2026-10-05T15:00:00.000Z' },
+      { id: 2, partNumber: 'LIVE-9', description: 'Live tool', status: 'checked_out', checkedOutBy: 'Noah R.', checkedOutDate: '2026-10-06T16:00:00.000Z' },
+    ],
+    transactions: [
+      { id: 1, action: 'checkout', user: 'Noah R.', partId: 1, partNumber: 'SEED-9', timestamp: '2026-10-05T15:00:00.000Z', batchKey: SEED_BATCH_KEY },
+      { id: 2, action: 'checkout', user: 'Noah R.', partId: 2, partNumber: 'LIVE-9', timestamp: '2026-10-06T16:00:00.000Z' },
+    ],
+  });
+  await service.saveBadge({ actorName: 'Noah R.', techName: 'Noah R.', techEmail: 'noah@example.com' });
+  const sweep = await service.runEndOfDaySweep(now);
+  assert.equal(sweep.ran, true);
+  assert.equal(sweep.openCount, 1);
+  const stored = await repo.findSweep(sweep.dayKey);
+  assert.equal(stored.items.some((item) => item.partNumber === 'SEED-9'), false);
+  assert.equal(stored.items.some((item) => item.partNumber === 'LIVE-9'), true);
+  const outbox = await repo.listOutbox();
+  const summary = outbox.find((row) => row.kind === 'eod_summary');
+  const tech = outbox.find((row) => row.kind === 'eod_tech');
+  assert.match(summary.text, /LIVE-9/);
+  assert.doesNotMatch(summary.text, /SEED-9/);
+  assert.match(tech.text, /LIVE-9/);
+  assert.doesNotMatch(tech.text, /SEED-9/);
+});
+
+test('padded SMTP settings still count as configured', () => {
+  const previous = {
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    from: process.env.ALERT_FROM,
+  };
+  process.env.SMTP_HOST = ' smtp.example.com ';
+  process.env.SMTP_PORT = ' 587 ';
+  process.env.ALERT_FROM = ' alerts@example.com ';
+  try {
+    assert.equal(smtpConfigured(), true);
+  } finally {
+    if (previous.host == null) delete process.env.SMTP_HOST;
+    else process.env.SMTP_HOST = previous.host;
+    if (previous.port == null) delete process.env.SMTP_PORT;
+    else process.env.SMTP_PORT = previous.port;
+    if (previous.from == null) delete process.env.ALERT_FROM;
+    else process.env.ALERT_FROM = previous.from;
   }
 });

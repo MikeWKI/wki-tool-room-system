@@ -188,7 +188,6 @@ function registerMasterInventoryRoutes(app, deps) {
       const result = applyFillGapsToParts(parts, staging, appliedBy);
       await writeParts(result.parts);
 
-      const transactions = await readTransactions();
       const tx = {
         id: Date.now(),
         partId: null,
@@ -205,8 +204,10 @@ function registerMasterInventoryRoutes(app, deps) {
           liveCountAfter: result.liveCountAfter,
         }),
       };
-      transactions.unshift(tx);
-      await writeTransactions(transactions);
+      await dbService.mutateTransactions((transactions) => {
+        transactions.unshift(tx);
+        return transactions;
+      });
 
       res.json({
         success: true,

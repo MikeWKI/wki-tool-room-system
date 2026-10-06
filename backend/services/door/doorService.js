@@ -6,6 +6,7 @@ const { deliverEmail } = require('./mailer');
 const { visitAlertText, techSweepText, summarySweepText } = require('./messages');
 const { buildMetrics } = require('./metrics');
 const { transactionOrigin } = require('./origins');
+const { capLabel, occurredAtInWindow, validateDoorEvent } = require('./validateEvent');
 const {
   formatChicago,
   latestDueSweep,
@@ -176,21 +177,31 @@ class DoorService {
     return { ok: true, duplicate: false, mapped: true, event: publicEvent(stored), visit: publicVisit(visit) };
   }
 
-  async ingestWebhook(body) {
+  async ingestWebhook(body, now = new Date()) {
+    const verdict = validateDoorEvent(body, now);
+    if (!verdict.ok) return { ok: false, status: 400, error: 'invalid_event' };
     const adapted = adaptDoorPayload(body);
-    if (!adapted.ok) return { ok: false, status: 400, error: adapted.error };
-    const source = adapted.event.adapterNote && adapted.event.adapterNote.startsWith('assumed')
-      ? 'webhook'
-      : 'webhook';
-    return this.ingestEvent(adapted.event, { raw: body, source });
+    if (!adapted.ok) return { ok: false, status: 400, error: 'invalid_event' };
+    const event = {
+      ...adapted.event,
+      eventId: String(adapted.event.eventId || '').trim().slice(0, 200),
+      actorName: capLabel(adapted.event.actorName),
+      doorName: capLabel(adapted.event.doorName),
+    };
+    if (!event.eventId) return { ok: false, status: 400, error: 'invalid_event' };
+    return this.ingestEvent(event, { raw: body, source: 'webhook' });
   }
 
   async ingestEmail(body, now = new Date()) {
     const parsed = parseDoorEmail(body || {}, now, process.env.DOOR_EMAIL_PATTERN);
     if (!parsed.ok) {
-      const status = String(parsed.error || '').includes('DOOR_EMAIL_PATTERN') ? 500 : 400;
+      const status = parsed.error === 'invalid_email_pattern' ? 500 : 400;
       return { ok: false, status, error: parsed.error };
     }
+    if (!occurredAtInWindow(parsed.event.occurredAt, now)) {
+      return { ok: false, status: 400, error: 'invalid_event' };
+    }
+    parsed.event.actorName = capLabel(parsed.event.actorName);
     return this.ingestEvent(parsed.event, { raw: { subject: body.subject || '', text: body.text || '' }, source: 'email' });
   }
 
@@ -499,7 +510,7 @@ class DoorService {
     if (!due) return { ran: false, reason: 'no due sweep' };
     const existing = await this.repo.findSweep(due.dayKey);
     if (existing) return { ran: false, reason: 'already recorded', dayKey: due.dayKey };
-    const items = await this.openCheckouts(now);
+    const items = (await this.openCheckouts(now)).filter((item) => !item.seeded);
     try {
       await this.repo.insertSweep({
         dayKey: due.dayKey,
