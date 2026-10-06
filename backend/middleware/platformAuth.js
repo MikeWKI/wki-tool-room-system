@@ -48,7 +48,8 @@ function platformSessionTtlMs() {
 }
 
 function platformSigningKey() {
-  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  const configured = configuredSecret(process.env.SESSION_SECRET);
+  if (configured) return configured;
   return crypto
     .createHash('sha256')
     .update(`wki-tool-room-platform-session\0${platformPassword()}`)
@@ -82,8 +83,9 @@ function verifyPlatformToken(token) {
   if (typeof payload.iat !== 'number' || typeof payload.exp !== 'number') return null;
   if (!Number.isFinite(payload.iat) || !Number.isFinite(payload.exp)) return null;
   if (payload.exp < Date.now()) return null;
-  // A valid signature is not enough. exp cannot outlive issue time plus the max TTL.
+  // A valid signature is not enough. exp cannot outlive issue time, or now, plus the max TTL.
   if (payload.exp > payload.iat + maxPlatformTtlMs()) return null;
+  if (payload.exp > Date.now() + maxPlatformTtlMs()) return null;
   return payload;
 }
 

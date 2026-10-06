@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('crypto');
 const http = require('http');
 
 process.env.MANAGE_PIN = 'test-manage-pin';
@@ -10,7 +11,7 @@ delete process.env.PLATFORM_SESSION_DAYS;
 delete process.env.FRONTEND_ORIGIN;
 process.env.NODE_ENV = 'test';
 
-const { issueManageSession, verifyManageToken } = require('../middleware/manageAuth');
+const { SESSION_TTL_MS, issueManageSession, signPayload, verifyManageToken } = require('../middleware/manageAuth');
 const {
   issuePlatformSession,
   verifyPlatformToken,
@@ -118,6 +119,109 @@ test('verification rejects an exp past the max TTL even with a valid signature',
   const issued = issuePlatformSession();
   const payload = verifyPlatformToken(issued.token);
   assert.ok(payload.exp - payload.iat <= maxTtl);
+});
+
+function tokenSignedWith(payload, key) {
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const sig = crypto.createHmac('sha256', key).update(body).digest('base64url');
+  return `${body}.${sig}`;
+}
+
+test('a blank SESSION_SECRET is ignored and a token signed with that blank key is rejected', async () => {
+  const now = Date.now();
+  process.env.SESSION_SECRET = '   ';
+  const server = await listen(app);
+  const port = server.address().port;
+  const call = (options) => request(port, options);
+  try {
+    const forgedPlatform = tokenSignedWith({
+      purpose: 'platform',
+      iat: now,
+      exp: now + 60 * 60 * 1000,
+    }, '   ');
+    assert.equal(verifyPlatformToken(forgedPlatform), null);
+    const forgedManage = tokenSignedWith({
+      role: 'manage',
+      actor: 'Floor Lead',
+      iat: now,
+      exp: now + 60 * 60 * 1000,
+    }, '   ');
+    assert.equal(verifyManageToken(forgedManage), null);
+
+    const platform = issuePlatformSession();
+    assert.equal(verifyPlatformToken(platform.token).purpose, 'platform');
+    const manage = issueManageSession('Floor Lead');
+    assert.equal(verifyManageToken(manage.token).role, 'manage');
+
+    const login = await call({
+      method: 'POST',
+      path: '/api/auth/platform',
+      ip: '198.51.100.120',
+      body: { password: 'test-platform-password' },
+    });
+    assert.equal(login.status, 200);
+    assert.equal(login.json.ok, true);
+    const parts = await call({
+      method: 'GET',
+      path: '/api/parts',
+      ip: '198.51.100.121',
+      headers: { 'X-Platform-Token': login.json.token },
+    });
+    assert.equal(parts.status, 200);
+    const forgedParts = await call({
+      method: 'GET',
+      path: '/api/parts',
+      ip: '198.51.100.122',
+      headers: { 'X-Platform-Token': forgedPlatform },
+    });
+    assert.equal(forgedParts.status, 401);
+
+    const pin = await call({
+      method: 'POST',
+      path: '/api/auth/manage-pin',
+      ip: '198.51.100.123',
+      headers: { 'X-Platform-Token': login.json.token },
+      body: { pin: 'test-manage-pin', actor: 'Floor Lead' },
+    });
+    assert.equal(pin.status, 200);
+    assert.equal(pin.json.ok, true);
+    assert.equal(verifyManageToken(pin.json.token).role, 'manage');
+    const forgedWrite = await call({
+      method: 'POST',
+      path: '/api/shelves/seed-jb-layout',
+      ip: '198.51.100.124',
+      headers: {
+        'X-Platform-Token': login.json.token,
+        Authorization: `Bearer ${forgedManage}`,
+      },
+      body: { dryRun: true },
+    });
+    assert.equal(forgedWrite.status, 401);
+  } finally {
+    delete process.env.SESSION_SECRET;
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+  }
+});
+
+test('verification rejects an exp past now plus the max TTL even when exp minus iat is inside the max', () => {
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  const farIat = now + maxPlatformTtlMs();
+  const farPlatform = signPlatformPayload({
+    purpose: 'platform',
+    iat: farIat,
+    exp: farIat + day,
+  });
+  assert.equal(verifyPlatformToken(farPlatform), null);
+
+  const farManage = signPayload({
+    role: 'manage',
+    actor: 'Floor Lead',
+    iat: now + SESSION_TTL_MS,
+    exp: now + SESSION_TTL_MS + 60 * 1000,
+  });
+  assert.equal(verifyManageToken(farManage), null);
+  assert.equal(verifyManageToken(issueManageSession('Floor Lead').token).role, 'manage');
 });
 
 test('rotating PLATFORM_PASSWORD invalidates tokens unless SESSION_SECRET is set', () => {

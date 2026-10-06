@@ -40,7 +40,8 @@ function configuredSecret(value) {
  * survive a restart. Rotating MANAGE_PIN invalidates outstanding tokens.
  */
 function sessionSecret() {
-  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  const configured = configuredSecret(process.env.SESSION_SECRET);
+  if (configured) return configured;
   return crypto
     .createHash('sha256')
     .update(`wki-tool-room-manage-session\0${configuredSecret(process.env.MANAGE_PIN)}`)
@@ -76,7 +77,9 @@ function verifyManageToken(token) {
     return null;
   }
   if (!payload || payload.role !== 'manage') return null;
-  if (typeof payload.exp !== 'number' || payload.exp < Date.now()) return null;
+  if (typeof payload.exp !== 'number' || !Number.isFinite(payload.exp) || payload.exp < Date.now()) return null;
+  // A far-future iat cannot stretch exp past now plus the session TTL.
+  if (payload.exp > Date.now() + SESSION_TTL_MS) return null;
   return payload;
 }
 
@@ -165,6 +168,7 @@ module.exports = {
   timingSafeStringEqual,
   configuredSecret,
   issueManageSession,
+  signPayload,
   verifyManageToken,
   requireManageSession,
   requireManageSessionOrBodyPin,
