@@ -18,6 +18,7 @@ const app = require('../server');
 delete process.env.MONGODB_URI;
 
 const { issuePlatformSession } = require('../middleware/platformAuth');
+const { issueManageSession } = require('../middleware/manageAuth');
 const { Part, Transaction } = require('../models');
 
 const TECH = 'TECHNAME_QUINN_ZX81';
@@ -343,6 +344,61 @@ test('parts and transactions survive parallel checkouts', { timeout: 180000 }, a
     assert.equal(jsonMulti.status, 'checked_out');
     assert.ok(jsonAfterMulti.every((row) => row.quantity >= 0));
 
+    const manage = {
+      ...platform,
+      Authorization: `Bearer ${issueManageSession().token}`,
+    };
+    const partsBeforeRestore = await fs.promises.readFile(partsFile, 'utf8');
+    const emptyRestore = await call({
+      method: 'POST',
+      path: '/api/backup/restore',
+      headers: manage,
+      ip: '192.0.2.90',
+      body: { confirm: true, data: { parts: [], shelves: { A: { name: 'A' } }, transactions: [] } },
+    });
+    assert.equal(emptyRestore.status, 400);
+    const badRestore = await call({
+      method: 'POST',
+      path: '/api/backup/restore',
+      headers: manage,
+      ip: '192.0.2.91',
+      body: { confirm: true, data: { parts: { id: 1 }, shelves: {}, transactions: [] } },
+    });
+    assert.equal(badRestore.status, 400);
+    assert.equal(await fs.promises.readFile(partsFile, 'utf8'), partsBeforeRestore);
+
+    const malformed = await capture(() => new Promise((resolve, reject) => {
+      const payload = Buffer.from('{');
+      const req = http.request({
+        hostname: '127.0.0.1',
+        port,
+        path: '/api/parts',
+        method: 'POST',
+        headers: {
+          ...platform,
+          'Content-Type': 'application/json',
+          'Content-Length': String(payload.length),
+          'X-Forwarded-For': '192.0.2.92',
+        },
+      }, (res) => {
+        const chunks = [];
+        res.on('data', (chunk) => chunks.push(chunk));
+        res.on('end', () => {
+          const text = Buffer.concat(chunks).toString('utf8');
+          let json = null;
+          try { json = JSON.parse(text); } catch (error) { json = null; }
+          resolve({ status: res.statusCode, json, text });
+        });
+      });
+      req.on('error', reject);
+      req.write(payload);
+      req.end();
+    }));
+    assert.equal(malformed.result.status, 400);
+    assert.equal(malformed.result.json.error, 'invalid_body');
+    assert.equal(malformed.logs.join('\n').includes('Unexpected'), false, malformed.logs.join('\n'));
+    assertClean(malformed.logs, 'malformed json');
+
     const { MongoMemoryServer } = require('mongodb-memory-server');
     const mongoose = require('mongoose');
     const mongod = await MongoMemoryServer.create();
@@ -445,6 +501,36 @@ test('parts and transactions survive parallel checkouts', { timeout: 180000 }, a
       assert.equal(mongoMulti.checkedOutBy, TECH);
       assert.equal(await Part.countDocuments({ quantity: { $lt: 0 } }), 0);
 
+      const nonNumeric = await call({
+        method: 'POST',
+        path: '/api/parts/abc/checkout',
+        headers: platform,
+        ip: '203.0.115.2',
+        body: { user: TECH },
+      });
+      assert.equal(nonNumeric.status, 404);
+      assert.equal(nonNumeric.json.error, 'Part not found');
+
+      const entered = await app.doorService.simulate({ techName: TECH, type: 'entry' });
+      assert.equal(entered.ok, true);
+      assert.equal(entered.visit.status, 'open');
+      const doorCheckout = await call({
+        method: 'POST',
+        path: '/api/parts/12/checkout',
+        headers: platform,
+        ip: '203.0.115.3',
+        body: { user: TECH, notes: 'door' },
+      });
+      assert.equal(doorCheckout.status, 200);
+      assert.equal(doorCheckout.json.part.status, 'checked_out');
+      const resolvedVisit = await app.doorService.repo.findVisit(entered.visit.id);
+      assert.equal(resolvedVisit.status, 'resolved');
+      assert.equal(resolvedVisit.resolvedBy, 'checkout');
+      assert.equal(partDeletes, 0);
+      assert.equal(txDeletes, 0);
+      assert.equal(partInsertMany, 0);
+      assert.equal(txInsertMany, 0);
+
       const fsp = fs.promises;
       const touches = [];
       const origRead = fsp.readFile;
@@ -474,8 +560,15 @@ test('parts and transactions survive parallel checkouts', { timeout: 180000 }, a
       };
 
       const originalFind = Part.find;
+      const originalTxFind = Transaction.find;
       Part.find = function failRead() {
         const error = new Error(`forced read ${TECH} ${SECRET} checkedOutBy`);
+        error.name = 'MongoServerError';
+        error.code = 91;
+        throw error;
+      };
+      Transaction.find = function failTxRead() {
+        const error = new Error(`forced tx read ${TECH} ${SECRET} checkedOutBy`);
         error.name = 'MongoServerError';
         error.code = 91;
         throw error;
@@ -492,17 +585,28 @@ test('parts and transactions survive parallel checkouts', { timeout: 180000 }, a
         assert.equal(readFail.result.text.includes(TECH), false);
         assert.equal(readFail.result.text.includes(SECRET), false);
         assertClean(readFail.logs, 'mongo read');
+        const txFail = await capture(() => call({
+          method: 'GET',
+          path: '/api/transactions',
+          headers: platform,
+          ip: '198.51.100.222',
+        }));
+        assert.equal(txFail.result.status, 503);
+        assert.equal(txFail.result.json.error, 'store_unavailable');
+        assert.equal(txFail.result.text.includes(TECH), false);
+        assertClean(txFail.logs, 'mongo transactions');
         assert.deepEqual(touches, []);
       } finally {
         Part.find = originalFind;
+        Transaction.find = originalTxFind;
         fsp.readFile = origRead;
         fsp.writeFile = origWrite;
         fsp.open = origOpen;
         fsp.rename = origRename;
       }
 
-      const originalUpdate = Part.updateOne;
-      Part.updateOne = async function failWrite() {
+      const originalUpdate = Part.findOneAndUpdate;
+      Part.findOneAndUpdate = function failWrite() {
         const error = new Error(`E11000 duplicate ${TECH} checkedOutBy ${SECRET} PN-1`);
         error.name = 'MongoServerError';
         error.code = 11000;
@@ -524,7 +628,7 @@ test('parts and transactions survive parallel checkouts', { timeout: 180000 }, a
         assert.equal(writeFail.result.text.includes(SECRET), false);
         assertClean(writeFail.logs, 'mongo write');
       } finally {
-        Part.updateOne = originalUpdate;
+        Part.findOneAndUpdate = originalUpdate;
       }
 
       await Part.insertOne({

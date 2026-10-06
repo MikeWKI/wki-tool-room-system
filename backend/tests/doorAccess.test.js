@@ -472,11 +472,11 @@ test('a restart sweeps a deadline that passed while the process was down', async
     occurredAt: entered.toISOString(),
     actorName: 'Drew P.',
   });
-  const first = await service.runMaintenance(new Date('2026-10-06T19:00:00.000Z'));
+  const first = await service.runMaintenance(new Date(entered.getTime() + 11 * 60 * 1000));
   assert.equal(first.expired, 1);
   const visit = await service.repo.findVisit(opened.visit.id);
   assert.ok(visit.alertedAt);
-  const second = await service.runMaintenance(new Date('2026-10-06T20:00:00.000Z'));
+  const second = await service.runMaintenance(new Date(entered.getTime() + 30 * 60 * 1000));
   assert.equal(second.expired, 0);
   assert.equal((await service.repo.listOutbox()).filter((row) => row.kind === 'visit_alert').length, 1);
 });

@@ -570,13 +570,12 @@ class DatabaseService {
   }
 
   async checkoutPartMongo(input) {
-    const before = await this.findPart(input.id);
-    if (!before) return { error: 'not_found' };
-    let result;
+    let updated;
     try {
       // Atomic form of the e2cdef3 checks. Status is set to checked_out on
       // every success, so quantity > 1 does not allow another checkout.
-      result = await Part.updateOne(
+      // returnDocument after makes quantityBefore/After the stored values.
+      updated = await Part.findOneAndUpdate(
         { id: input.id, status: { $ne: 'checked_out' }, quantity: { $gt: 0 } },
         {
           $inc: { quantity: -1 },
@@ -585,25 +584,32 @@ class DatabaseService {
             checkedOutBy: input.user,
             checkedOutDate: input.checkedOutDate,
           },
-        }
-      );
+        },
+        { returnDocument: 'after', new: true }
+      ).lean();
     } catch (error) {
       throw this.fail('checkoutPart', error);
     }
-    if (!result.matchedCount) {
+    if (!updated) {
       const current = await this.findPart(input.id);
       if (!current) return { error: 'not_found' };
       if (current.status === 'checked_out') return { error: 'checked_out' };
       return { error: 'out_of_stock' };
     }
+    const quantityAfter = updated.quantity;
     const part = {
-      ...before,
+      ...updated,
       status: 'checked_out',
       checkedOutBy: input.user,
       checkedOutDate: input.checkedOutDate,
-      quantity: before.quantity - 1,
+      quantity: quantityAfter,
     };
-    const transaction = this.buildMovementTransaction(before, input, 'checkout', part.quantity);
+    const transaction = this.buildMovementTransaction(
+      { ...updated, quantity: quantityAfter + 1 },
+      input,
+      'checkout',
+      quantityAfter
+    );
     await this.insertTransaction(transaction);
     return { part, transaction };
   }
@@ -638,11 +644,9 @@ class DatabaseService {
   }
 
   async checkinPartMongo(input) {
-    const before = await this.findPart(input.id);
-    if (!before) return { error: 'not_found' };
-    let result;
+    let updated;
     try {
-      result = await Part.updateOne(
+      updated = await Part.findOneAndUpdate(
         { id: input.id, status: 'checked_out' },
         {
           $inc: { quantity: 1 },
@@ -651,33 +655,35 @@ class DatabaseService {
             checkedOutBy: null,
             checkedOutDate: null,
           },
-        }
-      );
+        },
+        { returnDocument: 'after', new: true }
+      ).lean();
     } catch (error) {
       throw this.fail('checkinPart', error);
     }
-    if (!result.matchedCount) {
+    if (!updated) {
       const current = await this.findPart(input.id);
       if (!current) return { error: 'not_found' };
       return { error: 'not_checked_out' };
     }
+    const quantityAfter = updated.quantity;
     const part = {
-      ...before,
+      ...updated,
       status: 'available',
       checkedOutBy: null,
       checkedOutDate: null,
-      quantity: before.quantity + 1,
+      quantity: quantityAfter,
     };
     const transaction = {
       id: Date.now(),
-      partId: before.id,
-      partNumber: before.partNumber,
+      partId: updated.id,
+      partNumber: updated.partNumber,
       action: 'checkin',
       user: input.user,
       timestamp: new Date().toISOString(),
       notes: input.notes || '',
-      quantityBefore: before.quantity,
-      quantityAfter: part.quantity,
+      quantityBefore: quantityAfter - 1,
+      quantityAfter,
     };
     await this.insertTransaction(transaction);
     return { part, transaction };
@@ -978,37 +984,6 @@ class DatabaseService {
       }
       await this.savePartsToFile(parts);
       return patches.length;
-    });
-  }
-
-  /**
-   * Admin batch replace used by scripts/seed-shop-activity.js only.
-   * Request handlers must call applyActivityBatch (deleteOne + insertOne +
-   * updateOne). This method still uses deleteMany({ batchKey }) + insertMany.
-   */
-  async replaceBatchTransactions(batchKey, batchTransactions, keptTransactions) {
-    const kept = Array.isArray(keptTransactions) ? keptTransactions : null;
-    if (this.useMongoDb) {
-      await Transaction.deleteMany({ batchKey });
-      if (batchTransactions.length > 0) {
-        await Transaction.insertMany(batchTransactions);
-      }
-      if (kept && kept.length > 0) {
-        const ops = kept.map((row) => ({
-          updateOne: {
-            filter: { id: row.id },
-            update: { $set: { user: row.user } },
-          },
-        }));
-        await Transaction.bulkWrite(ops, { ordered: false });
-      }
-      return batchTransactions.length;
-    }
-    return withStoreLock(async () => {
-      const existing = await this.readTransactionsFromFile();
-      const keptRows = kept || existing.filter((row) => row.batchKey !== batchKey);
-      await this.saveTransactionsToFile([...batchTransactions, ...keptRows]);
-      return batchTransactions.length;
     });
   }
 

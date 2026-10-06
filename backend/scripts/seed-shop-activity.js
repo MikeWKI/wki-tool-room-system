@@ -53,7 +53,7 @@ async function main() {
     process.exit(0);
   }
   const batchRows = merged.transactions.filter((row) => row.batchKey === generated.batchKey);
-  await db.replaceBatchTransactions(generated.batchKey, batchRows, merged.keptTransactions);
+  await db.applyActivityBatch(generated.batchKey, batchRows, merged.keptTransactions);
   const patches = checkoutFieldPatches(parts, merged.parts);
   if (patches.length) await db.patchPartsById(patches);
   await db.saveAuditBatch(merged.batch);
