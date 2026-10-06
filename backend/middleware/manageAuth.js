@@ -9,6 +9,7 @@ const authLimiter = rateLimit({
   max: 8,
   standardHeaders: true,
   legacyHeaders: false,
+  // Shared bucket: manage PIN, camera password, and the platform shop password.
   // Wrong PIN/password responses are HTTP 200 { ok: false }, so status alone
   // cannot tell a success from a guess. Handlers set res.locals.authSucceeded.
   skipSuccessfulRequests: true,
@@ -27,16 +28,23 @@ function timingSafeStringEqual(left, right) {
   return crypto.timingSafeEqual(a, b);
 }
 
+/** Blank and whitespace-only env values count as unset. Callers compare this trimmed value. */
+function configuredSecret(value) {
+  if (value == null) return '';
+  return String(value).trim();
+}
+
 /**
  * Optional SESSION_SECRET overrides this. Otherwise the signing key is derived
  * from MANAGE_PIN so the API keeps working with no new env var and sessions
  * survive a restart. Rotating MANAGE_PIN invalidates outstanding tokens.
  */
 function sessionSecret() {
-  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  const configured = configuredSecret(process.env.SESSION_SECRET);
+  if (configured) return configured;
   return crypto
     .createHash('sha256')
-    .update(`wki-tool-room-manage-session\0${process.env.MANAGE_PIN || ''}`)
+    .update(`wki-tool-room-manage-session\0${configuredSecret(process.env.MANAGE_PIN)}`)
     .digest('hex');
 }
 
@@ -69,7 +77,9 @@ function verifyManageToken(token) {
     return null;
   }
   if (!payload || payload.role !== 'manage') return null;
-  if (typeof payload.exp !== 'number' || payload.exp < Date.now()) return null;
+  if (typeof payload.exp !== 'number' || !Number.isFinite(payload.exp) || payload.exp < Date.now()) return null;
+  // A far-future iat cannot stretch exp past now plus the session TTL.
+  if (payload.exp > Date.now() + SESSION_TTL_MS) return null;
   return payload;
 }
 
@@ -104,7 +114,7 @@ function managePinMissing(res) {
 }
 
 function requireManageSession(req, res, next) {
-  if (!process.env.MANAGE_PIN) return managePinMissing(res);
+  if (!configuredSecret(process.env.MANAGE_PIN)) return managePinMissing(res);
   const session = verifyManageToken(bearerToken(req));
   if (!session) {
     return res.status(401).json({ ok: false, error: 'Manage session required' });
@@ -118,14 +128,15 @@ function requireManageSession(req, res, next) {
  * A manage session is also accepted and does not need the PIN in the body.
  */
 function requireManageSessionOrBodyPin(req, res, next) {
-  if (!process.env.MANAGE_PIN) return managePinMissing(res);
+  const expected = configuredSecret(process.env.MANAGE_PIN);
+  if (!expected) return managePinMissing(res);
   const session = verifyManageToken(bearerToken(req));
   if (session) {
     req.manageSession = session;
     return next();
   }
   const provided = req.body?.pin != null ? req.body.pin : req.get('x-manage-pin');
-  if (provided != null && timingSafeStringEqual(provided, process.env.MANAGE_PIN)) {
+  if (provided != null && timingSafeStringEqual(provided, expected)) {
     req.manageSession = { role: 'manage', actor: 'Manage PIN', via: 'pin' };
     return next();
   }
@@ -155,7 +166,9 @@ module.exports = {
   SESSION_TTL_MS,
   authLimiter,
   timingSafeStringEqual,
+  configuredSecret,
   issueManageSession,
+  signPayload,
   verifyManageToken,
   requireManageSession,
   requireManageSessionOrBodyPin,

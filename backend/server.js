@@ -10,7 +10,12 @@ const registerMasterInventoryRoutes = require('./routes/masterInventoryRoutes');
 const registerPartEnrichmentRoutes = require('./routes/partEnrichmentRoutes');
 const registerAuditRoutes = require('./routes/auditRoutes');
 const { toPublicTransaction } = require('./services/publicTransaction');
-const { requireManageSession } = require('./middleware/manageAuth');
+const { requireManageSession, authLimiter } = require('./middleware/manageAuth');
+const {
+  requirePlatformSession,
+  handlePlatformLogin,
+  handlePlatformCheck,
+} = require('./middleware/platformAuth');
 const { allowedOrigins, corsOptions } = require('./middleware/corsPolicy');
 require('dotenv').config();
 
@@ -34,6 +39,12 @@ app.use(helmet());
 app.use(limiter);
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '2mb' }));
+
+// Platform gate for every /api route except health, POST /api/auth/platform,
+// and CORS preflight. Manage routes still require their own session after this.
+app.use('/api', requirePlatformSession);
+app.post('/api/auth/platform', authLimiter, handlePlatformLogin);
+app.get('/api/auth/platform/check', handlePlatformCheck);
 
 // Configure multer for file uploads
 const upload = multer({
@@ -186,6 +197,7 @@ app.get('/api/parts/search/:query', async (req, res) => {
 
 // Shop-floor check-out is not a manage action. A tech name in `user` is the
 // authorization recorded on the part and the transaction. No manage session.
+// The platform token is still required; that gate runs before this handler.
 app.post('/api/parts/:id/checkout', async (req, res) => {
   try {
     const { user, notes, roNumber, unitNumber } = req.body;

@@ -1,6 +1,6 @@
-const CACHE_NAME = 'wki-tool-room-v1';
-const STATIC_CACHE_NAME = 'wki-static-v1';
-const DYNAMIC_CACHE_NAME = 'wki-dynamic-v1';
+const CACHE_NAME = 'wki-tool-room-v2';
+const STATIC_CACHE_NAME = 'wki-static-v2';
+const DYNAMIC_CACHE_NAME = 'wki-dynamic-v2';
 
 const STATIC_FILES = [
   '/',
@@ -133,6 +133,11 @@ async function handleStaticAsset(request) {
 async function handleAPIRequest(request) {
   try {
     const networkResponse = await fetch(request);
+
+    // Auth failures must reach the page so a dead platform token returns to login.
+    if (networkResponse.status === 401 || networkResponse.status === 503) {
+      return networkResponse;
+    }
     
     if (networkResponse.ok) {
       const cache = await caches.open(DYNAMIC_CACHE_NAME);
@@ -306,7 +311,29 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'CACHE_UPDATE') {
     event.waitUntil(updateCache(event.data.urls));
   }
+
+  if (event.data && event.data.type === 'CLEAR_API_CACHE') {
+    event.waitUntil(clearApiCaches());
+  }
 });
+
+async function clearApiCaches() {
+  const names = await caches.keys();
+  await Promise.all(names.map(async (name) => {
+    if (name === DYNAMIC_CACHE_NAME || name.includes('wki-dynamic')) {
+      await caches.delete(name);
+      return;
+    }
+    const cache = await caches.open(name);
+    const requests = await cache.keys();
+    await Promise.all(requests.map((request) => {
+      if (API_CACHE_PATTERNS.some((pattern) => pattern.test(request.url))) {
+        return cache.delete(request);
+      }
+      return undefined;
+    }));
+  }));
+}
 
 async function updateCache(urls = []) {
   const cache = await caches.open(DYNAMIC_CACHE_NAME);

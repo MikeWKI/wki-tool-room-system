@@ -10,6 +10,7 @@ import {
 } from '../utils/masterInventoryLocation';
 import { partsForMasterView } from '../utils/partSearch';
 import PartEnrichmentDetails from './PartEnrichmentDetails';
+import { getApiBaseUrl, lockPlatform, platformAuthHeader, shouldLockPlatform } from '../utils/platformSession';
 
 const MasterInventory = ({
   inventory,
@@ -27,9 +28,16 @@ const MasterInventory = ({
   const [activePart, setActivePart] = useState(null);
 
   useEffect(() => {
-    const base = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-    fetch(`${base}/inventory/layout`)
-      .then((r) => r.json())
+    const base = getApiBaseUrl();
+    fetch(`${base}/inventory/layout`, { headers: platformAuthHeader() })
+      .then(async (r) => {
+        const data = await r.json();
+        if (shouldLockPlatform(r.status, data.error)) {
+          lockPlatform({ reason: data.error });
+          throw new Error(data.error || 'Shop access required');
+        }
+        return data;
+      })
       .then((data) => {
         setLayout({
           sections: data.sections || [],

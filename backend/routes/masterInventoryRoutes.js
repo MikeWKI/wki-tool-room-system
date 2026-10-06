@@ -16,6 +16,7 @@ const {
 const {
   authLimiter,
   timingSafeStringEqual,
+  configuredSecret,
   issueManageSession,
   requireManageSession,
   resolveAppliedBy,
@@ -264,7 +265,7 @@ function registerMasterInventoryRoutes(app, deps) {
   });
 
   app.post('/api/auth/manage-pin', authLimiter, (req, res) => {
-    const expected = process.env.MANAGE_PIN;
+    const expected = configuredSecret(process.env.MANAGE_PIN);
     if (!expected) {
       return res.status(503).json({
         ok: false,
@@ -286,7 +287,7 @@ function registerMasterInventoryRoutes(app, deps) {
   });
 
   app.post('/api/auth/camera-access', authLimiter, (req, res) => {
-    const expected = process.env.CAMERA_ACCESS_PASSWORD;
+    const expected = configuredSecret(process.env.CAMERA_ACCESS_PASSWORD);
     if (!expected) {
       return res.status(503).json({
         ok: false,

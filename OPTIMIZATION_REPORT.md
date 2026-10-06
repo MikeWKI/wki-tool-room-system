@@ -190,11 +190,9 @@
 ```bash
 cd backend
 npm install joi compression express-validator
-
-# Replace current server.js with server-optimized.js
-mv server.js server-original.js
-mv server-optimized.js server.js
 ```
+
+The API process is `backend/server.js` (`npm start`). Do not replace that entry with an alternate server. An older alternate entry was removed because it had no platform password gate and its error handler wrote request headers and bodies to disk.
 
 ### Frontend Enhancements
 ```bash
