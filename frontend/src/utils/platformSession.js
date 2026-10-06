@@ -4,6 +4,8 @@ const STORAGE_KEY = 'wki-platform-session';
 
 export const PLATFORM_LOCK_EVENT = 'wki-platform-lock';
 export const PLATFORM_TOKEN_HEADER = 'X-Platform-Token';
+export const PLATFORM_UNREACHABLE_MESSAGE = "Can't reach the server, retry";
+const API_CACHE_NAME = 'wki-dynamic-v2';
 
 export function getApiBaseUrl() {
   return process.env.REACT_APP_API_URL ||
@@ -62,10 +64,33 @@ export function shouldLockPlatform(status, error) {
   return false;
 }
 
-/** Drop the shop-floor session and the manage session behind it. */
+/** Drop cached inventory responses so Lock does not leave parts readable offline. */
+export function clearShopApiCache() {
+  try {
+    const cacheStorage = typeof caches !== 'undefined' ? caches : null;
+    if (cacheStorage?.keys) {
+      cacheStorage.keys().then((names) => {
+        names.forEach((name) => {
+          if (name === API_CACHE_NAME || name.includes('wki-dynamic')) {
+            cacheStorage.delete(name);
+          }
+        });
+      }).catch(() => {});
+    }
+    const worker = typeof navigator !== 'undefined' ? navigator.serviceWorker : null;
+    if (worker?.controller) {
+      worker.controller.postMessage({ type: 'CLEAR_API_CACHE' });
+    }
+  } catch (error) {
+    // Lock still removes the token if cache storage throws.
+  }
+}
+
+/** Drop the shop-floor session, its API cache, and the manage session behind it. */
 export function lockPlatform(detail = {}) {
   clearPlatformToken();
   clearManageSession();
+  clearShopApiCache();
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent(PLATFORM_LOCK_EVENT, { detail }));
   }

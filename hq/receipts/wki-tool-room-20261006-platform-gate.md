@@ -34,6 +34,16 @@ On the **API** service only (`wki-tool-room-system-1`):
 
 Do not set the password on the frontend service and do not put it in the repo.
 
+## Follow-up after verifier (still on this branch)
+
+- Whitespace-only `PLATFORM_PASSWORD`, `MANAGE_PIN`, and `CAMERA_ACCESS_PASSWORD` are unset (503). Comparisons use the trimmed value.
+- Platform token verification rejects `exp` later than `iat` plus 365 days, even when the signature is valid.
+- `backend/server-optimized.js` is deleted. `OPTIMIZATION_REPORT.md` no longer says to swap it in.
+- A network error on the stored-token check stays on the lock screen with "Can't reach the server, retry" and a Retry button.
+- Lock clears the platform token and the service worker's dynamic/API cache.
+
+Not in this round: server-side revocation, rate-limit tuning for the shared shop IP, the `/api/health` origin list, and echoed error messages.
+
 ## Deploy-order risk
 
 If this API revision deploys without `PLATFORM_PASSWORD`, every gated route returns 503 and the shop stops (health still answers). If the API deploys with the password before the new frontend, the current frontend does not send `X-Platform-Token`, so inventory, check-out, and Manage all 401 until the frontend deploy is live. Set the env var first, then deploy API and frontend together, or deploy the frontend immediately after the API.

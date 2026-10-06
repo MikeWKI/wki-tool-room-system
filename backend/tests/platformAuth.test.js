@@ -15,6 +15,8 @@ const {
   issuePlatformSession,
   verifyPlatformToken,
   platformSessionDays,
+  signPlatformPayload,
+  maxPlatformTtlMs,
 } = require('../middleware/platformAuth');
 const app = require('../server');
 
@@ -94,6 +96,28 @@ test('platform token is purpose-scoped and lasts about 30 days', () => {
   } finally {
     delete process.env.PLATFORM_SESSION_DAYS;
   }
+});
+
+test('verification rejects an exp past the max TTL even with a valid signature', () => {
+  const now = Date.now();
+  const maxTtl = maxPlatformTtlMs();
+  const tooLong = signPlatformPayload({
+    purpose: 'platform',
+    iat: now,
+    exp: now + maxTtl + 60 * 1000,
+  });
+  assert.equal(verifyPlatformToken(tooLong), null);
+
+  const atCap = signPlatformPayload({
+    purpose: 'platform',
+    iat: now,
+    exp: now + maxTtl,
+  });
+  assert.equal(verifyPlatformToken(atCap).purpose, 'platform');
+
+  const issued = issuePlatformSession();
+  const payload = verifyPlatformToken(issued.token);
+  assert.ok(payload.exp - payload.iat <= maxTtl);
 });
 
 test('rotating PLATFORM_PASSWORD invalidates tokens unless SESSION_SECRET is set', () => {
@@ -287,6 +311,105 @@ test('platform gate, health, manage pair, and rate limit', async () => {
     assert.equal(blocked.status, 429);
 
     const savedPassword = process.env.PLATFORM_PASSWORD;
+    const savedPin = process.env.MANAGE_PIN;
+    const savedCamera = process.env.CAMERA_ACCESS_PASSWORD;
+    try {
+      process.env.PLATFORM_PASSWORD = '   ';
+      const blankPlatform = await call({
+        method: 'POST',
+        path: '/api/auth/platform',
+        ip: '198.51.100.100',
+        body: { password: '   ' },
+      });
+      assert.equal(blankPlatform.status, 503);
+      assert.equal(blankPlatform.json.error, 'platform_password_not_configured');
+      const blankParts = await call({
+        method: 'GET',
+        path: '/api/parts',
+        ip: '198.51.100.101',
+        headers: platform,
+      });
+      assert.equal(blankParts.status, 503);
+      assert.equal(blankParts.json.error, 'platform_password_not_configured');
+
+      process.env.PLATFORM_PASSWORD = '  shop-secret  ';
+      const trimmedLogin = await call({
+        method: 'POST',
+        path: '/api/auth/platform',
+        ip: '198.51.100.102',
+        body: { password: 'shop-secret' },
+      });
+      assert.equal(trimmedLogin.status, 200);
+      assert.equal(trimmedLogin.json.ok, true);
+      const paddedLogin = await call({
+        method: 'POST',
+        path: '/api/auth/platform',
+        ip: '198.51.100.103',
+        body: { password: '  shop-secret  ' },
+      });
+      assert.equal(paddedLogin.status, 200);
+      assert.equal(paddedLogin.json.ok, false);
+      assert.equal(paddedLogin.json.token, undefined);
+
+      process.env.PLATFORM_PASSWORD = savedPassword;
+      process.env.MANAGE_PIN = '   ';
+      const blankPin = await call({
+        method: 'POST',
+        path: '/api/auth/manage-pin',
+        ip: '198.51.100.104',
+        headers: platformHeaders(),
+        body: { pin: '   ' },
+      });
+      assert.equal(blankPin.status, 503);
+      const blankWrite = await call({
+        method: 'POST',
+        path: '/api/parts',
+        ip: '198.51.100.105',
+        headers: {
+          ...platformHeaders(),
+          Authorization: `Bearer ${issueManageSession('Floor Lead').token}`,
+        },
+        body: { partNumber: 'NEW', description: 'x', shelf: 'TBD', category: 'General' },
+      });
+      assert.equal(blankWrite.status, 503);
+
+      process.env.MANAGE_PIN = '  test-manage-pin  ';
+      const trimmedPin = await call({
+        method: 'POST',
+        path: '/api/auth/manage-pin',
+        ip: '198.51.100.106',
+        headers: platformHeaders(),
+        body: { pin: 'test-manage-pin' },
+      });
+      assert.equal(trimmedPin.status, 200);
+      assert.equal(trimmedPin.json.ok, true);
+
+      process.env.CAMERA_ACCESS_PASSWORD = '   ';
+      const blankCamera = await call({
+        method: 'POST',
+        path: '/api/auth/camera-access',
+        ip: '198.51.100.107',
+        headers: platformHeaders(),
+        body: { password: '   ' },
+      });
+      assert.equal(blankCamera.status, 503);
+
+      process.env.CAMERA_ACCESS_PASSWORD = '  test-camera-password  ';
+      const trimmedCamera = await call({
+        method: 'POST',
+        path: '/api/auth/camera-access',
+        ip: '198.51.100.108',
+        headers: platformHeaders(),
+        body: { password: 'test-camera-password' },
+      });
+      assert.equal(trimmedCamera.status, 200);
+      assert.equal(trimmedCamera.json.ok, true);
+    } finally {
+      process.env.PLATFORM_PASSWORD = savedPassword;
+      process.env.MANAGE_PIN = savedPin;
+      process.env.CAMERA_ACCESS_PASSWORD = savedCamera;
+    }
+
     delete process.env.PLATFORM_PASSWORD;
     try {
       const loginClosed = await call({

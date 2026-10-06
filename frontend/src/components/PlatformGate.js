@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import PlatformLogin from './PlatformLogin';
 import {
   PLATFORM_LOCK_EVENT,
+  PLATFORM_UNREACHABLE_MESSAGE,
   getApiBaseUrl,
   platformAuthHeader,
   readPlatformSession,
@@ -50,10 +51,14 @@ const PlatformGate = ({ children }) => {
           setStatus('locked');
           return;
         }
-        setStatus('unlocked');
+        setNotice(PLATFORM_UNREACHABLE_MESSAGE);
+        setStatus('locked');
       })
       .catch(() => {
-        if (!cancelled) setStatus('unlocked');
+        if (!cancelled) {
+          setNotice(PLATFORM_UNREACHABLE_MESSAGE);
+          setStatus('locked');
+        }
       })
       .finally(() => clearTimeout(timer));
 
@@ -69,6 +74,10 @@ const PlatformGate = ({ children }) => {
     <PlatformLogin
       checking={status === 'checking'}
       notice={notice}
+      onRetry={notice === PLATFORM_UNREACHABLE_MESSAGE ? () => {
+        setNotice('');
+        setStatus('checking');
+      } : undefined}
       onUnlocked={() => {
         setNotice('');
         setStatus('unlocked');

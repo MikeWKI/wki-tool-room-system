@@ -14,7 +14,7 @@ function messageFor(status, data) {
   return WRONG_PASSWORD;
 }
 
-const PlatformLogin = ({ onUnlocked, checking = false, notice = '' }) => {
+const PlatformLogin = ({ onUnlocked, checking = false, notice = '', onRetry }) => {
   const [password, setPassword] = useState('');
   const [visible, setVisible] = useState(false);
   const [message, setMessage] = useState(notice || '');
@@ -114,6 +114,15 @@ const PlatformLogin = ({ onUnlocked, checking = false, notice = '' }) => {
             </div>
             {message ? (
               <p role="alert" className="mt-3 text-sm text-red-200">{message}</p>
+            ) : null}
+            {onRetry ? (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="mt-3 w-full min-h-[56px] rounded-lg border border-red-500 text-base font-bold text-white"
+              >
+                Retry
+              </button>
             ) : null}
             <button
               type="submit"

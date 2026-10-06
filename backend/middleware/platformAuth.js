@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { timingSafeStringEqual } = require('./manageAuth');
+const { timingSafeStringEqual, configuredSecret } = require('./manageAuth');
 
 /**
  * Whole-app gate. This is separate from the manage session.
@@ -24,13 +24,15 @@ const MAX_PLATFORM_SESSION_DAYS = 365;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function platformPassword() {
-  const value = process.env.PLATFORM_PASSWORD;
-  if (value == null) return '';
-  return String(value);
+  return configuredSecret(process.env.PLATFORM_PASSWORD);
 }
 
 function platformConfigured() {
   return platformPassword().length > 0;
+}
+
+function maxPlatformTtlMs() {
+  return MAX_PLATFORM_SESSION_DAYS * MS_PER_DAY;
 }
 
 function platformSessionDays() {
@@ -77,16 +79,21 @@ function verifyPlatformToken(token) {
     return null;
   }
   if (!payload || payload.purpose !== 'platform') return null;
-  if (typeof payload.exp !== 'number' || payload.exp < Date.now()) return null;
+  if (typeof payload.iat !== 'number' || typeof payload.exp !== 'number') return null;
+  if (!Number.isFinite(payload.iat) || !Number.isFinite(payload.exp)) return null;
+  if (payload.exp < Date.now()) return null;
+  // A valid signature is not enough. exp cannot outlive issue time plus the max TTL.
+  if (payload.exp > payload.iat + maxPlatformTtlMs()) return null;
   return payload;
 }
 
 function issuePlatformSession() {
   const now = Date.now();
+  const ttl = Math.min(platformSessionTtlMs(), maxPlatformTtlMs());
   const payload = {
     purpose: 'platform',
     iat: now,
-    exp: now + platformSessionTtlMs(),
+    exp: now + ttl,
   };
   return {
     token: signPlatformPayload(payload),
@@ -163,6 +170,8 @@ module.exports = {
   DEFAULT_PLATFORM_SESSION_DAYS,
   platformConfigured,
   platformSessionDays,
+  maxPlatformTtlMs,
+  signPlatformPayload,
   issuePlatformSession,
   verifyPlatformToken,
   requirePlatformSession,

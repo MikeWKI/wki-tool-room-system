@@ -311,7 +311,29 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'CACHE_UPDATE') {
     event.waitUntil(updateCache(event.data.urls));
   }
+
+  if (event.data && event.data.type === 'CLEAR_API_CACHE') {
+    event.waitUntil(clearApiCaches());
+  }
 });
+
+async function clearApiCaches() {
+  const names = await caches.keys();
+  await Promise.all(names.map(async (name) => {
+    if (name === DYNAMIC_CACHE_NAME || name.includes('wki-dynamic')) {
+      await caches.delete(name);
+      return;
+    }
+    const cache = await caches.open(name);
+    const requests = await cache.keys();
+    await Promise.all(requests.map((request) => {
+      if (API_CACHE_PATTERNS.some((pattern) => pattern.test(request.url))) {
+        return cache.delete(request);
+      }
+      return undefined;
+    }));
+  }));
+}
 
 async function updateCache(urls = []) {
   const cache = await caches.open(DYNAMIC_CACHE_NAME);

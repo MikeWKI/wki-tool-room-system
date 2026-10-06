@@ -108,3 +108,65 @@ test('a valid platform token unlocks the app and Lock returns to the login scree
   expect(screen.queryByText('Parts Inventory')).not.toBeInTheDocument();
   expect(localStorage.getItem('wki-platform-session')).toBeNull();
 });
+
+test('a stored token stays locked when the server cannot be reached', async () => {
+  localStorage.setItem('wki-platform-session', JSON.stringify({
+    token: 'stored-token',
+    expiresAt: Date.now() + 60_000,
+  }));
+  global.fetch.mockRejectedValue(new Error('network down'));
+
+  render(
+    <PlatformGate>
+      <div>Parts Inventory</div>
+    </PlatformGate>
+  );
+
+  expect(await screen.findByRole('alert')).toHaveTextContent("Can't reach the server, retry");
+  expect(screen.queryByText('Parts Inventory')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+
+  global.fetch.mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ ok: true, purpose: 'platform' }),
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+  expect(await screen.findByText('Parts Inventory')).toBeInTheDocument();
+});
+
+test('Lock clears the platform token and the service worker API cache', async () => {
+  localStorage.setItem('wki-platform-session', JSON.stringify({
+    token: 'stored-token',
+    expiresAt: Date.now() + 60_000,
+  }));
+  const deleted = [];
+  const originalCaches = global.caches;
+  global.caches = {
+    keys: jest.fn(async () => ['wki-dynamic-v2', 'wki-static-v2']),
+    delete: jest.fn(async (name) => {
+      deleted.push(name);
+      return true;
+    }),
+  };
+  const postMessage = jest.fn();
+  const originalServiceWorker = navigator.serviceWorker;
+  Object.defineProperty(navigator, 'serviceWorker', {
+    configurable: true,
+    value: { controller: { postMessage } },
+  });
+
+  await act(async () => {
+    lockPlatform();
+  });
+  await waitFor(() => expect(deleted).toContain('wki-dynamic-v2'));
+  expect(deleted).not.toContain('wki-static-v2');
+  expect(postMessage).toHaveBeenCalledWith({ type: 'CLEAR_API_CACHE' });
+  expect(localStorage.getItem('wki-platform-session')).toBeNull();
+
+  global.caches = originalCaches;
+  Object.defineProperty(navigator, 'serviceWorker', {
+    configurable: true,
+    value: originalServiceWorker,
+  });
+});
