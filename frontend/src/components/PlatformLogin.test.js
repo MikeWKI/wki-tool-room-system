@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import PlatformLogin from './PlatformLogin';
 import PlatformGate from './PlatformGate';
-import { lockPlatform } from '../utils/platformSession';
+import { lockPlatform, shouldLockPlatform, PLATFORM_LOCK_EVENT } from '../utils/platformSession';
 
 beforeEach(() => {
   localStorage.clear();
@@ -36,8 +36,8 @@ test('login screen blocks the app until the shop password is accepted', () => {
 test('password can be shown, Enter submits, and errors cover wrong, lockout, and unset', async () => {
   const onUnlocked = jest.fn();
   global.fetch.mockResolvedValueOnce({
-    ok: true,
-    status: 200,
+    ok: false,
+    status: 401,
     json: async () => ({ ok: false, error: 'incorrect_password' }),
   });
 
@@ -70,6 +70,36 @@ test('password can be shown, Enter submits, and errors cover wrong, lockout, and
   });
   fireEvent.submit(input.closest('form'));
   expect(await screen.findByRole('alert')).toHaveTextContent('not configured');
+});
+
+test('a 401 from platform login shows the shop password error and does not log the gate out', async () => {
+  expect(shouldLockPlatform(401, 'incorrect_password')).toBe(false);
+  expect(shouldLockPlatform(401, 'platform_token_invalid')).toBe(true);
+
+  const locks = [];
+  const onLock = (event) => locks.push(event);
+  window.addEventListener(PLATFORM_LOCK_EVENT, onLock);
+  global.fetch.mockResolvedValueOnce({
+    ok: false,
+    status: 401,
+    json: async () => ({ ok: false, error: 'incorrect_password' }),
+  });
+
+  render(
+    <PlatformGate>
+      <div>Parts Inventory</div>
+    </PlatformGate>
+  );
+
+  fireEvent.change(screen.getByLabelText('Shop password'), { target: { value: 'wrong' } });
+  fireEvent.submit(screen.getByLabelText('Shop password').closest('form'));
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('Incorrect shop password.');
+  expect(screen.queryByText('Parts Inventory')).not.toBeInTheDocument();
+  expect(screen.getByLabelText('Shop password')).toBeInTheDocument();
+  expect(locks).toHaveLength(0);
+  expect(localStorage.getItem('wki-platform-session')).toBeNull();
+  window.removeEventListener(PLATFORM_LOCK_EVENT, onLock);
 });
 
 test('a valid platform token unlocks the app and Lock returns to the login screen', async () => {

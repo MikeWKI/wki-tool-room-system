@@ -17,6 +17,7 @@ const {
   handlePlatformCheck,
 } = require('./middleware/platformAuth');
 const { allowedOrigins, corsOptions } = require('./middleware/corsPolicy');
+const { trustProxyHops, clientRateLimitKey } = require('./middleware/clientIp');
 require('dotenv').config();
 
 // Create instance of DatabaseService
@@ -25,13 +26,17 @@ const dbService = new DatabaseService();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Trust proxy for Render deployment
-app.set('trust proxy', 1);
+// Hop 1 is Render's load balancer. The client key is resolved in clientIp.js
+// (Cloudflare's visitor IP only when that peer is a published Cloudflare range).
+app.set('trust proxy', trustProxyHops());
 
-// Rate limiting
+// Rate limiting. legacyHeaders keeps X-RateLimit-Remaining for the health check script.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each client to 100 requests per windowMs
+  legacyHeaders: true,
+  standardHeaders: false,
+  keyGenerator: clientRateLimitKey,
 });
 
 // Middleware
