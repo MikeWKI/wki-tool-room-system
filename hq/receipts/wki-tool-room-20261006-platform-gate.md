@@ -1,6 +1,7 @@
 # Done receipt — platform shop-password gate
 
 - **Branch:** `feature/platform-gate` (from `main` `cfa1886`)
+- **Feature commit:** `7e8bc446c1204237aca15c060f19a1f4963f9580`
 - **Not done:** no merge, no push to `main`, no force-push, no Render env edits, no password committed, no data deletes.
 
 ## What shipped
