@@ -2,6 +2,7 @@
 
 - **Branch:** `fix/ratelimit-client-ip` (rebased onto `main` `e2cdef3`, wallpaper CSS included)
 - **Feature commit:** `3bfe92c2fd395958bfb6ff89e55128af49604fac`
+- **PR:** https://github.com/MikeWKI/wki-tool-room-system/pull/6
 - **Not done:** no merge, no force-push, no Render env edits, no live data writes. Live check was GET `/api/health` only.
 
 ## Approach
